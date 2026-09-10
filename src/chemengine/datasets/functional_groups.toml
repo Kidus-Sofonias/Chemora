@@ -1,0 +1,152 @@
+_version = "1.0.0"
+
+# Functional group definitions for detection.
+# Each group has a name, SMARTS pattern, priority, and categories.
+# Higher priority groups are matched first (more specific first).
+
+[[group]]
+name = "Alcohol"
+smarts = "[OX2H]"
+priority = 10
+categories = ["oxygen", "hydroxy", "polar"]
+description = "Hydroxyl group (-OH) bonded to carbon"
+
+[[group]]
+name = "Phenol"
+smarts = "[OX2H][c]"
+priority = 15
+categories = ["oxygen", "hydroxy", "aromatic"]
+description = "Hydroxyl group directly bonded to an aromatic ring"
+
+[[group]]
+name = "Ether"
+smarts = "[CX4][OX2][CX4]"
+priority = 10
+categories = ["oxygen", "ether"]
+description = "Ether functional group (R-O-R')"
+
+[[group]]
+name = "Aldehyde"
+smarts = "[CX3H1](=O)[#6]"
+priority = 20
+categories = ["carbonyl", "oxygen"]
+description = "Aldehyde group (-CHO)"
+
+[[group]]
+name = "Ketone"
+smarts = "[#6][CX3](=O)[#6]"
+priority = 15
+categories = ["carbonyl", "oxygen"]
+description = "Ketone group (C=O between two carbons)"
+
+[[group]]
+name = "Carboxylic Acid"
+smarts = "[CX3](=O)[OX2H]"
+priority = 25
+categories = ["carbonyl", "oxygen", "acid"]
+description = "Carboxylic acid group (-COOH)"
+
+[[group]]
+name = "Ester"
+smarts = "[#6][CX3](=O)[OX2][#6]"
+priority = 20
+categories = ["carbonyl", "oxygen", "ester"]
+description = "Ester group (R-COO-R')"
+
+[[group]]
+name = "Amine Primary"
+smarts = "[NX3H2][#6]"
+priority = 10
+categories = ["nitrogen", "amine", "basic"]
+description = "Primary amine (-NH2)"
+
+[[group]]
+name = "Amine Secondary"
+smarts = "[NX3H1]([#6])[#6]"
+priority = 10
+categories = ["nitrogen", "amine", "basic"]
+description = "Secondary amine (-NHR)"
+
+[[group]]
+name = "Amine Tertiary"
+smarts = "[NX3]([#6])([#6])[#6]"
+priority = 10
+categories = ["nitrogen", "amine", "basic"]
+description = "Tertiary amine (-NR2)"
+
+[[group]]
+name = "Amide"
+smarts = "[CX3](=O)[NX3]"
+priority = 20
+categories = ["carbonyl", "nitrogen", "amide"]
+description = "Amide group (-CONH2, -CONHR, -CONR2)"
+
+[[group]]
+name = "Nitrile"
+smarts = "[NX1]#[CX2]"
+priority = 15
+categories = ["nitrogen", "nitrile"]
+description = "Nitrile group (-C≡N)"
+
+[[group]]
+name = "Nitro"
+smarts = "[NX3](=O)=O"
+priority = 15
+categories = ["nitrogen", "oxygen", "nitro"]
+description = "Nitro group (-NO2)"
+
+[[group]]
+name = "Halogen"
+smarts = "[F,Cl,Br,I]"
+priority = 5
+categories = ["halogen"]
+description = "Halogen substituent (F, Cl, Br, I)"
+
+[[group]]
+name = "Sulfide"
+smarts = "[CX4][SX2][CX4]"
+priority = 10
+categories = ["sulfur", "sulfide"]
+description = "Sulfide (thioether) group"
+
+[[group]]
+name = "Thiol"
+smarts = "[SX2H]"
+priority = 10
+categories = ["sulfur", "thiol"]
+description = "Thiol group (-SH)"
+
+[[group]]
+name = "Sulfoxide"
+smarts = "[#6][SX3](=O)[#6]"
+priority = 15
+categories = ["sulfur", "oxygen", "sulfoxide"]
+description = "Sulfoxide group (R-S(=O)-R')"
+
+[[group]]
+name = "Sulfone"
+smarts = "[#6][SX4](=O)(=O)[#6]"
+priority = 15
+categories = ["sulfur", "oxygen", "sulfone"]
+description = "Sulfone group (R-S(=O)2-R')"
+
+[[group]]
+name = "Alkene"
+smarts = "[CX3]=[CX3]"
+priority = 5
+categories = ["carbon", "unsaturated"]
+description = "Carbon-carbon double bond"
+
+[[group]]
+name = "Alkyne"
+smarts = "[CX2]#[CX2]"
+priority = 5
+categories = ["carbon", "unsaturated"]
+description = "Carbon-carbon triple bond"
+
+[[group]]
+name = "Aromatic Ring"
+smarts = "[a]"
+priority = 5
+categories = ["aromatic", "ring"]
+description = "Aromatic ring atom"

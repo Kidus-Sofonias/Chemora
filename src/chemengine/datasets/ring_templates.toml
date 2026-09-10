@@ -1,0 +1,83 @@
+_version = "1.0.0"
+
+# Ideal ring geometries for 2D layout.
+# These provide precomputed coordinates for common ring systems.
+
+[ring.3]
+name = "Cyclopropane"
+num_atoms = 3
+bond_length = 1.51
+bond_angle = 60.0
+coordinates = [
+  {x = 0.000, y = 0.000},
+  {x = 1.510, y = 0.000},
+  {x = 0.755, y = 1.308}
+]
+
+[ring.4]
+name = "Cyclobutane"
+num_atoms = 4
+bond_length = 1.55
+bond_angle = 90.0
+coordinates = [
+  {x = 0.000, y = 0.000},
+  {x = 1.550, y = 0.000},
+  {x = 1.550, y = 1.550},
+  {x = 0.000, y = 1.550}
+]
+
+[ring.5]
+name = "Cyclopentane"
+num_atoms = 5
+bond_length = 1.54
+bond_angle = 108.0
+coordinates = [
+  {x = 0.000, y = 0.000},
+  {x = 1.540, y = 0.000},
+  {x = 2.443, y = 0.937},
+  {x = 1.849, y = 2.109},
+  {x = 0.569, y = 2.090}
+]
+
+[ring.6]
+name = "Cyclohexane Chair"
+num_atoms = 6
+bond_length = 1.53
+bond_angle = 111.0
+coordinates = [
+  {x = 0.000, y = 0.000},
+  {x = 1.530, y = 0.000},
+  {x = 2.295, y = 1.325},
+  {x = 1.530, y = 2.650},
+  {x = 0.000, y = 2.650},
+  {x = -0.765, y = 1.325}
+]
+
+[ring.6_flat]
+name = "Benzene (Flat)"
+num_atoms = 6
+bond_length = 1.40
+bond_angle = 120.0
+coordinates = [
+  {x = 0.000, y = 0.000},
+  {x = 1.400, y = 0.000},
+  {x = 2.100, y = 1.212},
+  {x = 1.400, y = 2.424},
+  {x = 0.000, y = 2.424},
+  {x = -0.700, y = 1.212}
+]
+
+[ring.7]
+name = "Cycloheptane"
+num_atoms = 7
+bond_length = 1.54
+bond_angle = 128.6
+coordinates = [
+  {x = 0.000, y = 0.000},
+  {x = 1.540, y = 0.000},
+  {x = 2.628, y = 0.815},
+  {x = 2.772, y = 2.247},
+  {x = 1.540, y = 3.080},
+  {x = 0.000, y = 2.665},
+  {x = -0.772, y = 1.432}
+]
