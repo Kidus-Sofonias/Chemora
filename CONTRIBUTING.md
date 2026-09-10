@@ -6,23 +6,28 @@ Thank you for your interest in contributing to ChemEngine! This document provide
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/chemengine.git
-   cd chemengine
+   git clone https://github.com/Kidus-Sofonias/Chemora.git
+   cd Chemora
    ```
 
-2. **Create a virtual environment**
+2. **Navigate to the ChemEngine package**
+   ```bash
+   cd packages/chemengine
+   ```
+
+3. **Create a virtual environment**
    ```bash
    python -m venv venv
    source venv/bin/activate  # Linux/Mac
    venv\Scripts\activate     # Windows
    ```
 
-3. **Install in development mode**
+4. **Install in development mode**
    ```bash
    pip install -e ".[dev]"
    ```
 
-4. **Verify setup**
+5. **Verify setup**
    ```bash
    pytest tests/ -v
    ```
@@ -32,7 +37,7 @@ Thank you for your interest in contributing to ChemEngine! This document provide
 - Follow PEP 8 with 100-character line limit
 - Use type hints for all public functions and methods
 - Docstrings should follow Google convention
-- Run `ruff` before committing: `ruff check src/`
+- Run `ruff` before committing: `ruff check packages/chemengine/src/`
 
 ## Testing
 

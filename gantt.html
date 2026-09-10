@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChemEngine — Engineering Roadmap</title>
+<title>Chemora — Engineering Roadmap</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;550;600;650;700;800;900&display=swap" rel="stylesheet">
@@ -1900,7 +1900,7 @@ body {
 
           <p class="hero-subtitle">
             From molecule to production — 16 engineering phases spanning core models, validation,
-            stereochemistry, isomer generation, and the v1.0.0 release.
+            stereochemistry, isomer generation, the v1.0.0 release, and the monorepo migration.
           </p>
         </div>
       </div>
@@ -2192,13 +2192,16 @@ const phases = [
     ver: '1.1',     start: 76, dur: 2,  risk: 'low',     status: 'complete', weight: 2 },
   { id: 17, name: 'Correctness Gate',            desc: 'Chemistry-correctness audit & fixes across the existing engine',
     tasks: ['Group-aware formula parser (parens, nested, hydrates, charges)', 'compute() delegates to properties subsystem', 'convert() real serializers only', 'parse_any routing + InChIKey fast-fail', '13-tool AI audit', 'Monoisotopic exact mass & aromatic valence fix', 'Independent chemical validation'],
-    ver: '1.1',     start: 78, dur: 2,  risk: 'medium',  status: 'complete', weight: 4 }
+    ver: '1.1',     start: 78, dur: 2,  risk: 'medium',  status: 'complete', weight: 4 },
+  { id: 18, name: 'Monorepo Migration',          desc: 'Restructure Chemora from ChemEngine-only to monorepo layout',
+    tasks: ['Move ChemEngine to packages/chemengine/', 'Create apps/mobile, apps/web, apps/admin', 'Create backend/ and infrastructure/', 'Update documentation and project tracking', 'Verify all tests pass'],
+    ver: '1.1',     start: 80, dur: 2,  risk: 'low',     status: 'complete', weight: 3 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 78;
+const TOTAL_WEEKS = 82;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;

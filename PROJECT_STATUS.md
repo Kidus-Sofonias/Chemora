@@ -1,15 +1,14 @@
-# ChemEngine — Project Status Report
+# Chemora — Project Status Report
 
-**Date:** September 2, 2026
-**Auditor:** Buffy (Freebuff AI Agent)
-**Version:** 1.0.0
-**Status:** ✅ All Phases Complete — v1.0.0 Release + Bug Fixes
+**Date:** September 10, 2026
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo)
+**Status:** ✅ All Phases Complete — v1.0.0 Release + Monorepo Migration
 
 ---
 
 ## Executive Summary
 
-ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. Additional bug fixes applied: implicit hydrogen accounting in stereochemistry, rotatable bond definitions corrected, SMARTS parser improvements, aromaticity edge cases fixed, monoisotopic exact-mass correction, aromatic-bond valence handling, group-aware formula parser (parentheses, nested groups, hydrates, charges), and test expectations corrected.
+ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. ChemEngine now lives at `packages/chemengine/` and remains independently installable and testable.
 
 | Metric | Value |
 |--------|-------|
@@ -20,6 +19,25 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Test Files** | 37 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
+
+---
+
+## Monorepo Migration (Complete — 2026-09-10)
+
+The repository was restructured from a ChemEngine-only layout into the Chemora monorepo layout. All existing functionality is preserved.
+
+**Repository structure:**
+- `packages/chemengine/` — ChemEngine package (src layout preserved)
+- `apps/mobile/`, `apps/web/`, `apps/admin/` — Frontend applications (reserved)
+- `backend/` — Backend API (reserved)
+- `infrastructure/` — CI/CD, Docker (reserved)
+- `TODO.md`, `PROJECT_STATUS.md`, `gantt.html` — Project tracking (updated)
+
+**Verification:**
+- 1635 tests passed, 1 skipped (baseline preserved)
+- `import chemengine` works from installed package
+- No duplicate ChemEngine implementation
+- No chemistry functionality lost
 
 ---
 

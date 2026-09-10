@@ -1,7 +1,7 @@
-"""compounds — Dynamic compound registry with no database.
+﻿"""compounds ΓÇö Dynamic compound registry with no database.
 
 The core philosophy: compounds are NEVER stored as static records.
-Every compound is parsed from a SMILES/formula/name → MolecularGraph,
+Every compound is parsed from a SMILES/formula/name ΓåÆ MolecularGraph,
 and ALL properties are computed from that graph on-the-fly.
 
 Admin-editable metadata (common names, safety notes, uses, hazards)
@@ -24,7 +24,7 @@ Design:
     - CompoundRegistry: Loads admin-editable TOML config
     - CompoundRecord: SMILES + metadata (names, uses, safety, etc.)
     - Compound: Resolved compound with graph + computed properties
-    - No database — everything computed from MolecularGraph
+    - No database ΓÇö everything computed from MolecularGraph
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ _COMPOUNDS_DIR: Path = Path(__file__).resolve().parent.parent / "datasets"
 class CompoundMetadata:
     """Admin-editable metadata for a compound.
 
-    This is the ONLY part that's "stored" — and it's just text fields
+    This is the ONLY part that's "stored" ΓÇö and it's just text fields
     in a TOML file. The actual chemistry is always computed from the graph.
 
     Attributes:
@@ -91,7 +91,7 @@ class Compound:
     """A fully resolved compound with graph and computed properties.
 
     Created by the registry from a CompoundRecord. The graph is the
-    source of truth — all properties are derived from it.
+    source of truth ΓÇö all properties are derived from it.
 
     Attributes:
         smiles: The SMILES string.
@@ -187,12 +187,12 @@ class Compound:
 
 
 class CompoundRegistry:
-    """Dynamic compound registry — no database, everything computed.
+    """Dynamic compound registry ΓÇö no database, everything computed.
 
     Loads admin-editable TOML config that maps compound names to SMILES
     strings and metadata. When you resolve a compound, the engine:
     1. Finds the SMILES in the TOML config
-    2. Parses SMILES → MolecularGraph
+    2. Parses SMILES ΓåÆ MolecularGraph
     3. Computes ALL properties from the graph
     4. Returns a Compound with graph + metadata
 
@@ -274,7 +274,7 @@ class CompoundRegistry:
     def from_smiles(self, smiles: str) -> Compound:
         """Create a Compound directly from a SMILES string.
 
-        No registry lookup — just parse and compute.
+        No registry lookup ΓÇö just parse and compute.
 
         Args:
             smiles: SMILES string.
@@ -364,9 +364,9 @@ class CompoundRegistry:
         return parse_smiles(smiles)
 
 
-# ── Convenience: Built-in Compound Catalog ──
+# ΓöÇΓöÇ Convenience: Built-in Compound Catalog ΓöÇΓöÇ
 
-# These are computed, not stored — just SMILES strings with names.
+# These are computed, not stored ΓÇö just SMILES strings with names.
 # An admin can override/extend these via compounds.toml.
 
 _BUILTIN_COMPOUNDS: dict[str, dict[str, Any]] = {

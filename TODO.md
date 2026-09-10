@@ -1,11 +1,11 @@
-# ChemEngine — Engineering Roadmap
+# Chemora — Engineering Roadmap
 
 > **📊 Live Gantt chart**: Open [`gantt.html`](gantt.html) in your browser for an interactive, animated visualization of this roadmap. Automatically updates when phase statuses change.
 
-> **Version:** 0.10.0 → 1.0.0
-> **Last Updated:** July 22, 2026
-> **Owner:** ChemEngine Architecture Team
-> **Status:** Active Development
+> **Version:** 0.10.0 → 1.0.0 (ChemEngine complete; monorepo migration complete)
+> **Last Updated:** September 10, 2026
+> **Owner:** Chemora Architecture Team
+> **Status:** Active Development — Monorepo migration complete, Backend Foundation next
 
 ---
 
@@ -122,6 +122,26 @@ starting any new feature milestone. It addressed:
 H2O, CO2, CH4, NH3, NaCl, H2SO4, Ca(OH)2, Fe2(SO4)3, C6H6, C2H5OH,
 CH3COOH, glucose and caffeine (formula, average mass, atom counts,
 connectivity, canonical form, valence).
+
+---
+
+## Monorepo Migration (Complete — 2026-09-10)
+
+Chemora was restructured from a ChemEngine-only repository into a proper monorepo. ChemEngine now lives at `packages/chemengine/` and remains independently installable and testable. The backend, frontend apps (mobile/web/admin), and infrastructure have reserved top-level locations.
+
+**Acceptance criteria:**
+- [x] Chemora is a monorepo
+- [x] ChemEngine lives under `packages/chemengine/`
+- [x] ChemEngine remains independently structured (src layout preserved)
+- [x] Backend has a reserved top-level location (`backend/`)
+- [x] Frontend apps have reserved locations (`apps/mobile/`, `apps/web/`, `apps/admin/`)
+- [x] Infrastructure has a reserved location (`infrastructure/`)
+- [x] No duplicate ChemEngine implementation exists
+- [x] No chemistry functionality was lost
+- [x] Public ChemEngine imports still work (`import chemengine`)
+- [x] ChemEngine tests still pass: **1635 passed, 1 skipped**
+- [x] Chemical validation remains correct
+- [x] Documentation paths updated
 
 ---
 
@@ -1622,11 +1642,13 @@ Ship ChemEngine as a professional open-source library on PyPI. 100% documentatio
 
 | Metric | Value |
 |--------|-------|
-| **Overall Completion** | **100%** of v1.0.0 scope |
-| **Completed Phases** | All (0–15) |
+| **ChemEngine Completion** | **100%** of v1.0.0 scope |
+| **Completed Phases** | All (0–15) + Correctness Gate + Monorepo Migration |
 | **Current Version** | v1.0.0 |
-| **Passing Tests** | 1116 / 1117 (99.9%) |
+| **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
+| **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`) |
+| **Next Milestone** | Backend Foundation |
 
 ### Phase Summary Table
 
