@@ -1,14 +1,14 @@
 # Chemora — Project Status Report
 
-**Date:** September 10, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo)
-**Status:** ✅ All Phases Complete — v1.0.0 Release + Monorepo Migration
+**Date:** September 11, 2026
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19+M20 complete
+**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) complete
 
 ---
 
 ## Executive Summary
 
-ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. ChemEngine now lives at `packages/chemengine/` and remains independently installable and testable.
+ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19 — Backend Foundation) and Google-authenticated session layer (M20 — Authentication) are **complete** with 40 passing backend tests.
 
 | Metric | Value |
 |--------|-------|
@@ -19,6 +19,8 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Test Files** | 37 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
+| **Backend Tests** | 40 / 40 passing (M19 Backend Foundation + M20 Authentication) |
+| **Next Milestone** | M21 — Frontend Authentication Integration (planned) |
 
 ---
 
@@ -29,7 +31,7 @@ The repository was restructured from a ChemEngine-only layout into the Chemora m
 **Repository structure:**
 - `packages/chemengine/` — ChemEngine package (src layout preserved)
 - `apps/mobile/`, `apps/web/`, `apps/admin/` — Frontend applications (reserved)
-- `backend/` — Backend API (reserved)
+- `backend/` — FastAPI backend (M19 ✅ + M20 ✅; see below)
 - `infrastructure/` — CI/CD, Docker (reserved)
 - `TODO.md`, `PROJECT_STATUS.md`, `gantt.html` — Project tracking (updated)
 
@@ -38,6 +40,29 @@ The repository was restructured from a ChemEngine-only layout into the Chemora m
 - `import chemengine` works from installed package
 - No duplicate ChemEngine implementation
 - No chemistry functionality lost
+
+---
+
+## Backend Milestones
+
+### ✅ M19: Backend Foundation (Complete)
+- FastAPI application, CORS middleware, `/health` endpoint
+- Async SQLAlchemy 2.0 engine + session factory (asyncpg)
+- Alembic migrations scaffolding (repo-root `alembic/`)
+- Backend `pyproject.toml`, pydantic-settings configuration, `.env.example`
+
+### ✅ M20: Authentication (Complete)
+- Google Sign-In / Identity Services — server-side ID-token verification via `google-auth` (`GoogleTokenVerifier`): signature, issuer, audience, expiry, subject
+- User identity keyed by Google `sub`; email is **not** the identity key; unique constraint on `google_subject`
+- Server-managed sessions with absolute expiration, inactivity timeout, and sliding renewal; revocation on logout
+- Endpoints: `POST /api/v1/auth/google`, `GET /api/v1/auth/me`, `POST /api/v1/auth/logout`
+- Reusable `get_current_user` FastAPI dependency
+- Alembic migration `001_initial_auth_tables` (users + sessions)
+- 40 backend tests passing (in-memory SQLite + mock `GoogleTokenVerifier`)
+- Architecture: `Endpoint → AuthService → GoogleTokenVerifier → User/Session models`
+
+### ⬜ M21: Frontend Authentication Integration (Planned — Not Started)
+Google Sign-In UI and client session handling for web/mobile. Documented contract in `backend/README.md`.
 
 ---
 

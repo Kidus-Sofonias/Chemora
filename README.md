@@ -13,7 +13,7 @@ Chemora/
 │   ├── web/             # Web application (reserved)
 │   └── admin/           # Administrative CMS/dashboard (reserved)
 │
-├── backend/             # FastAPI + PostgreSQL backend API (reserved)
+├── backend/             # FastAPI + PostgreSQL backend API (M19 ✅ + M20 ✅)
 │
 ├── packages/
 │   └── chemengine/      # Standalone chemistry engine (Python package)
@@ -48,6 +48,23 @@ Frontend (mobile/web/admin)
 ```
 
 ChemEngine is a standalone Python package. It does not depend on the backend or frontend. The backend consumes ChemEngine. The frontend consumes the backend.
+
+## Backend (M19 Foundation ✅ + M20 Authentication ✅)
+
+The FastAPI backend lives in [`backend/`](backend/). Milestone M20 adds secure
+Google Sign-In authentication:
+
+- **Google ID-token verification** server-side (`google-auth`): signature,
+  issuer, audience, expiration, and subject.
+- **User identity** keyed by Google `sub` (email is not the identity key).
+- **Server-managed sessions** with expiration, inactivity timeout, renewal, and
+  revocation, delivered via a secure `HttpOnly` cookie.
+- **Endpoints**: `POST /api/v1/auth/google`, `GET /api/v1/auth/me`,
+  `POST /api/v1/auth/logout`.
+- **40 passing backend tests** (no live Google/PostgreSQL required).
+
+Full setup, configuration, security model, and the frontend integration
+contract are documented in [`backend/README.md`](backend/README.md).
 
 ## ChemEngine
 

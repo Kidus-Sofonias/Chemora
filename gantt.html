@@ -2195,13 +2195,22 @@ const phases = [
     ver: '1.1',     start: 78, dur: 2,  risk: 'medium',  status: 'complete', weight: 4 },
   { id: 18, name: 'Monorepo Migration',          desc: 'Restructure Chemora from ChemEngine-only to monorepo layout',
     tasks: ['Move ChemEngine to packages/chemengine/', 'Create apps/mobile, apps/web, apps/admin', 'Create backend/ and infrastructure/', 'Update documentation and project tracking', 'Verify all tests pass'],
-    ver: '1.1',     start: 80, dur: 2,  risk: 'low',     status: 'complete', weight: 3 }
+    ver: '1.1',     start: 80, dur: 2,  risk: 'low',     status: 'complete', weight: 3 },
+  { id: 19, name: 'Backend Foundation (M19)', desc: 'FastAPI backend, PostgreSQL, Alembic scaffolding',
+    tasks: ['FastAPI app + CORS + /health', 'Async SQLAlchemy 2.0 engine & session', 'Alembic migrations scaffolding', 'Backend pyproject, settings, .env.example'],
+    ver: '0.2',     start: 82, dur: 3,  risk: 'low',     status: 'complete', weight: 3 },
+  { id: 20, name: 'Authentication (M20)', desc: 'Google Sign-In, ID-token verification, server-managed sessions',
+    tasks: ['Google ID-token verification (signature/issuer/audience/expiry/subject)', 'User identity keyed by Google sub', 'Session expiration & inactivity policy', 'auth endpoints (google/me/logout)', '40 passing backend tests'],
+    ver: '0.2',     start: 85, dur: 4,  risk: 'medium',  status: 'complete', weight: 4 },
+  { id: 21, name: 'Frontend Auth Integration (M21)', desc: 'Google Sign-In UI and client session handling',
+    tasks: ['GIS sign-in button (web/mobile)', 'Session cookie handling', 'Integrate /me and /logout', 'Planned — not started'],
+    ver: '0.2',     start: 89, dur: 3,  risk: 'medium',  status: 'planned',  weight: 3 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 82;
+const TOTAL_WEEKS = 92;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;

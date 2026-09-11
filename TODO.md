@@ -1636,6 +1636,45 @@ Ship ChemEngine as a professional open-source library on PyPI. 100% documentatio
 
 ---
 
+## Backend Roadmap (M19+)
+
+The Chemora monorepo backend is developed milestone-by-milestone on top of the
+Foundation/API layer. Backend milestones are tracked here.
+
+### M19 — Backend Foundation ✅ Complete
+
+| # | Task | Status |
+|---|------|--------|
+| M19.1 | FastAPI app, CORS, health check | ✅ Complete |
+| M19.2 | Async SQLAlchemy 2.0 engine & session factory | ✅ Complete |
+| M19.3 | Alembic migrations scaffolding | ✅ Complete |
+| M19.4 | Backend `pyproject.toml`, settings, `.env.example` | ✅ Complete |
+
+### M20 — Authentication ✅ Complete
+
+Secure, production-oriented authentication using Google Sign-In / Google
+Identity Services. Google identity is verified server-side; Chemora then
+establishes its own server-managed session.
+
+- Google ID-token verification (signature, issuer, audience, expiry, subject)
+  via the maintained `google-auth` library through a mockable
+  `GoogleTokenVerifier` abstraction.
+- User identity keyed by Google `sub` (email is **not** the identity key);
+  unique constraint prevents duplicate identities.
+- Server-managed sessions with absolute expiration, inactivity timeout, and
+  sliding renewal — no permanent sessions, no login-on-every-request.
+- Endpoints: `POST /auth/google`, `GET /auth/me`, `POST /auth/logout`.
+- Reusable `get_current_user` FastAPI dependency.
+- Alembic migration `001_initial_auth_tables` (users + sessions).
+- 40 backend tests passing (in-memory SQLite + mock verifier).
+
+### M21 — Frontend Authentication Integration ⬜ Planned (Not Started)
+
+Implement the Google Sign-In UI and session-handling client contract (web/mobile).
+Not started. The endpoint and session contract is documented in `backend/README.md`.
+
+---
+
 ## Roadmap Summary
 
 ### Overall Progress
@@ -1647,8 +1686,9 @@ Ship ChemEngine as a professional open-source library on PyPI. 100% documentatio
 | **Current Version** | v1.0.0 |
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
-| **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`) |
-| **Next Milestone** | Backend Foundation |
+| **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`) |
+| **Backend Tests** | 40 / 40 passing (M19 + M20) |
+| **Next Milestone** | M21 — Frontend Authentication Integration (planned) |
 
 ### Phase Summary Table
 
