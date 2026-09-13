@@ -1668,10 +1668,29 @@ establishes its own server-managed session.
 - Alembic migration `001_initial_auth_tables` (users + sessions).
 - 40 backend tests passing (in-memory SQLite + mock verifier).
 
-### M21 — Frontend Authentication Integration ⬜ Planned (Not Started)
+### M21 — Frontend Authentication Integration ✅ Complete
 
-Implement the Google Sign-In UI and session-handling client contract (web/mobile).
-Not started. The endpoint and session contract is documented in `backend/README.md`.
+React + Vite web client that integrates the M20 authentication backend. The
+backend remains the authority; the client never manufactures identity.
+
+- React 18 + Vite + TypeScript web app (`apps/web/`)
+- Centralized `ApiClient` (fetch + `credentials: include`, JSON, typed
+  base URL, 401-vs-network error classification)
+- `AuthProvider` state machine: loading / unauthenticated / authenticated /
+  error — never shows authenticated content before the session check finishes
+- `AuthService`: `getCurrentUser()` / `exchangeCredential()` / `signOut()`
+- `GoogleSignInProvider` port; production uses Google's official GIS client
+  (`accounts.google.com/gsi/client`) — ID token sent to backend, never treated
+  as a Chemora session
+- 18 passing frontend tests (real ApiClient + AuthService vs. scriptable
+  fake backend + mock Google provider)
+- Mobile (`apps/mobile`) not yet configured — compatibility gap documented
+
+### M22 — Next Milestone ⬜ Planned (To Be Scoped)
+
+First user-facing product feature (content / exploration) after auth is in
+place. Scope, dependencies, and acceptance criteria to be defined before work
+begins.
 
 ---
 
@@ -1686,9 +1705,10 @@ Not started. The endpoint and session contract is documented in `backend/README.
 | **Current Version** | v1.0.0 |
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
-| **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`) |
+| **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
 | **Backend Tests** | 40 / 40 passing (M19 + M20) |
-| **Next Milestone** | M21 — Frontend Authentication Integration (planned) |
+| **Web Auth Tests** | 18 / 18 passing (M21) |
+| **Next Milestone** | M22 — Next Milestone (to be scoped) |
 
 ### Phase Summary Table
 

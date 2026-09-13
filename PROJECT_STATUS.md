@@ -1,18 +1,18 @@
 # Chemora — Project Status Report
 
-**Date:** September 11, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19+M20 complete
-**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) complete
+**Date:** September 13, 2026
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19+M20 complete / Web M21 complete
+**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) complete · Frontend Authentication Integration (M21) complete
 
 ---
 
 ## Executive Summary
 
-ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19 — Backend Foundation) and Google-authenticated session layer (M20 — Authentication) are **complete** with 40 passing backend tests.
+ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19 — Backend Foundation) and Google-authenticated session layer (M20 — Authentication) are **complete** with 40 passing backend tests. The web client (M21 — Frontend Authentication Integration) is **complete** with 18 passing frontend tests.
 
 | Metric | Value |
 |--------|-------|
-| **Overall Completion** | ~85% of v1.0.0 scope |
+| **Overall Completion** | ~87% of v1.0.0 scope |
 | **Passing Tests** | 1635 / 1635 (100%) |
 | **Skipped** | 1 (directional bond round-trip) |
 | **Source Files** | 72 Python files across 16 packages |
@@ -20,7 +20,8 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
 | **Backend Tests** | 40 / 40 passing (M19 Backend Foundation + M20 Authentication) |
-| **Next Milestone** | M21 — Frontend Authentication Integration (planned) |
+| **Web Auth Tests** | 18 / 18 passing (M21) |
+| **Next Milestone** | M22 — Next Milestone (to be scoped) |
 
 ---
 
@@ -30,7 +31,7 @@ The repository was restructured from a ChemEngine-only layout into the Chemora m
 
 **Repository structure:**
 - `packages/chemengine/` — ChemEngine package (src layout preserved)
-- `apps/mobile/`, `apps/web/`, `apps/admin/` — Frontend applications (reserved)
+- `apps/web/` — React + Vite web client (M21 ✅; see below)
 - `backend/` — FastAPI backend (M19 ✅ + M20 ✅; see below)
 - `infrastructure/` — CI/CD, Docker (reserved)
 - `TODO.md`, `PROJECT_STATUS.md`, `gantt.html` — Project tracking (updated)
@@ -61,8 +62,17 @@ The repository was restructured from a ChemEngine-only layout into the Chemora m
 - 40 backend tests passing (in-memory SQLite + mock `GoogleTokenVerifier`)
 - Architecture: `Endpoint → AuthService → GoogleTokenVerifier → User/Session models`
 
-### ⬜ M21: Frontend Authentication Integration (Planned — Not Started)
-Google Sign-In UI and client session handling for web/mobile. Documented contract in `backend/README.md`.
+### ✅ M21: Frontend Authentication Integration (Complete)
+- React 18 + Vite + TypeScript web app (`apps/web/`)
+- Centralized `ApiClient` (fetch + `credentials: include`, JSON, typed base URL, 401-vs-network error classification)
+- `AuthProvider` state machine: loading / unauthenticated / authenticated / error — never shows authenticated content before the session check finishes
+- `AuthService`: `getCurrentUser()` / `exchangeCredential()` / `signOut()`
+- `GoogleSignInProvider` port; production uses Google's official GIS client (`accounts.google.com/gsi/client`) — ID token sent to backend, never treated as a Chemora session
+- 18 passing frontend tests (real ApiClient + AuthService vs. scriptable fake backend + mock Google provider)
+- Mobile (`apps/mobile`) not yet configured — compatibility gap documented
+
+### ⬜ M22: Next Milestone (To Be Scoped)
+First user-facing product feature (content / exploration) after auth is in place. Scope, dependencies, and acceptance criteria to be defined before work begins.
 
 ---
 

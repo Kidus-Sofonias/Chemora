@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chemora</title>
+    <!-- Google Identity Services (GIS) client — provides the official
+         "Sign in with Google" button and ID-token credential. The Chemora
+         backend verifies the credential; this client never treats it as
+         an authenticated session by itself. -->
+    <script src="https://accounts.google.com/gsi/client?hl=en" async defer></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

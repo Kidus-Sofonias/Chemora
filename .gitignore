@@ -32,6 +32,12 @@ venv/
 env/
 .venv/
 
+# Node / frontend
+node_modules/
+*.tsbuildinfo
+.env.local
+.env.*.local
+
 # Documentation
 docs/_build/
 

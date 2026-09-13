@@ -9,8 +9,8 @@ Chemora is a monorepo containing a production-grade chemistry engine, a backend 
 ```
 Chemora/
 ├── apps/
+│   ├── web/             # React + Vite web client (M21 ✅) — Google Sign-In integration
 │   ├── mobile/          # React Native / Expo mobile app (reserved)
-│   ├── web/             # Web application (reserved)
 │   └── admin/           # Administrative CMS/dashboard (reserved)
 │
 ├── backend/             # FastAPI + PostgreSQL backend API (M19 ✅ + M20 ✅)

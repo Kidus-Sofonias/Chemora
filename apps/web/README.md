@@ -1,5 +1,130 @@
-# Web App
+# Chemora Web
 
-This directory will contain the web application for Chemora — the chemistry-learning experience delivered through the browser.
+The Chemora browser application — this milestone (M21) implements the Google
+Sign-In authentication integration on top of the M20 backend.
 
-> **Status**: Reserved — not yet implemented. This is part of a future milestone.
+> **Status:** Authentication integration (M21) complete. The full Chemora
+> learning experience (courses, lessons, 3D visuals, etc.) is out of scope for
+> this milestone and will arrive in later milestones.
+
+---
+
+## Architecture
+
+```text
+Web (React + Vite)
+  ├─ AuthProvider (state machine) ── loading/unauthenticated/authenticated/error
+  ├─ AuthService ── signIn / getCurrentUser / signOut
+  ├─ ApiClient (single API client) ── fetch + cookie credentials + error classification
+  └─ GoogleSignInProvider ── official Google Identity Services client button
+        ↓ Google ID token (credential)
+        ↓ POST /api/v1/auth/google
+Chemora Backend (M20) ── cryptographic verification, session cookies
+```
+
+The **backend is the authority**. The client never:
+
+- constructs its own user identity,
+- decodes/treats a Google token as a valid session,
+- stores the session cookie or Google token anywhere,
+- bypasses the backend.
+
+The web session is an **HttpOnly cookie** set by the backend
+(`chemora_session`). The browser manages it; JavaScript never reads its value.
+Requests are sent with `credentials: "include"`.
+
+### Auth states
+
+| State | Meaning |
+|-------|---------|
+| `loading` | Checking an existing session via `GET /api/v1/auth/me`. |
+| `authenticated` | `/auth/me` returned a user. |
+| `unauthenticated` | `/auth/me` returned `401` (no/invalid/expired session). |
+| `error` | The check failed at the network layer — separate from logout. |
+
+Authenticated content is **never shown before the check finishes**, avoiding
+auth UI flicker.
+
+---
+
+## Google setup
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/) create a
+   project and an **OAuth client ID** of type *Web application*.
+2. Add your frontend origin (e.g. `http://localhost:5173` in development) to
+   the client's **Authorized JavaScript origins**.
+3. Copy the client ID into `VITE_GOOGLE_CLIENT_ID`.
+
+The sign-in button comes from Google's official Identity Service client
+(`https://accounts.google.com/gsi/client`), loaded in `index.html`. The button
+returns a Google **ID token** (`credential`); the client immediately sends it
+to the backend, which verifies it server-side — the client never treats the
+token as an authenticated session.
+
+---
+
+## Environment variables
+
+Copy `.env.example` to `.env`. Frontend variables are **public**, never put
+secrets here (no session secrets, DB passwords, or provider secret keys).
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_API_BASE_URL` | Chemora backend base URL (default `http://localhost:8000`). |
+| `VITE_GOOGLE_CLIENT_ID` | Public Google OAuth client id. |
+
+---
+
+## Local development
+
+Backend first (see `backend/README.md`), then:
+
+```bash
+cd apps/web
+npm install
+cp .env.example .env       # set VITE_API_BASE_URL and VITE_GOOGLE_CLIENT_ID
+
+npm run dev                # http://localhost:5173
+```
+
+The M20 backend CORS allows `http://localhost:5173` (and `:3000`) with
+credentials, so the cookie flow works locally. Backend and web run on the
+same host (`localhost`) — `SameSite=Lax` cookies are sent for the same-site,
+cross-port requests, and CORS permits the credentialed cross-origin calls.
+
+## Commands
+
+```bash
+npm test        # Vitest (jsdom) — mocked backend + mock Google provider
+npm run typecheck   # tsc --noEmit
+npm run build       # tsc --noEmit && vite build
+npm run dev         # local dev server
+```
+
+## Testing
+
+Tests run the **real** `ApiClient` + `AuthService` against a scriptable fake
+`fetch`, and a mock `GoogleSignInProvider`. No live Google account or backend
+is required. Tests cover loading / authenticated / unauthenticated states,
+successful & failed login, current-user fetch, logout, `401` session expiry,
+network failures, prevention of authenticated UI before the check, and
+no-retry-on-`401` behavior.
+
+## Security notes
+
+- Session cookie: HttpOnly, `SameSite=Lax` (production `Secure`) — managed by
+  the browser, never stored in `localStorage`, `sessionStorage`, or app state.
+- The Google credential is held only in memory during the login exchange and
+  is sent to the backend in a single request; it is not persisted.
+- A `401` means "unauthenticated" (clear state, allow re-login); a network
+  error is shown as an "error / retry" state and is **not** treated as logout.
+- No infinite authentication retry loops: a failed request transitions to a
+  terminal local state until the user acts.
+
+## Mobile
+
+`apps/mobile` is not yet configured in this monorepo (it is a reserved stub).
+The web session uses an HttpOnly cookie which is not suitable as-is for native
+mobile without a secure, platform-appropriate credential handler. A future
+mobile milestone will define the compatibility path; no insecure workaround
+exists here.
