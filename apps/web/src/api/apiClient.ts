@@ -1,4 +1,8 @@
-import type { CurrentUser, ErrorResponse, SessionResponse } from './types';
+import type {
+  ChemistryExploreResult,
+  CurrentUser,
+  SessionResponse,
+} from './types';
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000';
 
@@ -21,11 +25,13 @@ export function resolveApiBaseUrl(): string {
  */
 export class ApiError extends Error {
   readonly status: number | null;
+  readonly code: string | null;
 
-  constructor(message: string, status: number | null) {
+  constructor(message: string, status: number | null, code: string | null = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.code = code;
   }
 
   /** True when the backend rejected the request as unauthenticated. */
@@ -74,6 +80,17 @@ export class ApiClient {
     await this.request<unknown>('/api/v1/auth/logout', { method: 'POST' });
   }
 
+  /**
+   * POST /api/v1/chemistry/explore — analyse a formula, SMILES, InChI, or
+   * common name through ChemEngine via the backend.
+   */
+  async exploreChemistry(input: string): Promise<ChemistryExploreResult> {
+    return this.request<ChemistryExploreResult>('/api/v1/chemistry/explore', {
+      method: 'POST',
+      body: { input },
+    });
+  }
+
   private async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     let response: Response;
     try {
@@ -111,10 +128,11 @@ export class ApiClient {
     }
 
     if (!response.ok) {
-      const detail = readDetail(data);
+      const detail = readError(data);
       throw new ApiError(
-        detail ?? `Request failed (${response.status}).`,
+        detail.message ?? `Request failed (${response.status}).`,
         response.status,
+        detail.code,
       );
     }
 
@@ -122,8 +140,39 @@ export class ApiClient {
   }
 }
 
-function readDetail(data: unknown): string | null {
-  if (typeof data !== 'object' || data === null) return null;
-  const detail = (data as ErrorResponse).detail;
-  return typeof detail === 'string' && detail ? detail : null;
+interface ErrorDetail {
+  message: string | null;
+  code: string | null;
+}
+
+/**
+ * Extract a user-facing message and machine code from an error body.
+ * Handles both `{detail: "..."}` (auth style) and `{detail: {code, message}}`
+ * / `{error: {code, message}}` (chemistry style).
+ */
+function readError(data: unknown): ErrorDetail {
+  if (typeof data !== 'object' || data === null) {
+    return { message: null, code: null };
+  }
+  const record = data as Record<string, unknown>;
+  const rawDetail = record.detail;
+
+  if (typeof rawDetail === 'string' && rawDetail) {
+    return { message: rawDetail, code: null };
+  }
+  if (typeof rawDetail === 'object' && rawDetail !== null) {
+    const detail = rawDetail as Record<string, unknown>;
+    return {
+      message: typeof detail.message === 'string' ? detail.message : null,
+      code: typeof detail.code === 'string' ? detail.code : null,
+    };
+  }
+  if (typeof record.error === 'object' && record.error !== null) {
+    const error = record.error as Record<string, unknown>;
+    return {
+      message: typeof error.message === 'string' ? error.message : null,
+      code: typeof error.code === 'string' ? error.code : null,
+    };
+  }
+  return { message: null, code: null };
 }

@@ -2205,9 +2205,12 @@ const phases = [
   { id: 21, name: 'Frontend Auth Integration (M21)', desc: 'Google Sign-In UI, auth state, protected client flows',
     tasks: ['React + Vite web client + AuthProvider state machine', 'ApiClient (cookie creds, 401 vs network)', 'GIS sign-in button + ID-token → backend', 'logout + 40 passing web auth tests'],
     ver: '0.2',     start: 89, dur: 3,  risk: 'medium',  status: 'complete', weight: 4 },
-  { id: 22, name: 'Next Milestone (M22)', desc: 'First user-facing product feature (to be scoped)',
-    tasks: ['Scope & acceptance criteria', 'Backend domain / content APIs', 'Protected feature UI', 'To be defined before work begins'],
-    ver: '0.2',     start: 92, dur: 4,  risk: 'medium',  status: 'planned',  weight: 3 }
+  { id: 22, name: 'Chemistry Explorer (M22)', desc: 'First user-facing chemistry feature — structured molecule exploration through ChemEngine',
+    tasks: ['Backend /api/v1/chemistry/explore with Pydantic models + ChemistryService adapter', 'Real ChemEngine invocation (no chemistry re-implemented in FastAPI)', 'Explorer UI: input, identity card, structure SVG, properties grid, error states', '27 frontend tests (27 total), 60 backend tests'] ,
+    ver: '0.2',     start: 92, dur: 4,  risk: 'medium',  status: 'complete', weight: 4 },
+  { id: 23, name: 'Element Explorer (M23)', desc: 'Element/electron-configuration explorer (to be scoped)',
+    tasks: ['Scope & acceptance criteria', 'Element + electron configuration routes', 'Companion explorer UI', 'To be defined before work begins'],
+    ver: '0.2',     start: 96, dur: 4,  risk: 'medium',  status: 'planned',  weight: 3 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════

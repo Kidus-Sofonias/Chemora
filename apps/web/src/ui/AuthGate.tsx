@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { LoginScreen } from './LoginScreen';
 import { AuthenticatedScreen } from './AuthenticatedScreen';
+import { ExplorerSection } from './ExplorerPage';
 
 /**
  * Guards authenticated content behind the auth check.
@@ -44,7 +45,11 @@ export function RootRouter() {
   if (auth.state === 'unauthenticated') {
     return <LoginScreen />;
   }
-  return <AuthenticatedScreen user={auth.user!} onSignOut={auth.signOut} />;
+  return (
+    <AuthenticatedScreen user={auth.user!} onSignOut={auth.signOut}>
+      <ExplorerSection />
+    </AuthenticatedScreen>
+  );
 }
 
 function LoadingScreen() {

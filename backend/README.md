@@ -228,7 +228,76 @@ All under `/api/v1`.
 | `POST` | `/auth/google` | — | Verify Google ID token, find/create user, establish session. |
 | `GET` | `/auth/me` | ✅ | Return the current authenticated user. |
 | `POST` | `/auth/logout` | — | Revoke the current server-side session and clear the cookie. |
+| `POST` | `/chemistry/explore` | — | Analyse a formula/SMILES/InChI/name through ChemEngine. |
 | `GET` | `/health` | — | Health check. |
+
+### `POST /chemistry/explore` (M22 — Chemistry Explorer)
+
+Application-layer adapter over ChemEngine. No chemistry is computed in FastAPI.
+
+Request:
+
+```json
+{ "input": "CCO" }
+```
+
+Response `200`:
+
+```json
+{
+  "input": "CCO",
+  "detected_type": "smiles",
+  "structure_available": true,
+  "identity": {
+    "formula": "C2H6O",
+    "exact_mass": 46.041865,
+    "average_mass": 46.069,
+    "heavy_atom_count": 3,
+    "atom_count": 9
+  },
+  "structure": {
+    "canonical_smiles": "CCO",
+    "formula": "C2H6O",
+    "atom_symbols": ["C", "C", "O", "H", "H", "H", "H", "H", "H"],
+    "bonds": [[0, 1, 1], [1, 2, 1], [0, 3, 1]],
+    "svg": "<svg …engine-rendered depiction…>"
+  },
+  "properties": {
+    "logp": 0.0823, "tpsa": 20.23, "hba": 1, "hbd": 1,
+    "rotatable_bonds": 0, "ring_count": 0, "fraction_csp3": 1.0
+  }
+}
+```
+
+Semantics:
+
+- `identity` is always returned and is correct for **every** input type — it is
+  derived from the elemental composition (`formula`, monoisotopic `exact_mass`,
+  `average_mass`, `heavy_atom_count`, `atom_count`).
+- `structure` and `properties` are returned **only** when the input carries
+  connectivity (SMILES, InChI, or a resolved common name). A bare molecular
+  formula does not encode how atoms are connected, so for formula inputs the
+  API reports `structure_available: false` and omits those blocks instead of
+  presenting unreliable bond data.
+- The engine's InChI/InChIKey serializers are non-IUPAC-standard and are
+  therefore **not** exposed.
+
+Errors — `422` with a stable code and user-facing message:
+
+```json
+{ "detail": { "code": "invalid_input", "message": "Please enter a molecule, formula, or SMILES." } }
+{ "detail": { "code": "unsupported_input", "message": "We couldn't recognize that input. …" } }
+```
+
+Unexpected failures return `500` with `code: "internal_error"`; stack traces
+and engine internals are never returned. Chemistry work is CPU-bound, so the
+endpoint offloads it to the event loop's thread pool
+(`asyncio.to_thread`) and the input is capped in length.
+
+> **Auth note:** exploration is deterministic, user-independent chemistry with
+> no persistence, so the endpoint is public in M22. The web UI only surfaces it
+> inside the authenticated shell. Revisit gating when private content or rate
+> limits are introduced.
 
 ### `POST /auth/google`
 

@@ -23,6 +23,10 @@ dependencies = [
     "pydantic-settings>=2.6.0",
     "google-auth>=2.35.0",
     "httpx>=0.28.0",
+    # ChemEngine — the authoritative deterministic chemistry engine. This is
+    # the monorepo-local package at packages/chemengine; it is installed into
+    # the same environment. The backend only ever delegates chemistry to it.
+    "chemengine>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -56,6 +60,13 @@ warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# ChemEngine is a monorepo package without a py.typed marker; its types are
+# treated as Any by mypy. The backend delegates all chemistry to it and does
+# not need to type-check the engine's internals.
+module = "chemengine.*"
+ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 100

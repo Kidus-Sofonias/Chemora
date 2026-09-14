@@ -1,14 +1,14 @@
 # Chemora — Project Status Report
 
 **Date:** September 13, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19+M20 complete / Web M21 complete
-**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) complete · Frontend Authentication Integration (M21) complete
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19+M20+M22 complete / Web M21+M22 complete
+**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) complete
 
 ---
 
 ## Executive Summary
 
-ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19 — Backend Foundation) and Google-authenticated session layer (M20 — Authentication) are **complete** with 40 passing backend tests. The web client (M21 — Frontend Authentication Integration) is **complete** with 18 passing frontend tests.
+ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), and the first user-facing feature — the **Chemistry Explorer** (M22), which runs real deterministic chemistry end to end — are **complete** (60 backend tests, 27 web tests).
 
 | Metric | Value |
 |--------|-------|
@@ -19,9 +19,9 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Test Files** | 37 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
-| **Backend Tests** | 40 / 40 passing (M19 Backend Foundation + M20 Authentication) |
-| **Web Auth Tests** | 18 / 18 passing (M21) |
-| **Next Milestone** | M22 — Next Milestone (to be scoped) |
+| **Backend Tests** | 60 / 60 passing (M19 Foundation, M20 Authentication, M22 Chemistry API) |
+| **Web Tests** | 27 / 27 passing (M21 Auth integration, M22 Chemistry Explorer) |
+| **Next Milestone** | M23 — Element Explorer (to be scoped) |
 
 ---
 

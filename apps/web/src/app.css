@@ -98,3 +98,207 @@ body { margin: 0; }
 .main {
   padding: 2rem;
 }
+
+/* ── Chemistry Explorer (M22) ──────────────────────────────────────────── */
+
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.explorer {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.explorer-head h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+}
+
+.explorer-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.explorer-input {
+  flex: 1 1 240px;
+  min-width: 0;
+  font: inherit;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #b8c0cc;
+  background: #ffffff;
+  color: #1f2733;
+}
+
+.explorer-input:focus-visible,
+.button:focus-visible {
+  outline: 3px solid #2b6cb0;
+  outline-offset: 2px;
+}
+
+.button.primary {
+  background: #2b6cb0;
+  border-color: #2b6cb0;
+  color: #ffffff;
+}
+
+.button.primary:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.help {
+  font-size: 0.85rem;
+  margin: 0.4rem 0 0;
+}
+
+.explorer-status-region {
+  margin-top: 1.25rem;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #d5dbe6;
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 2px rgba(31, 39, 51, 0.08);
+  animation: card-in 220ms ease-out both;
+}
+
+.card h2,
+.card h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+}
+
+.error-card {
+  border-color: #f1b8b3;
+  background: #fff6f5;
+}
+
+.note-card {
+  border-color: #e0d6b8;
+  background: #fffdf3;
+}
+
+.props {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.75rem 1.25rem;
+}
+
+.prop dt {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #5b6675;
+}
+
+.prop dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.structure-figure {
+  margin: 0 0 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.structure-svg {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border: 1px solid #e3e7ee;
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.structure-svg svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+
+@media (max-width: 560px) {
+  .main {
+    padding: 1.1rem;
+  }
+
+  .explorer-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .explorer-form .button {
+    width: 100%;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .topbar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .props {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

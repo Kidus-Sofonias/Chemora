@@ -1686,11 +1686,37 @@ backend remains the authority; the client never manufactures identity.
   fake backend + mock Google provider)
 - Mobile (`apps/mobile`) not yet configured — compatibility gap documented
 
-### M22 — Next Milestone ⬜ Planned (To Be Scoped)
+### M22 — Chemistry Explorer Foundation ✅ Complete
 
-First user-facing product feature (content / exploration) after auth is in
-place. Scope, dependencies, and acceptance criteria to be defined before work
-begins.
+The first user-facing Chemora feature: a Chemistry Explorer that proves
+`web → backend → ChemEngine → deterministic chemistry` end to end.
+
+- Backend `POST /api/v1/chemistry/explore` with explicit Pydantic
+  request/response models and a thin `ChemistryService` adapter over
+  `ChemEngineAPI` (no chemistry re-implemented in FastAPI).
+- **Identity for every input:** formula, exact (monoisotopic) mass, average
+  mass, heavy-atom count, atom count.
+- **Structure + descriptors only for structure-bearing inputs** (SMILES,
+  InChI, resolved names): canonical SMILES, engine-rendered SVG depiction,
+  atom/bond lists, LogP, TPSA, HBA, HBD, rotatable bonds, ring count,
+  fraction C(sp³).
+- Correctness decisions from verified engine behaviour: a molecular formula
+  does not encode connectivity, so formula inputs report
+  `structure_available: false` rather than presenting unreliable bond data;
+  the engine's non-IUPAC-standard InChI/InChIKey serializers are not exposed.
+- Explorer UI inside the authenticated shell (identity card, structure card
+  with engine SVG, properties grid, formula-only note), responsive and
+  accessible, with distinct chemistry/network/server error states and
+  no auto-retry.
+- 20 new backend tests (13 API + 7 service integration against the real
+  engine) and 9 new frontend tests (27 total, real ApiClient + mocked
+  transport).
+
+### M23 — Element Explorer ⬜ Planned (To Be Scoped)
+
+Expose ChemEngine's deterministic element/electron-configuration subsystem as
+a companion explorer view (engine-supported, see `education/electron_config`).
+Scope, dependencies, and acceptance criteria to be defined before work begins.
 
 ---
 
@@ -1706,9 +1732,9 @@ begins.
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
-| **Backend Tests** | 40 / 40 passing (M19 + M20) |
-| **Web Auth Tests** | 18 / 18 passing (M21) |
-| **Next Milestone** | M22 — Next Milestone (to be scoped) |
+| **Backend Tests** | 60 / 60 passing (M19 + M20 auth, M22 chemistry) |
+| **Web Tests** | 27 / 27 passing (M21 auth, M22 explorer) |
+| **Next Milestone** | M23 — Element Explorer (to be scoped) |
 
 ### Phase Summary Table
 
