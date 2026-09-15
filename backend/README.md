@@ -438,3 +438,46 @@ The `001_initial_auth_tables` migration creates the `users` and `sessions`
 tables with the required constraints and indexes (unique `google_subject`,
 FK with `ON DELETE CASCADE`, activity/expiry indexes). Run `alembic upgrade
 head` against PostgreSQL to apply.
+
+## Element Explorer API (M23)
+
+Exposes ChemEngine's element dataset and deterministic electron-configuration
+subsystem (`chemengine.core.element`,
+`chemengine.education.electron_config`) through a thin `ElementService`
+adapter (`app/services/elements.py`) and the `app/api/v1/elements.py`
+router. No chemistry is re-implemented in FastAPI.
+
+### Endpoints
+
+- `GET /api/v1/elements` — metadata for all 118 elements, ordered by atomic
+  number: `atomic_number`, `symbol`, `name`, `atomic_mass`, `period`,
+  `group`, `block`, `category`.
+- `GET /api/v1/elements/{identifier}` — full element exploration. The
+  identifier may be a symbol (`O`), a name (`oxygen`, case-insensitive), or
+  an atomic number (`8`). The response adds the engine-computed electron
+  structure:
+  - `config_full` / `config_shorthand` / `noble_gas`
+  - `shells` (electrons per principal shell), `subshells` (electrons per
+    subshell), `orbitals` (per-subshell occupancy: electrons + capacity)
+  - `valence_electrons`, `core_electrons`, `unpaired_electrons`
+  - `explanation` (the engine's deterministic educational text)
+
+### Errors
+
+`404 {"detail": {"code": ..., "message": ...}}` with stable codes:
+
+- `unknown_element` — the identifier matched no element
+- `invalid_identifier` — empty or overlong identifier
+
+Internal failures return a generic 500 `internal_error` message; no stack
+traces, exceptions, or engine internals are exposed. Element lookups are
+performed off the event loop (`asyncio.to_thread`).
+
+### Notes
+
+- Configurations come from the engine's rule-based Madelung filling with its
+  documented transition-metal exceptions (e.g. Cr `[Ar] 3d5 4s1`); f-block
+  elements follow the Madelung default by design.
+- The `period`/`group`/`block` metadata (including `group=3` for the f-block)
+  is used verbatim by the frontend for periodic-table placement.
+

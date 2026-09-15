@@ -53,9 +53,12 @@ def create_app() -> FastAPI:
     # Register API routers
     from app.api.v1.auth import router as auth_router
     from app.api.v1.chemistry import router as chemistry_router
+    from app.api.v1.elements import router as elements_router
 
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(chemistry_router, prefix="/api/v1")
+    app.include_router(elements_router, prefix="/api/v1")
+
 
     @app.get("/health")
     async def health_check() -> dict[str, str]:

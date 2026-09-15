@@ -1,8 +1,11 @@
 import type {
   ChemistryExploreResult,
   CurrentUser,
+  ElementDetail,
+  ElementListResult,
   SessionResponse,
 } from './types';
+
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000';
 
@@ -90,6 +93,19 @@ export class ApiClient {
       body: { input },
     });
   }
+
+  /** GET /api/v1/elements — periodic-table metadata for all 118 elements. */
+  async getElements(): Promise<ElementListResult> {
+    return this.request<ElementListResult>('/api/v1/elements');
+  }
+
+  /** GET /api/v1/elements/{id} — element detail + computed electron structure. */
+  async getElement(identifier: string): Promise<ElementDetail> {
+    return this.request<ElementDetail>(
+      `/api/v1/elements/${encodeURIComponent(identifier.trim())}`,
+    );
+  }
+
 
   private async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     let response: Response;

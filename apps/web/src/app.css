@@ -302,3 +302,275 @@ code {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ── Section navigation (M23) ──────────────────────────────────────────── */
+
+.section-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.section-nav .button.active {
+  background: #1f2733;
+  color: #ffffff;
+  border-color: #1f2733;
+}
+
+/* ── Element Explorer (M23) ────────────────────────────────────────────── */
+
+.element-explorer {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.element-explorer .explorer-head h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+}
+
+/* Periodic table: a real 18-column grid; f-block rows sit below (rows 9/10). */
+.ptable-scroll {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ptable {
+  display: grid;
+  grid-template-columns: repeat(18, minmax(44px, 1fr));
+  grid-auto-rows: minmax(52px, auto);
+  gap: 3px;
+  min-width: 840px; /* deliberate horizontal scroll on small screens */
+}
+
+.ptable-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0.15rem 0.1rem;
+  border: 1px solid #cdd4e0;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.1;
+}
+
+.ptable-cell:hover {
+  border-color: #6c7a90;
+}
+
+.ptable-cell:focus-visible,
+.ptable-cell.selected {
+  outline: 3px solid #2b6cb0;
+  outline-offset: 1px;
+}
+
+.ptable-cell.selected {
+  background: #e8f1fb;
+}
+
+.ptable-z {
+  font-size: 0.6rem;
+  color: #7a8494;
+}
+
+.ptable-symbol {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Block colours — decorative reinforcement only; blocks are also labelled in
+   text (the legend and the detail panel), never encoded by colour alone. */
+.block-s { background: #eaf4ff; }
+.block-p { background: #eefcec; }
+.block-d { background: #fdf3e2; }
+.block-f { background: #fdeaf1; }
+.block-s.selected,
+.block-p.selected,
+.block-d.selected,
+.block-f.selected {
+  background: #e8f1fb;
+}
+
+.ptable-legend {
+  margin-top: 0.5rem;
+}
+
+/* Element detail panel */
+
+.element-detail {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+}
+
+.element-identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.element-identity h2 {
+  margin: 0;
+}
+
+.element-symbol-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #cdd4e0;
+  border-radius: 10px;
+  min-width: 84px;
+}
+
+.element-z {
+  font-size: 0.7rem;
+  color: #7a8494;
+}
+
+.element-symbol {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.element-mass {
+  font-size: 0.7rem;
+  color: #7a8494;
+}
+
+.element-config h3,
+.element-orbitals h3,
+.element-counts h3,
+.element-shells h3 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5b6675;
+}
+
+.config-line {
+  margin: 0.25rem 0;
+  font-size: 1.15rem;
+}
+
+.config-token sup {
+  font-size: 0.7em;
+}
+
+/* Orbital diagram: labelled boxes with electron arrows. */
+.orbital-figure {
+  margin: 0.5rem 0;
+}
+
+.orbital-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.orbital-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.orbital-label {
+  font-size: 0.8rem;
+  color: #5b6675;
+}
+
+.orbital-boxes {
+  display: flex;
+  gap: 3px;
+}
+
+.orbital-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid #8b95a5;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  background: #ffffff;
+}
+
+.orbital-box.filled {
+  border-color: #2b6cb0;
+}
+
+/* Gentle entrance animation; fully disabled for reduced-motion users. */
+@media (prefers-reduced-motion: no-preference) {
+  .element-detail {
+    animation: element-reveal 240ms ease-out;
+  }
+
+  @keyframes element-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+.shell-list {
+  list-style: none;
+  margin: 0.25rem 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.shell-list li {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid #cdd4e0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.shell-name {
+  font-weight: 600;
+}
+
+.shell-count {
+  color: #5b6675;
+  font-size: 0.85rem;
+}
+
+.element-explanation {
+  margin-top: 1rem;
+}
+
+.explanation-text {
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  color: #3c4654;
+}
+
+@media (max-width: 640px) {
+  .element-identity {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .orbital-box {
+    width: 26px;
+    height: 26px;
+  }
+}

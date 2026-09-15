@@ -57,7 +57,8 @@ def test_structure_svg_and_bonds(service: ChemistryService) -> None:
     """A structural input yields an SVG depiction and descriptors."""
     result = service.explore("c1ccccc1")
     assert result.structure is not None
-    assert result.structure["svg"].strip().startswith("<svg")
+    svg = result.structure["svg"]
+    assert isinstance(svg, str) and svg.strip().startswith("<svg")
     assert result.properties is not None
     assert result.properties["ring_count"] == 1
     assert result.properties["hbd"] == 0

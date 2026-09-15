@@ -71,3 +71,57 @@ export interface ChemistryExploreResult {
   structure: MoleculeStructure | null;
   properties: MoleculeProperties | null;
 }
+
+// ── Element Explorer (M23) ────────────────────────────────────────────────
+// Shapes mirror the backend Pydantic models for /api/v1/elements.
+
+/** Periodic-table metadata for one element (GET /api/v1/elements). */
+export interface ElementSummary {
+  atomic_number: number;
+  symbol: string;
+  name: string;
+  atomic_mass: number;
+  period: number;
+  group: number;
+  block: string;
+  category: string;
+}
+
+export interface ElementListResult {
+  elements: ElementSummary[];
+}
+
+/** One occupied subshell in the engine-computed orbital diagram. */
+export interface OrbitalOccupancy {
+  orbital: string;
+  electrons: number;
+  capacity: number;
+  subshell: string;
+  shell: number;
+}
+
+/**
+ * Full element exploration (GET /api/v1/elements/{identifier}). All electron
+ * data is computed by ChemEngine from first principles — the client never
+ * calculates configurations itself.
+ */
+export interface ElementDetail {
+  atomic_number: number;
+  symbol: string;
+  name: string;
+  atomic_mass: number;
+  period: number;
+  group: number;
+  block: string;
+  category: string;
+  config_full: string;
+  config_shorthand: string;
+  noble_gas: string;
+  valence_electrons: number;
+  core_electrons: number;
+  unpaired_electrons: number;
+  shells: Record<string, number>;
+  subshells: Record<string, number>;
+  orbitals: OrbitalOccupancy[];
+  explanation: string;
+}

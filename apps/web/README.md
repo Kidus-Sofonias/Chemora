@@ -180,3 +180,43 @@ The web session uses an HttpOnly cookie which is not suitable as-is for native
 mobile without a secure, platform-appropriate credential handler. A future
 mobile milestone will define the compatibility path; no insecure workaround
 exists here.
+
+## Element Explorer (M23)
+
+The second feature surface, reachable from the authenticated shell via the
+"Elements" tab (`RootRouter` switches between the Chemistry and Elements
+sections).
+
+- **Architecture:** `ElementExplorerPage` → `useElements` hook → centralized
+  `ApiClient.getElements()` / `ApiClient.getElement(id)` → backend → ChemEngine.
+  All element data and electron configurations come from the backend/ChemEngine;
+  the client never calculates chemistry.
+- **Periodic table:** a real 18-column CSS grid placed from engine metadata
+  (`period`/`group`); the f-block (Ce–Lu, Th–Lr) is placed in the two
+  conventional rows below the main table because the engine reports `group=3`
+  for those elements. Layout is presentation only — the periodic facts are the
+  engine's. Each cell is a keyboard-accessible button labelled
+  "Name, atomic number N" with a visible selected state; block colours are
+  decorative and always paired with text labels.
+- **Mobile:** the table scrolls horizontally by design (min-width 840px) so
+  cells stay touch-friendly rather than shrinking to unusable sizes; the
+  detail panel stacks vertically.
+- **Search:** filters the engine-provided element list by name, symbol, or
+  atomic number. It is a UI index over the same data — not a second source of
+  truth.
+- **Element detail:** identity badge, superscript-formatted full and
+  noble-gas configurations, orbital-box diagram (boxes derived from the
+  engine's per-subshell occupancy; the Hund's-rule box arrangement is
+  presentation), shell distribution (labelled as shells, not an orbital
+  model), valence/core/unpaired counts, and the engine's explanation in a
+  disclosure. Detail responses are cached per element (no refetch on
+  re-select). Entrance animation is disabled under `prefers-reduced-motion`.
+- **Errors:** `404 unknown_element` → "Element not found" message; network
+  failures → "Cannot reach the Chemora server"; server failures → a generic
+  service error. No internals or stack traces are shown. Failures do not
+  retry automatically.
+
+**Visualization limitations:** the orbital diagram shows subshell occupancy
+boxes (as in textbook aufbau diagrams); the engine does not provide 2D/3D
+atomic coordinates, and none are faked.
+

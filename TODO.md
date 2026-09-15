@@ -1712,11 +1712,38 @@ The first user-facing Chemora feature: a Chemistry Explorer that proves
   engine) and 9 new frontend tests (27 total, real ApiClient + mocked
   transport).
 
-### M23 — Element Explorer ⬜ Planned (To Be Scoped)
+### M23 — Element Explorer ✅ Complete
 
-Expose ChemEngine's deterministic element/electron-configuration subsystem as
-a companion explorer view (engine-supported, see `education/electron_config`).
-Scope, dependencies, and acceptance criteria to be defined before work begins.
+The second user-facing Chemora feature: an Element Explorer connecting the
+periodic table to ChemEngine's deterministic electron-configuration subsystem
+(`education/electron_config`).
+
+- Backend `GET /api/v1/elements` (all 118 elements: symbol, name, atomic
+  number, mass, period, group, block, category) and
+  `GET /api/v1/elements/{identifier}` (symbol / name / atomic-number lookup,
+  case-insensitive) with explicit Pydantic models and a thin `ElementService`
+  adapter. Electron configurations are computed by `ElectronConfigurator` from
+  first principles — no chemistry in FastAPI or TypeScript.
+- Structured electron data exposed: full and noble-gas configurations,
+  shell distribution, subshell distribution, per-subshell orbital occupancy
+  (electrons + capacity), valence/core/unpaired electron counts, and the
+  engine's deterministic educational explanation.
+- Interactive periodic table in the authenticated shell: real 18-column grid
+  with engine-provided period/group/block placement (f-block rows for
+  Ce–Lu / Th–Lr per the dataset's group=3 encoding), block colouring
+  reinforced by text labels, keyboard-accessible element cells
+  ("Oxygen, atomic number 8"), deliberate horizontal scroll on mobile.
+- Element detail view: superscript-formatted configuration, orbital-box
+  diagram rendered from engine occupancy data (Hund's-rule box arrangement is
+  presentation only), shell distribution labelled as shells (not an orbital
+  model), valence/core/unpaired counts, and the engine explanation behind a
+  disclosure. Entrance animation is disabled under `prefers-reduced-motion`.
+- Client-side element search (name / symbol / atomic number) filters the same
+  engine-provided list — a UI index, not a second data source.
+- Error contract: `unknown_element` / `invalid_identifier` 404s mapped to
+  user-facing messages; network vs server failures distinguished in the UI.
+- 18 new backend tests (real engine data: O, He, Fe, plus Cr/Cu Aufbau
+  exceptions) and 10 new frontend tests (37 total).
 
 ---
 
@@ -1732,9 +1759,9 @@ Scope, dependencies, and acceptance criteria to be defined before work begins.
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
-| **Backend Tests** | 60 / 60 passing (M19 + M20 auth, M22 chemistry) |
-| **Web Tests** | 27 / 27 passing (M21 auth, M22 explorer) |
-| **Next Milestone** | M23 — Element Explorer (to be scoped) |
+| **Backend Tests** | 78 / 78 passing (M19 + M20 auth, M22 chemistry, M23 elements) |
+| **Web Tests** | 37 / 37 passing (M21 auth, M22 explorer, M23 element explorer) |
+| **Next Milestone** | M24 — To be scoped (first M24 candidate: deeper chemistry education on top of the explorer layer) |
 
 ### Phase Summary Table
 

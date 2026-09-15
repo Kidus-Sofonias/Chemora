@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { LoginScreen } from './LoginScreen';
 import { AuthenticatedScreen } from './AuthenticatedScreen';
 import { ExplorerSection } from './ExplorerPage';
+import { ElementExplorerPage } from './ElementExplorerPage';
 
 /**
  * Guards authenticated content behind the auth check.
@@ -32,9 +34,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+type Section = 'chemistry' | 'elements';
+
 /** The application root: switches on the current auth state. */
 export function RootRouter() {
   const auth = useAuth();
+  const [section, setSection] = useState<Section>('chemistry');
 
   if (auth.state === 'loading') {
     return <LoadingScreen />;
@@ -47,10 +52,29 @@ export function RootRouter() {
   }
   return (
     <AuthenticatedScreen user={auth.user!} onSignOut={auth.signOut}>
-      <ExplorerSection />
+      <nav className="section-nav" aria-label="Explore sections">
+        <button
+          type="button"
+          className={`button${section === 'chemistry' ? ' active' : ''}`}
+          aria-pressed={section === 'chemistry'}
+          onClick={() => setSection('chemistry')}
+        >
+          Chemistry
+        </button>
+        <button
+          type="button"
+          className={`button${section === 'elements' ? ' active' : ''}`}
+          aria-pressed={section === 'elements'}
+          onClick={() => setSection('elements')}
+        >
+          Elements
+        </button>
+      </nav>
+      {section === 'chemistry' ? <ExplorerSection /> : <ElementExplorerPage />}
     </AuthenticatedScreen>
   );
 }
+
 
 function LoadingScreen() {
   return (

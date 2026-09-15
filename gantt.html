@@ -2208,15 +2208,18 @@ const phases = [
   { id: 22, name: 'Chemistry Explorer (M22)', desc: 'First user-facing chemistry feature — structured molecule exploration through ChemEngine',
     tasks: ['Backend /api/v1/chemistry/explore with Pydantic models + ChemistryService adapter', 'Real ChemEngine invocation (no chemistry re-implemented in FastAPI)', 'Explorer UI: input, identity card, structure SVG, properties grid, error states', '27 frontend tests (27 total), 60 backend tests'] ,
     ver: '0.2',     start: 92, dur: 4,  risk: 'medium',  status: 'complete', weight: 4 },
-  { id: 23, name: 'Element Explorer (M23)', desc: 'Element/electron-configuration explorer (to be scoped)',
-    tasks: ['Scope & acceptance criteria', 'Element + electron configuration routes', 'Companion explorer UI', 'To be defined before work begins'],
-    ver: '0.2',     start: 96, dur: 4,  risk: 'medium',  status: 'planned',  weight: 3 }
+  { id: 23, name: 'Element Explorer (M23)', desc: 'Element/electron-configuration explorer powered by ChemEngine',
+    tasks: ['Backend /api/v1/elements + /elements/{id} + ElementService adapter', 'Computed electron config, shells, orbitals, valence/core/unpaired', 'Interactive periodic table + search + element detail UI', '18 backend tests (78 total), 37 frontend tests'],
+    ver: '0.2',     start: 96, dur: 4,  risk: 'medium',  status: 'complete', weight: 3 },
+  { id: 24, name: 'Next Milestone (M24)', desc: 'To be scoped — deeper chemistry education on top of the explorer layer',
+    tasks: ['Scope & acceptance criteria', 'To be defined before work begins'],
+    ver: '0.3',     start: 100, dur: 4,  risk: 'medium',  status: 'planned',  weight: 3 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 96;
+const TOTAL_WEEKS = 104;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;
