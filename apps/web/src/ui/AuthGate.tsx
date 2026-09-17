@@ -5,6 +5,7 @@ import { LoginScreen } from './LoginScreen';
 import { AuthenticatedScreen } from './AuthenticatedScreen';
 import { ExplorerSection } from './ExplorerPage';
 import { ElementExplorerPage } from './ElementExplorerPage';
+import { LearningPage } from './LearningPage';
 
 /**
  * Guards authenticated content behind the auth check.
@@ -34,7 +35,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-type Section = 'chemistry' | 'elements';
+type Section = 'chemistry' | 'elements' | 'learn';
 
 /** The application root: switches on the current auth state. */
 export function RootRouter() {
@@ -69,8 +70,22 @@ export function RootRouter() {
         >
           Elements
         </button>
+        <button
+          type="button"
+          className={`button${section === 'learn' ? ' active' : ''}`}
+          aria-pressed={section === 'learn'}
+          onClick={() => setSection('learn')}
+        >
+          Learn
+        </button>
       </nav>
-      {section === 'chemistry' ? <ExplorerSection /> : <ElementExplorerPage />}
+      {section === 'chemistry' ? (
+        <ExplorerSection />
+      ) : section === 'elements' ? (
+        <ElementExplorerPage />
+      ) : (
+        <LearningPage />
+      )}
     </AuthenticatedScreen>
   );
 }

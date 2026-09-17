@@ -481,3 +481,55 @@ performed off the event loop (`asyncio.to_thread`).
 - The `period`/`group`/`block` metadata (including `group=3` for the f-block)
   is used verbatim by the frontend for periodic-table placement.
 
+## Learning Core (M24)
+
+The first learning experience: structured lessons taught with live
+deterministic chemistry, plus server-validated practice and authenticated
+progress.
+
+### Content ownership
+
+Lesson content lives in the isolated seed layer
+`app/learning/content.py` — it is **application data, not ChemEngine**. The
+engine stays computation-only; lessons reference chemistry entities (e.g.
+`element_symbol: "O"`) and clients fetch live engine-computed values from the
+existing element API. The content layer is designed to move to
+PostgreSQL/CMS storage later without changing the API contract. Currently
+three seeded lessons: *Electron Configuration*, *Valence Electrons*, and
+*From Configuration to Chemical Behavior*.
+
+### Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/v1/learning/lessons` | public | Lesson catalog (summaries with section/question counts) |
+| GET | `/api/v1/learning/lessons/{slug}` | public | Full lesson: ordered sections + public questions (no answer keys) |
+| GET | `/api/v1/learning/lessons/{slug}/progress` | session | The user's progress (row created on first access) |
+| POST | `/api/v1/learning/lessons/{slug}/sections/{section_id}/complete` | session | Mark a section complete; lesson auto-completes when all are done |
+| POST | `/api/v1/learning/lessons/{slug}/answers` | session | Submit and validate an answer server-side |
+
+### Answer validation
+
+Answers are validated **deterministically** (whitespace/case-normalized exact
+comparison) — no LLM. The correct answer and answer key never leave the
+server; the response carries `question_id`, `correct`, the question's
+`explanation`, and updated `progress`. Malformed bodies yield Pydantic 422s;
+unknown lessons/questions/sections yield structured
+`404 {detail: {code, message}}` errors.
+
+### Progress
+
+Persisted per authenticated user in the `lesson_progress` table (migration
+`002_lesson_progress`, FK → `users.id` with CASCADE, unique per
+user/lesson): completed sections (order kept), per-question outcomes,
+derived `progress_percent`, automatic `completed_at` on full completion.
+Leaving and returning to a lesson resumes exactly where the user stopped.
+
+### Tests
+
+17 tests in `tests/test_learning.py` run against the shared in-memory SQLite
+`api_client` fixture and the real content layer: catalog/detail contracts,
+answer-key hiding, authentication requirements, progress
+create/update/complete/resume, correct/incorrect/normalized answers,
+persistence of recorded answers, and all structured error paths.
+

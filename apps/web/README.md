@@ -3,9 +3,9 @@
 The Chemora browser application — this milestone (M21) implements the Google
 Sign-In authentication integration on top of the M20 backend.
 
-> **Status:** Authentication integration (M21) ✅ and the Chemistry Explorer
-> (M22) ✅ are complete. Courses, lessons, quizzes, CMS, AI, and offline sync
-> are future milestones.
+> **Status:** Authentication integration (M21) ✅, Chemistry Explorer (M22) ✅,
+> Element Explorer (M23) ✅, and the Chemistry Learning Core (M24) ✅ are
+> complete. Quizzes, CMS, AI, and offline sync are future milestones.
 
 ---
 
@@ -219,4 +219,46 @@ sections).
 **Visualization limitations:** the orbital diagram shows subshell occupancy
 boxes (as in textbook aufbau diagrams); the engine does not provide 2D/3D
 atomic coordinates, and none are faked.
+
+## Learning Core (M24)
+
+The Learn tab in the authenticated shell is the first Chemora learning
+experience: structured lessons whose chemistry comes from the live engine.
+
+### Architecture
+
+```
+LearningPage (catalog ↔ lesson view)
+  └─ useLearning(api)          state machine: catalog + active lesson
+       ├─ ApiClient            /api/v1/learning/... (typed methods)
+       └─ ElementDetails       spotlight sections reuse the M23 component
+```
+
+- **Catalog:** lists seeded lessons (title, description, subject, difficulty,
+  duration, section/question counts). Clicking *Start lesson* fetches the
+  lesson detail plus the user's saved progress (resume).
+- **Lesson view:** progress bar (`role="progressbar"`), ordered section cards
+  with per-section completion ("Mark section complete" — server-tracked).
+- **Chemistry spotlights:** `chemistry_spotlight` sections name an element;
+  the client fetches its live engine-computed detail from the existing
+  element API (cached per lesson) and renders it with the same
+  `ElementDetails` component the Element Explorer uses. No chemistry is
+  computed or inlined in the frontend.
+- **Practice:** multiple-choice and short-answer questions. Answers are
+  graded **server-side** — the client never sees the answer key and never
+  grades itself. Correct answers lock the question; incorrect answers show a
+  retry prompt plus the server's explanation.
+- **Progress:** percent and completion come from the backend
+  (`GET .../progress`, section-complete and answer responses). Leaving and
+  returning to a lesson resumes exactly where the user stopped.
+- **Errors:** structured backend messages only (`detail.code` +
+  `detail.message`); raw server details are never surfaced (`userFacingMessage`
+  helper). Network failures show "Cannot reach the Chemora server" and are
+  distinct from API errors. No auto-retry loops.
+
+### Limitations
+
+Three seeded demonstration lessons; no admin CMS yet (content lives in the
+backend seed layer); no quiz formats beyond multiple-choice/short answer; no
+offline support. All deferred to later milestones.
 

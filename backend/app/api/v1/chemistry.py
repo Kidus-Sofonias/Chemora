@@ -108,10 +108,14 @@ def _to_response(result: ChemistryResult) -> ChemistryExploreResponse:
             atom_count=cast(int, identity_data["atom_count"]),
         ),
         structure=(
-            MoleculeStructure(**result.structure) if result.structure is not None else None
+            MoleculeStructure.model_validate(result.structure)
+            if result.structure is not None
+            else None
         ),
         properties=(
-            MoleculeProperties(**result.properties) if result.properties is not None else None
+            MoleculeProperties.model_validate(result.properties)
+            if result.properties is not None
+            else None
         ),
     )
 

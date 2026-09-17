@@ -2208,18 +2208,21 @@ const phases = [
   { id: 22, name: 'Chemistry Explorer (M22)', desc: 'First user-facing chemistry feature — structured molecule exploration through ChemEngine',
     tasks: ['Backend /api/v1/chemistry/explore with Pydantic models + ChemistryService adapter', 'Real ChemEngine invocation (no chemistry re-implemented in FastAPI)', 'Explorer UI: input, identity card, structure SVG, properties grid, error states', '27 frontend tests (27 total), 60 backend tests'] ,
     ver: '0.2',     start: 92, dur: 4,  risk: 'medium',  status: 'complete', weight: 4 },
-  { id: 23, name: 'Element Explorer (M23)', desc: 'Element/electron-configuration explorer powered by ChemEngine',
+    { id: 23, name: 'Element Explorer (M23)', desc: 'Element/electron-configuration explorer powered by ChemEngine',
     tasks: ['Backend /api/v1/elements + /elements/{id} + ElementService adapter', 'Computed electron config, shells, orbitals, valence/core/unpaired', 'Interactive periodic table + search + element detail UI', '18 backend tests (78 total), 37 frontend tests'],
     ver: '0.2',     start: 96, dur: 4,  risk: 'medium',  status: 'complete', weight: 3 },
-  { id: 24, name: 'Next Milestone (M24)', desc: 'To be scoped — deeper chemistry education on top of the explorer layer',
-    tasks: ['Scope & acceptance criteria', 'To be defined before work begins'],
-    ver: '0.3',     start: 100, dur: 4,  risk: 'medium',  status: 'planned',  weight: 3 }
+  { id: 24, name: 'Chemistry Learning Core (M24)', desc: 'First chemistry learning experience: lessons with ChemEngine-backed interactive explanations, practice questions, and progress tracking',
+    tasks: ['Backend /api/v1/learning/lessons + /lesson/{slug} + progress/question endpoints with Pydantic models', 'LearningService + seed content layer (content != ChemEngine) with Element/ElementConfigurator integration', 'Reusable EducationalChemistry component (config, orbitals, shells, valence) over existing M23 data', 'Step-by-step lesson sections with interactive element selection', 'Server-side answer validation (no LLM, deterministic)', 'Authenticated progress tracking with resume', '17 new backend tests, 10 new frontend tests (95 backend, 47 web)'],
+    ver: '0.3',     start: 100, dur: 6,  risk: 'medium',  status: 'complete', weight: 4 },
+  { id: 25, name: 'Learning Core Expansion (M25)', desc: 'Expand the learning core: more lesson content, richer practice, admin CMS foundation',
+    tasks: ['Scope definition before work begins (content model extensions, CMS storage migration, richer practice formats)'],
+    ver: '0.3',     start: 106, dur: 6,  risk: 'medium',  status: 'planned', weight: 4 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 104;
+const TOTAL_WEEKS = 112;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;

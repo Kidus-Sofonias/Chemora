@@ -1,14 +1,14 @@
 # Chemora — Project Status Report
 
-**Date:** September 15, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19+M20+M22+M23 complete / Web M21+M22+M23 complete
-**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) complete
+**Date:** September 17, 2026
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M20+M22–M24 complete / Web M21–M24 complete
+**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) complete
 
 ---
 
 ## Executive Summary
 
-ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), and the Element Explorer (M23) are **complete** (78 backend tests, 37 web tests) — together they run real deterministic chemistry and element/electron-structure exploration end to end.
+ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), and the Chemistry Learning Core (M24) are **complete** (95 backend tests, 47 web tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a first ChemEngine-backed learning experience end to end.
 
 | Metric | Value |
 |--------|-------|
@@ -19,9 +19,9 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Test Files** | 37 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
-| **Backend Tests** | 78 / 78 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API) |
-| **Web Tests** | 37 / 37 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer) |
-| **Next Milestone** | M24 — To be scoped (deeper chemistry education on top of the explorer layer) |
+| **Backend Tests** | 95 / 95 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24 Learning API) |
+| **Web Tests** | 47 / 47 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24 Learning) |
+| **Next Milestone** | M25 — To be scoped (expanding the learning core: more content, richer practice, admin CMS foundation) |
 
 ---
 
@@ -86,8 +86,16 @@ The repository was restructured from a ChemEngine-only layout into the Chemora m
 - `unknown_element` / `invalid_identifier` 404 contract; network vs server errors distinguished
 - 18 backend tests (incl. Cr/Cu Aufbau exceptions), 10 frontend tests
 
-### ⬜ M24: Next Milestone (To Be Scoped)
-Deeper chemistry education building on the molecule + element explorer layer. Scope, dependencies, and acceptance criteria to be defined before work begins.
+### ✅ M24: Chemistry Learning Core (Complete)
+- Isolated content layer (`backend/app/learning/content.py`, 3 seeded lessons) — content is application data, NOT ChemEngine
+- Learning API under `/api/v1/learning/` with explicit Pydantic models; answer keys never leave the server; deterministic (non-LLM) answer validation
+- Progress persisted in `lesson_progress` (migration `002_lesson_progress`, FK → users CASCADE, unique per user/lesson): sections, per-question outcomes, derived percent, auto lesson completion, resume
+- `chemistry_spotlight` sections render live engine-computed element data through the same component the Element Explorer uses
+- Web Learn tab: catalog, section progression, progress bar, server-graded practice with immediate feedback, structured-errors only
+- 17 backend tests, 10 frontend tests
+
+### ⬜ M25: Next Milestone (To Be Scoped)
+Expanding the learning core: more content, richer practice, and the admin CMS foundation. Scope, dependencies, and acceptance criteria to be defined before work begins.
 
 ---
 

@@ -114,7 +114,7 @@ def _to_detail(data: ElementDetailData) -> ElementDetail:
         unpaired_electrons=data.unpaired_electrons,
         shells=data.shells,
         subshells=data.subshells,
-        orbitals=[OrbitalOccupancyOut(**occ) for occ in data.orbitals],
+        orbitals=[OrbitalOccupancyOut.model_validate(occ) for occ in data.orbitals],
         explanation=data.explanation,
     )
 

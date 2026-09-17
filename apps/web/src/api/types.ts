@@ -117,6 +117,7 @@ export interface ElementDetail {
   config_full: string;
   config_shorthand: string;
   noble_gas: string;
+  /** Highest-shell electron count — the engine's valence definition. */
   valence_electrons: number;
   core_electrons: number;
   unpaired_electrons: number;
@@ -124,4 +125,90 @@ export interface ElementDetail {
   subshells: Record<string, number>;
   orbitals: OrbitalOccupancy[];
   explanation: string;
+}
+
+// ── Learning Core (M24) ───────────────────────────────────────────────────
+// Shapes mirror the backend Pydantic models for /api/v1/learning/*.
+//
+// Architectural rule: educational *content* lives in the backend, and
+// chemistry *values* shown inside lessons are not embedded here either —
+// `chemistry_spotlight` sections name an element and the client fetches the
+// live ChemEngine-computed detail from the existing element API.
+
+/** Catalog entry (GET /api/v1/learning/lessons). */
+export interface LessonSummary {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  subject: string;
+  difficulty: string;
+  estimated_minutes: number;
+  section_count: number;
+  question_count: number;
+}
+
+export interface LessonListResult {
+  lessons: LessonSummary[];
+}
+
+/** A practice question as sent to the client — never includes the answer key. */
+export interface QuestionPublic {
+  id: string;
+  kind: string;
+  prompt: string;
+  options: string[];
+}
+
+/** Section kinds the backend may emit. */
+export type SectionKind =
+  | 'introduction'
+  | 'explanation'
+  | 'chemistry_spotlight'
+  | 'practice'
+  | 'summary';
+
+/**
+ * One lesson section. `element_symbol` is only set for `chemistry_spotlight`
+ * sections, which pair prose with live engine data.
+ */
+export interface SectionPublic {
+  id: string;
+  kind: string;
+  title: string;
+  body: string[];
+  element_symbol: string | null;
+  questions: QuestionPublic[];
+}
+
+/** Full lesson (GET /api/v1/learning/lessons/{slug}). */
+export interface LessonDetail {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  subject: string;
+  difficulty: string;
+  estimated_minutes: number;
+  sections: SectionPublic[];
+}
+
+/**
+ * Per-user progress (GET .../progress, POST .../complete, POST .../answers).
+ * `progress_percent` is derived server-side from completed section counts.
+ */
+export interface LearningProgress {
+  lesson_slug: string;
+  completed_sections: string[];
+  answers: Record<string, boolean>;
+  progress_percent: number;
+  completed: boolean;
+}
+
+/** Server-side answer validation result (POST .../answers). */
+export interface AnswerResult {
+  question_id: string;
+  correct: boolean;
+  explanation: string;
+  progress: LearningProgress;
 }

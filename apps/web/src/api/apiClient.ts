@@ -1,8 +1,12 @@
 import type {
+  AnswerResult,
   ChemistryExploreResult,
   CurrentUser,
   ElementDetail,
   ElementListResult,
+  LearningProgress,
+  LessonDetail,
+  LessonListResult,
   SessionResponse,
 } from './types';
 
@@ -103,6 +107,50 @@ export class ApiClient {
   async getElement(identifier: string): Promise<ElementDetail> {
     return this.request<ElementDetail>(
       `/api/v1/elements/${encodeURIComponent(identifier.trim())}`,
+    );
+  }
+
+  /** GET /api/v1/learning/lessons — the lesson catalog. */
+  async getLessons(): Promise<LessonListResult> {
+    return this.request<LessonListResult>('/api/v1/learning/lessons');
+  }
+
+  /** GET /api/v1/learning/lessons/{slug} — one lesson with sections/questions. */
+  async getLesson(slug: string): Promise<LessonDetail> {
+    return this.request<LessonDetail>(
+      `/api/v1/learning/lessons/${encodeURIComponent(slug)}`,
+    );
+  }
+
+  /** GET /api/v1/learning/lessons/{slug}/progress — authenticated progress. */
+  async getLessonProgress(slug: string): Promise<LearningProgress> {
+    return this.request<LearningProgress>(
+      `/api/v1/learning/lessons/${encodeURIComponent(slug)}/progress`,
+    );
+  }
+
+  /** POST /api/v1/learning/lessons/{slug}/sections/{id}/complete */
+  async completeLessonSection(slug: string, sectionId: string): Promise<LearningProgress> {
+    return this.request<LearningProgress>(
+      `/api/v1/learning/lessons/${encodeURIComponent(slug)}/sections/${encodeURIComponent(
+        sectionId,
+      )}/complete`,
+      { method: 'POST' },
+    );
+  }
+
+  /**
+   * POST /api/v1/learning/lessons/{slug}/answers — validate an answer
+   * server-side. The correct answer never reaches the client.
+   */
+  async submitLessonAnswer(
+    slug: string,
+    questionId: string,
+    answer: string,
+  ): Promise<AnswerResult> {
+    return this.request<AnswerResult>(
+      `/api/v1/learning/lessons/${encodeURIComponent(slug)}/answers`,
+      { method: 'POST', body: { question_id: questionId, answer } },
     );
   }
 

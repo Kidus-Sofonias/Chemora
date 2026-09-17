@@ -1,0 +1,126 @@
+/* ── Learning Core (M24) ─────────────────────────────────────────────────── */
+
+.lesson-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.lesson-card h3 {
+  margin: 0 0 0.35rem;
+}
+
+.lesson-card p {
+  margin: 0.25rem 0;
+  font-size: 0.95rem;
+}
+
+.back-button {
+  margin-bottom: 0.75rem;
+}
+
+.lesson-header h2 {
+  margin: 0.25rem 0;
+}
+
+.progress {
+  height: 8px;
+  border-radius: 999px;
+  background: #e3e8f0;
+  overflow: hidden;
+  max-width: 420px;
+  margin-top: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill {
+    transition: none;
+  }
+}
+
+.section-card {
+  margin-top: 1rem;
+}
+
+.done-badge {
+  color: #157347;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.spotlight {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  border: 1px dashed #b8c0cc;
+  border-radius: 10px;
+  background: #fbfcff;
+}
+
+.practice {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e3e8f0;
+}
+
+.practice fieldset {
+  border: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+}
+
+.practice legend {
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.option {
+  cursor: pointer;
+}
+
+.answer-input {
+  max-width: 340px;
+}
+
+.feedback {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.92rem;
+}
+
+.feedback.correct {
+  background: #e8f6ee;
+  border: 1px solid #9fd8b4;
+}
+
+.feedback.incorrect {
+  background: #fdeeee;
+  border: 1px solid #f0b4b4;
+}
+
+.verdict {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .lesson-list {
+    grid-template-columns: 1fr;
+  }
+}

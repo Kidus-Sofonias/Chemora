@@ -1745,6 +1745,40 @@ periodic table to ChemEngine's deterministic electron-configuration subsystem
 - 18 new backend tests (real engine data: O, He, Fe, plus Cr/Cu Aufbau
   exceptions) and 10 new frontend tests (37 total).
 
+### M24 — Chemistry Learning Core ✅ Complete
+
+The first user-facing learning experience: structured lessons taught with
+live deterministic chemistry from ChemEngine, plus server-validated practice
+and authenticated progress.
+
+- Content layer isolated in `backend/app/learning/content.py` (3 seeded
+  lessons: Electron Configuration, Valence Electrons, Configuration →
+  Behavior). Content is application data, NOT ChemEngine — the engine stays
+  computation-only. Designed to move to a DB/CMS later without changing the
+  API contract.
+- Learning API under `/api/v1/learning/` with explicit Pydantic models:
+  `GET /lessons`, `GET /lessons/{slug}`, `GET /lessons/{slug}/progress`,
+  `POST /lessons/{slug}/sections/{id}/complete`, and
+  `POST /lessons/{slug}/answers`. Answer keys never leave the server;
+  validation is deterministic (normalized exact comparison, no LLM).
+- Progress persisted in the `lesson_progress` table (Alembic migration
+  `002_lesson_progress`, FK → users with CASCADE, unique per user/lesson):
+  completed sections, per-question outcomes, derived percent, auto lesson
+  completion, resume across sessions.
+- `chemistry_spotlight` lesson sections name an element; the web client
+  renders its live engine-computed detail through the same component the
+  Element Explorer uses — no duplicated chemistry anywhere.
+- Web Learn tab in the authenticated shell: lesson catalog, section
+  progression, progress bar, practice questions with immediate server-graded
+  feedback, structured-errors only (raw server details are never surfaced —
+  enforced by a shared `userFacingMessage` helper).
+- 17 new backend tests (catalog, answer keys hidden, auth requirements,
+  progress create/update/complete/resume, correct/incorrect/normalized
+  answers, unknown lesson/section/question, blank answer) and 10 new
+  frontend tests (catalog, lesson + live spotlight, section completion,
+  correct/incorrect feedback, validation error, network vs server errors,
+  unknown lesson, catalog return).
+
 ---
 
 ## Roadmap Summary
@@ -1759,9 +1793,9 @@ periodic table to ChemEngine's deterministic electron-configuration subsystem
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
-| **Backend Tests** | 78 / 78 passing (M19 + M20 auth, M22 chemistry, M23 elements) |
-| **Web Tests** | 37 / 37 passing (M21 auth, M22 explorer, M23 element explorer) |
-| **Next Milestone** | M24 — To be scoped (first M24 candidate: deeper chemistry education on top of the explorer layer) |
+| **Backend Tests** | 95 / 95 passing (M19 auth, M20 auth, M22 chemistry, M23 elements, M24 learning) |
+| **Web Tests** | 47 / 47 passing (M21 auth, M22 explorer, M23 element explorer, M24 learning) |
+| **Next Milestone** | M25 — To be scoped (expanding the learning core: more content, richer practice, admin CMS foundation) |
 
 ### Phase Summary Table
 
