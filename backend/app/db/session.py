@@ -15,13 +15,25 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import settings
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
-)
+# PostgreSQL uses a real connection pool; SQLite (dev/demo profile) does not
+# support pool_size/max_overflow, so engine kwargs are chosen by URL scheme.
+if settings.DATABASE_URL.startswith("sqlite"):
+    from sqlalchemy.pool import StaticPool
+
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=settings.DEBUG,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+else:
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=settings.DEBUG,
+        pool_pre_ping=True,
+        pool_size=10,
+        max_overflow=20,
+    )
 
 async_session_factory = async_sessionmaker(
     engine,

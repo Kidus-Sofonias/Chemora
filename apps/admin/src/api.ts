@@ -80,6 +80,21 @@ export async function unpublishLesson(slug: string): Promise<AdminLesson> {
   });
 }
 
+/**
+ * Delete a lesson. By default the backend refuses when student progress
+ * references the lesson (409 lesson_has_progress); pass force=true to
+ * confirm the destructive action.
+ */
+export async function deleteLesson(
+  slug: string,
+  { force = false }: { force?: boolean } = {},
+): Promise<void> {
+  return request<void>(
+    `/api/v1/admin/lessons/${slug}${force ? '?force=true' : ''}`,
+    { method: 'DELETE' },
+  );
+}
+
 export async function previewLesson(slug: string): Promise<PreviewLesson> {
   return request<PreviewLesson>(`/api/v1/admin/lessons/${slug}/preview`);
 }

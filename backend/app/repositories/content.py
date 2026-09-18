@@ -17,13 +17,14 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.learning.content import Lesson, Question, Section
 from app.models.content import Lesson as LessonRow
 from app.models.content import LessonQuestion, LessonSection
+from app.models.learning import LessonProgress
 
 # Eager-load the full lesson tree in a fixed number of queries.
 _LESSON_LOAD = selectinload(LessonRow.sections).selectinload(LessonSection.questions)
@@ -69,6 +70,15 @@ class ContentRepository:
             select(LessonRow.id).where(LessonRow.slug == slug).limit(1)
         )
         return result.scalar_one_or_none() is not None
+
+    async def count_progress_for_lesson(self, slug: str) -> int:
+        """Count student progress rows referencing a lesson slug."""
+        result = await self._db.execute(
+            select(func.count()).select_from(LessonProgress).where(
+                LessonProgress.lesson_slug == slug
+            )
+        )
+        return int(result.scalar_one())
 
     async def list_lesson_rows(
         self, *, include_unpublished: bool = False
@@ -141,6 +151,25 @@ class ContentRepository:
         row.published = published
         row.published_at = datetime.now(timezone.utc) if published else None
         await self._db.flush()
+
+    async def delete_lesson(self, slug: str) -> bool:
+        """Delete a lesson and all of its sections and questions.
+
+        The ORM ``all, delete-orphan`` cascade removes the children; the
+        database-level ``ON DELETE CASCADE`` is the backstop.
+
+        Args:
+            slug: The lesson slug.
+
+        Returns:
+            True when a lesson was deleted, False when no lesson matched.
+        """
+        row = await self.get_lesson_row(slug)
+        if row is None:
+            return False
+        await self._db.delete(row)
+        await self._db.flush()
+        return True
 
     # ── Internals ─────────────────────────────────────────────────────
 

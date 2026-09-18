@@ -1857,10 +1857,20 @@ files.
 - Chemistry validation stays deterministic and server-side (ChemEngine via the
   shared `chemistry_validate` service) — no chemistry logic in TypeScript, no
   LLM anywhere.
-- 7 new backend tests (preview 200/401/403/404, preview hides answer keys,
-  admin timestamp fields) and 8 admin frontend tests (dashboard stats,
-  navigation, status badges, publish/unpublish buttons, editor navigation,
-  preview rendering, answer-key absence in preview).
+- Admin lesson deletion: `DELETE /api/v1/admin/lessons/{slug}` refuses with
+  409 `lesson_has_progress` when student progress references the lesson;
+  `?force=true` performs the destructive delete (progress cascades) after a
+  second explicit confirmation in the UI.
+- 12 new backend tests (preview 200/401/403/404, preview hides answer keys,
+  admin timestamp fields, deletion lifecycle: unauthorized/normal-user
+  rejection, progress-protected deletion, force delete, draft delete) and
+  11 admin frontend tests (dashboard stats, navigation, status badges,
+  publish/unpublish buttons, editor navigation, preview rendering,
+  answer-key absence in preview, delete confirm + 409 force flow).
+- End-to-end browser verification of the admin CMS in Chrome (puppeteer-core
+  against a live backend + built UI, 21/21 checks): auth gate, dashboard,
+  lesson list, editor, preview without answer keys, delete with confirmation
+  dialogs and server-side 404 verification.
 
 ---
 
@@ -1876,9 +1886,9 @@ files.
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
-| **Backend Tests** | 144 / 144 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview) |
+| **Backend Tests** | 149 / 149 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion) |
 | **Web Tests** | 52 / 52 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning) |
-| **Admin Tests** | 8 / 8 passing (M27 admin CMS) |
+| **Admin Tests** | 11 / 11 passing (M27 admin CMS incl. deletion flow) |
 | **Next Milestone** | M28 — (to be scoped) |
 
 ### Phase Summary Table

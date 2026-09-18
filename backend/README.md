@@ -239,6 +239,7 @@ All under `/api/v1`.
 | `PUT` | `/admin/lessons/{slug}` | ✅ admin | Replace a lesson's content; publish state preserved; slug immutable. |
 | `POST` | `/admin/lessons/{slug}/publish` | ✅ admin | Publish a lesson (validates first). |
 | `POST` | `/admin/lessons/{slug}/unpublish` | ✅ admin | Return a published lesson to draft. |
+| `DELETE` | `/admin/lessons/{slug}` | ✅ admin | Delete a lesson and its content. Refuses with 409 if student progress exists; `?force=true` overrides. |
 | `GET` | `/health` | — | Health check. |
 
 ### `POST /chemistry/explore` (M22 — Chemistry Explorer)

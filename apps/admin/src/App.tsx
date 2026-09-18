@@ -161,11 +161,13 @@ function LessonList({
   onNavigate,
   onPublish,
   onUnpublish,
+  onDelete,
 }: {
   data: AdminLessonList | null;
   onNavigate: (h: string) => void;
   onPublish: (slug: string) => void;
   onUnpublish: (slug: string) => void;
+  onDelete: (slug: string) => void;
 }) {
   const lessons = data?.lessons ?? [];
   return (
@@ -238,6 +240,12 @@ function LessonList({
                     Publish
                   </button>
                 )}
+                <button
+                  className="btn btn-small btn-danger"
+                  onClick={() => onDelete(l.slug)}
+                >
+                  Delete
+                </button>
               </td>
             </tr>
           ))}
@@ -830,6 +838,39 @@ export default function App() {
     setListData(data);
   };
 
+  // Deletion is destructive: first click asks for confirmation and surfaces a
+  // 409 (student progress exists) as a force-confirm dialog.
+  const handleDelete = async (slug: string) => {
+    const lesson = listData?.lessons.find((l) => l.slug === slug);
+    if (
+      !window.confirm(
+        `Delete lesson "${lesson?.title ?? slug}" and all of its sections and questions?`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.deleteLesson(slug);
+    } catch (err) {
+      if (
+        err instanceof api.ApiError &&
+        err.status === 409 &&
+        window.confirm(
+          'Students already have progress in this lesson. Delete it anyway? ' +
+            'Their progress will no longer resolve to a lesson.',
+        )
+      ) {
+        await api.deleteLesson(slug, { force: true });
+      } else if (err instanceof api.ApiError) {
+        window.alert(`Could not delete the lesson (HTTP ${err.status}).`);
+        return;
+      } else {
+        return;
+      }
+    }
+    setListData(await api.listLessons());
+  };
+
   if (authError) return <AuthGate />;
   if (page.kind === 'dashboard')
     return (
@@ -845,6 +886,7 @@ export default function App() {
           onNavigate={go}
           onPublish={handlePublish}
           onUnpublish={handleUnpublish}
+          onDelete={handleDelete}
         />
       </Shell>
     );

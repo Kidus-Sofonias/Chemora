@@ -610,6 +610,111 @@ class TestContentValidation:
 
 
 # -------------------------------------------------------------------
+# Lesson Deletion
+# -------------------------------------------------------------------
+
+
+class TestAdminDeleteLesson:
+    """DELETE /admin/lessons/{slug} removes a lesson and its children."""
+
+    async def _create_lesson(self, api_client: AsyncClient, slug: str) -> None:
+        payload = _lesson_payload(slug=slug, order=90)
+        response = await api_client.post("/api/v1/admin/lessons", json=payload)
+        assert response.status_code == 201, response.text
+
+    async def test_delete_returns_204(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Deleting an existing lesson returns 204 No Content."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        await self._create_lesson(api_client, "delete-me")
+        response = await api_client.delete("/api/v1/admin/lessons/delete-me")
+        assert response.status_code == 204
+
+    async def test_deleted_lesson_is_gone_from_admin_and_student_apis(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A deleted lesson 404s on both the admin and student APIs."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        await self._create_lesson(api_client, "delete-verify")
+        await api_client.delete("/api/v1/admin/lessons/delete-verify")
+        admin_resp = await api_client.get("/api/v1/admin/lessons/delete-verify")
+        assert admin_resp.status_code == 404
+        student_resp = await api_client.get("/api/v1/learning/lessons/delete-verify")
+        assert student_resp.status_code == 404
+
+    async def test_delete_unknown_lesson_returns_404(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Deleting a slug that never existed returns 404."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        response = await api_client.delete("/api/v1/admin/lessons/never-existed")
+        assert response.status_code == 404
+
+    async def test_delete_requires_admin(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+    ) -> None:
+        """A non-admin authenticated user cannot delete lessons (403)."""
+        await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
+        response = await api_client.delete(
+            "/api/v1/admin/lessons/electron-configuration"
+        )
+        assert response.status_code == 403
+
+    async def test_delete_refused_while_progress_exists(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A student with progress blocks deletion until force is passed."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        await self._create_lesson(api_client, "delete-progress")
+        # Publish so students can interact with it, then record progress.
+        publish = await api_client.post(
+            "/api/v1/admin/lessons/delete-progress/publish"
+        )
+        assert publish.status_code == 200
+        # A student completes a section of the lesson. (This replaces the
+        # admin session cookie, so re-login as admin afterwards.)
+        await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
+        complete = await api_client.post(
+            "/api/v1/learning/lessons/delete-progress/sections/intro/complete"
+        )
+        assert complete.status_code == 200
+        await _login_admin(api_client, mock_google_verifier)
+        # Admin deletion without force -> 409.
+        blocked = await api_client.delete("/api/v1/admin/lessons/delete-progress")
+        assert blocked.status_code == 409
+        assert blocked.json()["detail"]["code"] == "lesson_has_progress"
+        # The lesson still exists.
+        still_there = await api_client.get("/api/v1/admin/lessons/delete-progress")
+        assert still_there.status_code == 200
+        # Forced deletion succeeds.
+        forced = await api_client.delete(
+            "/api/v1/admin/lessons/delete-progress?force=true"
+        )
+        assert forced.status_code == 204
+        gone = await api_client.get("/api/v1/admin/lessons/delete-progress")
+        assert gone.status_code == 404
+
+
+# -------------------------------------------------------------------
 # Answer Key Exposure
 # -------------------------------------------------------------------
 

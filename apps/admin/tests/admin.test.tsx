@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App';
+import * as api from '../src/api';
 import type { AdminLessonList, AdminLesson, PreviewLesson } from '../src/types';
 
 // --- Mock data (hoisted with vi.hoisted so vi.mock can reference them) ---
@@ -91,6 +92,7 @@ const { mockListLessons, mockLesson, mockPreview, apiMocks } = vi.hoisted(
       updateLesson: vi.fn().mockResolvedValue(mockLesson),
       publishLesson: vi.fn().mockResolvedValue(mockLesson),
       unpublishLesson: vi.fn().mockResolvedValue(mockLesson),
+      deleteLesson: vi.fn().mockResolvedValue(undefined),
       previewLesson: vi.fn().mockResolvedValue(mockPreview),
       getCurrentUser: vi.fn().mockResolvedValue({
         id: '1',
@@ -120,6 +122,7 @@ vi.mock('../src/api', () => ({
   updateLesson: (...args: unknown[]) => apiMocks.updateLesson(...args),
   publishLesson: (...args: unknown[]) => apiMocks.publishLesson(...args),
   unpublishLesson: (...args: unknown[]) => apiMocks.unpublishLesson(...args),
+  deleteLesson: (...args: unknown[]) => apiMocks.deleteLesson(...args),
   previewLesson: (...args: unknown[]) => apiMocks.previewLesson(...args),
   getCurrentUser: (...args: unknown[]) => apiMocks.getCurrentUser(...args),
 }));
@@ -134,6 +137,7 @@ beforeEach(() => {
   apiMocks.updateLesson.mockResolvedValue(mockLesson);
   apiMocks.publishLesson.mockResolvedValue(mockLesson);
   apiMocks.unpublishLesson.mockResolvedValue(mockLesson);
+  apiMocks.deleteLesson.mockResolvedValue(undefined);
   apiMocks.previewLesson.mockResolvedValue(mockPreview);
   apiMocks.getCurrentUser.mockResolvedValue({
     id: '1',
@@ -254,5 +258,64 @@ describe('Admin CMS', () => {
       expect(screen.getByText('Preview Mode')).toBeInTheDocument();
     });
     expect(screen.queryByText('correct')).not.toBeInTheDocument();
+  });
+
+  it('deletes a lesson after confirmation', async () => {
+    window.location.hash = '/lessons';
+    render(<App />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Lessons' }),
+      ).toBeInTheDocument();
+    });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    await user.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
+    await waitFor(() => {
+      expect(apiMocks.deleteLesson).toHaveBeenCalledWith('electron-configuration');
+    });
+    confirmSpy.mockRestore();
+  });
+
+  it('does not delete when confirmation is cancelled', async () => {
+    window.location.hash = '/lessons';
+    render(<App />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Lessons' }),
+      ).toBeInTheDocument();
+    });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const user = userEvent.setup();
+    await user.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
+    expect(apiMocks.deleteLesson).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it('forces deletion after a 409 progress conflict', async () => {
+    window.location.hash = '/lessons';
+    render(<App />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Lessons' }),
+      ).toBeInTheDocument();
+    });
+    // Must be the mocked module's ApiError so the instanceof check in App matches.
+    apiMocks.deleteLesson.mockRejectedValueOnce(new api.ApiError(409, {
+      code: 'lesson_has_progress',
+      message: 'progress exists',
+    }));
+    const confirmSpy = vi
+      .spyOn(window, 'confirm')
+      .mockReturnValueOnce(true) // initial delete confirmation
+      .mockReturnValueOnce(true); // force confirmation
+    const user = userEvent.setup();
+    await user.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
+    await waitFor(() => {
+      expect(apiMocks.deleteLesson).toHaveBeenCalledWith('electron-configuration', {
+        force: true,
+      });
+    });
+    confirmSpy.mockRestore();
   });
 });

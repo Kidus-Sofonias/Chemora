@@ -19,9 +19,9 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Test Files** | 37 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
-| **Backend Tests** | 144 / 144 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview) |
+| **Backend Tests** | 149 / 149 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion) |
 | **Web Tests** | 52 / 52 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning) |
-| **Admin Tests** | 8 / 8 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety) |
+| **Admin Tests** | 11 / 11 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow) |
 | **Next Milestone** | M28 — (to be scoped) |
 
 ---
@@ -134,7 +134,10 @@ The repository was restructured from a ChemEngine-only layout into the Chemora m
 - Admin DTOs now carry `created_at` / `updated_at` timestamps; admin list carries `updated_at`
 - Publishing requires an explicit action; edits never auto-publish; slug changes are rejected server-side (slug immutability protects `lesson_progress`)
 - Chemistry validation remains server-side and deterministic: formula questions via ChemEngine canonicalization, element questions via the element resolver (shared `chemistry_validate` service)
-- 8 frontend admin tests, 7 new backend tests (preview 200/401/403/404, answer-key stripping, timestamp fields)
+- Admin lesson deletion: `DELETE /api/v1/admin/lessons/{slug}` refuses (409 `lesson_has_progress`) when student progress references the lesson; `?force=true` deletes the lesson (progress rows cascade) after an explicit force confirm
+- Lesson list Delete action with confirmation dialogs (first confirm, then a force confirm on 409)
+- 11 frontend admin tests, 12 new backend tests (preview 200/401/403/404, answer-key stripping, timestamp fields, deletion lifecycle incl. progress-protected deletion and force delete)
+- End-to-end browser verification of the admin CMS in Chrome (21/21 checks): auth gate, dashboard, lesson list, editor, preview without answer keys, delete with confirm + 409 force path, verified server-side (404 after delete)
 
 ### ⬜ M28: (To Be Scoped)
 Moving the seeded content layer into the database behind an admin CMS, without changing the learning API contract or the frontend learning architecture. Scope, dependencies, and acceptance criteria to be defined before work begins.

@@ -517,3 +517,34 @@ async def admin_unpublish_lesson(
     except LearningError as exc:
         raise _http_error(exc, 404) from exc
     return _lesson_response(await service.get_lesson_row(slug))
+
+
+@router.delete(
+    "/lessons/{slug}",
+    status_code=204,
+    summary="Delete a lesson",
+    responses={
+        404: {"model": AdminErrorDetail},
+        409: {
+            "model": AdminErrorDetail,
+            "description": "Student progress exists for this lesson",
+        },
+    },
+)
+async def admin_delete_lesson(
+    slug: str,
+    service: Annotated[AdminContentService, Depends(get_admin_service)],
+    _admin: Annotated[User, Depends(get_current_admin)],
+    force: bool = False,
+) -> None:
+    """Delete a lesson and its sections and questions.
+
+    By default the deletion is refused while student progress references the
+    lesson (409 ``lesson_has_progress``). Passing ``?force=true`` confirms the
+    destructive action.
+    """
+    try:
+        await service.delete_lesson(slug, force=force)
+    except LearningError as exc:
+        status_code = 409 if exc.code == "lesson_has_progress" else 404
+        raise _http_error(exc, status_code) from exc

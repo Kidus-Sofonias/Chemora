@@ -142,6 +142,30 @@ class AdminContentService:
         await self._repo.set_published(slug, False)
         return lesson
 
+    async def delete_lesson(self, slug: str, *, force: bool = False) -> None:
+        """Delete a lesson and all of its sections and questions.
+
+        Deletion is destructive and irreversible, so by default it is refused
+        while any student progress references the lesson slug — deleting would
+        strand that progress. ``force=True`` (an explicit admin decision)
+        deletes the lesson and leaves the orphaned progress rows in place
+        (they simply stop resolving).
+
+        Raises:
+            LearningError: ``lesson_not_found`` when absent.
+            LearningError: ``lesson_has_progress`` when progress exists and
+                ``force`` is not set.
+        """
+        await self.get_lesson(slug)  # 404 semantics for unknown slugs
+        progress_count = await self._repo.count_progress_for_lesson(slug)
+        if progress_count and not force:
+            raise LearningError(
+                "lesson_has_progress",
+                f"{progress_count} student(s) have progress in this lesson. "
+                "Delete again with confirmation to remove it anyway.",
+            )
+        await self._repo.delete_lesson(slug)
+
     # ── Validation ────────────────────────────────────────────────────
 
     def validate(self, lesson: Lesson) -> list[dict[str, str]]:
