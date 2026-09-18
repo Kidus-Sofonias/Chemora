@@ -45,6 +45,17 @@ const catalog = {
       section_count: 4,
       question_count: 1,
     },
+    {
+      id: 'lesson-chemical-formulas',
+      slug: 'chemical-formulas',
+      title: 'Chemical Formulas',
+      description: 'What a formula tells you.',
+      subject: 'chemical formulas',
+      difficulty: 'beginner',
+      estimated_minutes: 9,
+      section_count: 5,
+      question_count: 2,
+    },
   ],
 };
 
@@ -88,6 +99,7 @@ const lessonDetail = {
       title: 'Why arrangements matter',
       body: ['Every atom contains electrons.'],
       element_symbol: null,
+      molecule_input: null,
       questions: [],
     },
     {
@@ -96,6 +108,7 @@ const lessonDetail = {
       title: 'See it live',
       body: ['Pick an element below.'],
       element_symbol: 'O',
+      molecule_input: null,
       questions: [],
     },
     {
@@ -104,10 +117,11 @@ const lessonDetail = {
       title: 'Check your understanding',
       body: [],
       element_symbol: null,
+      molecule_input: null,
       questions: [
         {
           id: 'ec-1',
-          kind: 'number',
+          kind: 'numeric',
           prompt: 'How many electrons can a single 2p subshell hold at most?',
           options: [],
         },
@@ -130,6 +144,70 @@ const freshProgress = {
   completed: false,
 };
 
+/** M25: a lesson whose spotlight analyses a molecule instead of an element. */
+const moleculeLessonDetail = {
+  id: 'lesson-chemical-formulas',
+  slug: 'chemical-formulas',
+  title: 'Chemical Formulas',
+  description: 'What a formula tells you.',
+  subject: 'chemical formulas',
+  difficulty: 'beginner',
+  estimated_minutes: 9,
+  sections: [
+    {
+      id: 'intro',
+      kind: 'introduction',
+      title: 'A formula is a count, not a map',
+      body: ['A chemical formula tells you which elements are present.'],
+      element_symbol: null,
+      molecule_input: null,
+      questions: [],
+    },
+    {
+      id: 'spotlight',
+      kind: 'chemistry_spotlight',
+      title: 'Analyse a formula live',
+      body: ['The engine parses the formula below.'],
+      element_symbol: null,
+      molecule_input: 'H2O',
+      questions: [],
+    },
+    {
+      id: 'practice',
+      kind: 'practice',
+      title: 'Check your understanding',
+      body: [],
+      element_symbol: null,
+      molecule_input: null,
+      questions: [
+        {
+          id: 'fm-1',
+          kind: 'formula',
+          prompt:
+            'Which chemical formula represents a molecule with two hydrogen atoms and one oxygen atom?',
+          options: [],
+        },
+      ],
+    },
+  ],
+};
+
+/** Shape mirrors the backend chemistry explore contract (M22). */
+const waterResult = {
+  input: 'H2O',
+  detected_type: 'formula',
+  structure_available: false,
+  identity: {
+    formula: 'H2O',
+    exact_mass: 18.0106,
+    average_mass: 18.015,
+    heavy_atom_count: 1,
+    atom_count: 3,
+  },
+  structure: null,
+  properties: null,
+};
+
 async function defaultHandler(
   _method: string,
   url: string,
@@ -142,6 +220,32 @@ async function defaultHandler(
   }
   if (url.endsWith('/learning/lessons/electron-configuration')) {
     return jsonResponse(200, lessonDetail);
+  }
+  if (url.endsWith('/chemistry/explore')) {
+    const submission = body as { input: string };
+    return jsonResponse(200, { ...waterResult, input: submission.input });
+  }
+  if (url.includes('/learning/lessons/chemical-formulas/progress')) {
+    return jsonResponse(200, { ...freshProgress, lesson_slug: 'chemical-formulas' });
+  }
+  if (url.includes('/learning/lessons/chemical-formulas/answers')) {
+    const submission = body as { question_id: string; answer: string };
+    // Mirrors the backend: equivalent spellings canonicalize to the same
+    // formula, so both are graded correct.
+    const correct = submission.answer === 'H2O' || submission.answer === 'HOH';
+    return jsonResponse(200, {
+      question_id: submission.question_id,
+      correct,
+      explanation: 'The engine canonicalizes both spellings to H2O.',
+      progress: {
+        ...freshProgress,
+        lesson_slug: 'chemical-formulas',
+        answers: { [submission.question_id]: correct },
+      },
+    });
+  }
+  if (url.endsWith('/learning/lessons/chemical-formulas')) {
+    return jsonResponse(200, moleculeLessonDetail);
   }
   if (url.endsWith('/elements/O')) return jsonResponse(200, oxygenDetail);
   if (url.includes('/learning/lessons/electron-configuration/answers')) {
@@ -195,7 +299,8 @@ describe('Learning Core (web)', () => {
     await screen.findByTestId('lesson-list');
     expect(screen.getByText('Electron Configurations')).toBeInTheDocument();
     expect(screen.getByText('Valence Electrons')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Start lesson' }).length).toBe(2);
+    expect(screen.getByText('Chemical Formulas')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Start lesson' }).length).toBe(3);
   });
 
   test('opening a lesson renders sections, live spotlight element, and questions', async () => {
@@ -322,5 +427,74 @@ describe('Learning Core (web)', () => {
     await user.click(screen.getByRole('button', { name: /All lessons/ }));
     await screen.findByTestId('lesson-list');
     expect(screen.getByText('Electron Configurations')).toBeInTheDocument();
+  });
+
+  // -- M25: richer practice and molecule spotlights -------------------------
+
+  async function openLessonAt(index: number) {
+    const user = userEvent.setup();
+    await user.click(screen.getAllByRole('button', { name: 'Start lesson' })[index]);
+    return user;
+  }
+
+  test('a molecule spotlight renders live engine analysis from the chemistry API', async () => {
+    const { backend } = await setupApp();
+    await openLessonAt(2);
+    await screen.findByTestId('molecule-spotlight-H2O');
+    // The values shown come from the engine response, not lesson content.
+    expect(screen.getByTestId('identity-formula')).toHaveTextContent('H2O');
+    expect(screen.getByTestId('identity-average-mass')).toHaveTextContent('18.015');
+    await waitFor(() => {
+      expect(backend.requests.some((r) => r.url.endsWith('/chemistry/explore'))).toBe(
+        true,
+      );
+    });
+  });
+
+  test('a formula question accepts equivalent notation graded by the server', async () => {
+    await setupApp();
+    const user = await openLessonAt(2);
+    const input = await screen.findByLabelText(
+      'Which chemical formula represents a molecule with two hydrogen atoms and one oxygen atom?',
+    );
+    await user.type(input, 'HOH');
+    await user.click(screen.getByTestId('submit-fm-1'));
+    await screen.findByTestId('feedback-fm-1');
+    expect(screen.getByTestId('feedback-fm-1')).toHaveTextContent('Correct!');
+  });
+
+  test('no practice results are shown before an attempt', async () => {
+    await setupApp();
+    await openFirstLesson();
+    await screen.findByTestId('question-ec-1');
+    expect(screen.queryByTestId('practice-results')).toBeNull();
+  });
+
+  test('practice results summarize a correct attempt', async () => {
+    await setupApp();
+    const user = await openFirstLesson();
+    await user.type(
+      screen.getByLabelText('How many electrons can a single 2p subshell hold at most?'),
+      '6',
+    );
+    await user.click(screen.getByTestId('submit-ec-1'));
+    await screen.findByTestId('practice-results');
+    expect(screen.getByTestId('results-attempted')).toHaveTextContent('1 of 2');
+    expect(screen.getByTestId('results-correct')).toHaveTextContent('1');
+    expect(screen.getByTestId('results-incorrect')).toHaveTextContent('0');
+    // Accuracy is measured over attempts made, not the whole question set.
+    expect(screen.getByTestId('results-accuracy')).toHaveTextContent('100%');
+  });
+
+  test('practice results flag an incorrect attempt for another look', async () => {
+    await setupApp();
+    const user = await openFirstLesson();
+    await user.click(screen.getByRole('radio', { name: 'Aufbau principle' }));
+    await user.click(screen.getByTestId('submit-ec-2'));
+    await screen.findByTestId('practice-results');
+    expect(screen.getByTestId('results-incorrect')).toHaveTextContent('1');
+    expect(screen.getByTestId('results-accuracy')).toHaveTextContent('0%');
+    // The answer key is never revealed, only the explanation.
+    expect(screen.getByTestId('practice-results')).not.toHaveTextContent("Hund's rule");
   });
 });

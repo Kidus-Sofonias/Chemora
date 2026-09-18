@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, type ApiClient } from '../api/apiClient';
 import type {
   AnswerResult,
+  ChemistryExploreResult,
   ElementDetail,
   LearningProgress,
   LessonDetail,
@@ -12,9 +13,10 @@ import type {
  * Learning Core state machine (M24).
  *
  * The catalog loads once; opening a lesson fetches the lesson detail plus the
- * authenticated user's progress. `chemistry_spotlight` sections name an
- * element and the client fetches its live ChemEngine-computed detail from the
- * existing element API (cached per session). Answer validation and progress
+ * authenticated user's progress. `chemistry_spotlight` sections name either an
+ * element or a molecule, and the client fetches the corresponding live
+ * ChemEngine-computed result from the existing element API or chemistry explore
+ * API (cached per session). Answer validation and progress
  * recording always go through the backend — the client never grades answers
  * itself and never sees answer keys.
  *
@@ -33,6 +35,11 @@ export interface ActiveLesson {
   /** Engine-computed element details for spotlight sections, by symbol. */
   spotlight: Record<string, ElementDetail>;
   spotlightLoading: Record<string, boolean>;
+  /** Engine-computed molecule analyses, keyed by the section's input string. */
+  molecules: Record<string, ChemistryExploreResult>;
+  moleculeLoading: Record<string, boolean>;
+  /** User-facing note when a molecule spotlight could not be computed. */
+  moleculeError: Record<string, string>;
   /** Graded results per question id, returned by the server. */
   answers: Record<string, AnswerResult>;
   /** Section id with a completion request in flight. */
@@ -88,6 +95,9 @@ function patchActive(
     ...prev.active,
     spotlight: { ...prev.active.spotlight },
     spotlightLoading: { ...prev.active.spotlightLoading },
+    molecules: { ...prev.active.molecules },
+    moleculeLoading: { ...prev.active.moleculeLoading },
+    moleculeError: { ...prev.active.moleculeError },
     answers: { ...prev.active.answers },
     progress: prev.active.progress,
   };
@@ -99,6 +109,7 @@ export function useLearning(api: ApiClient) {
   const [catalog, setCatalog] = useState<CatalogState>({ kind: 'loading' });
   const [current, setCurrent] = useState<LessonState>({ kind: 'idle' });
   const elementCache = useRef(new Map<string, ElementDetail>());
+  const moleculeCache = useRef(new Map<string, ChemistryExploreResult>());
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -160,6 +171,51 @@ export function useLearning(api: ApiClient) {
     [api],
   );
 
+  const loadMolecule = useCallback(
+    (input: string) => {
+      const cached = moleculeCache.current.get(input);
+      if (cached) {
+        setCurrent((prev) =>
+          patchActive(prev, (a) => {
+            a.molecules[input] = cached;
+          }),
+        );
+        return;
+      }
+      setCurrent((prev) =>
+        patchActive(prev, (a) => {
+          a.moleculeLoading[input] = true;
+        }),
+      );
+      void api
+        .exploreChemistry(input)
+        .then((result) => {
+          moleculeCache.current.set(input, result);
+          setCurrent((prev) =>
+            patchActive(prev, (a) => {
+              a.molecules[input] = result;
+              delete a.moleculeLoading[input];
+            }),
+          );
+        })
+        .catch((err: unknown) => {
+          // A molecule that cannot be analysed degrades to prose plus a
+          // user-facing note; the lesson text stays fully usable.
+          const message = userFacingMessage(
+            err,
+            'Could not analyse this molecule right now.',
+          );
+          setCurrent((prev) =>
+            patchActive(prev, (a) => {
+              delete a.moleculeLoading[input];
+              a.moleculeError[input] = message;
+            }),
+          );
+        });
+    },
+    [api],
+  );
+
   const openLesson = useCallback(
     async (slug: string) => {
       const id = ++requestId.current;
@@ -184,14 +240,23 @@ export function useLearning(api: ApiClient) {
           progress,
           spotlight: {},
           spotlightLoading: {},
+          molecules: {},
+          moleculeLoading: {},
+          moleculeError: {},
           answers: {},
           completing: null,
           answering: null,
         };
         setCurrent({ kind: 'ready', active });
         for (const section of lesson.sections) {
-          if (section.kind === 'chemistry_spotlight' && section.element_symbol) {
+          if (section.kind !== 'chemistry_spotlight') {
+            continue;
+          }
+          if (section.element_symbol) {
             loadSpotlight(section.element_symbol);
+          }
+          if (section.molecule_input) {
+            loadMolecule(section.molecule_input);
           }
         }
       } catch (err) {
@@ -201,7 +266,7 @@ export function useLearning(api: ApiClient) {
         setCurrent({ kind: 'error', ...classify(err) });
       }
     },
-    [api, loadSpotlight],
+    [api, loadSpotlight, loadMolecule],
   );
 
   const backToCatalog = useCallback(() => {

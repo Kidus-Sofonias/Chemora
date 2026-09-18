@@ -1779,6 +1779,36 @@ and authenticated progress.
   correct/incorrect feedback, validation error, network vs server errors,
   unknown lesson, catalog return).
 
+### M25 — Learning and Practice Expansion ✅ Complete
+
+More real chemistry and better practice, with the engine still the only source
+of chemical truth.
+
+- Content expanded from 3 to 5 lessons: *Chemical Formulas* (composition vs
+  connectivity, mass, canonicalization) and *Molecules and Their Properties*
+  (structure → descriptors → behaviour) — still seeded, still outside
+  ChemEngine.
+- Chemistry spotlights can now name a **molecule** (`molecule_input`) as well as
+  an element; the client analyses it live through the existing M22 chemistry
+  explore API and reuses the existing `ExplorerResult` component.
+- Two ChemEngine-backed question kinds: `formula` (answers canonicalized via
+  `formula_to_graph(...).molecular_formula`, so `H2O` and `HOH` both grade
+  correct while `CO2` does not) and `element` (symbol / case-insensitive name /
+  atomic number resolved through `Element.from_symbol` / `from_name` /
+  `from_z`).
+- Grading stays deterministic and server-side; an answer the engine cannot
+  parse returns a client-safe `422 invalid_answer` instead of being marked
+  wrong, and answer keys never leave the server.
+- Fixed a real defect found while testing: the in-progress `formula` kind called
+  `parse_formula` (which returns element counts) and read a non-existent
+  `molecular_formula` attribute, so **no** formula answer could ever be graded
+  correct. Canonicalization now uses the correct engine API, and a regression
+  test asserts every seeded chemistry question accepts its own expected answer.
+- Practice results view per practice section (attempted / correct / needs
+  another look / accuracy), accessible and mobile-friendly, no gamification.
+- 11 new backend tests (28 learning tests, 106 total) and 5 new frontend tests
+  (52 total).
+
 ---
 
 ## Roadmap Summary
@@ -1793,9 +1823,9 @@ and authenticated progress.
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
-| **Backend Tests** | 95 / 95 passing (M19 auth, M20 auth, M22 chemistry, M23 elements, M24 learning) |
-| **Web Tests** | 47 / 47 passing (M21 auth, M22 explorer, M23 element explorer, M24 learning) |
-| **Next Milestone** | M25 — To be scoped (expanding the learning core: more content, richer practice, admin CMS foundation) |
+| **Backend Tests** | 106 / 106 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning) |
+| **Web Tests** | 52 / 52 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning) |
+| **Next Milestone** | M26 — Content Management Foundation (to be scoped: move the seed content layer into the database behind an admin CMS, without changing the learning API contract) |
 
 ### Phase Summary Table
 

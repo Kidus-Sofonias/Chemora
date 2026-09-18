@@ -7,8 +7,9 @@ Architecture:
   ``chemistry_spotlight`` sections reference elements by symbol and the client
   renders live data from the existing element API
   (``GET /api/v1/elements/{symbol}``, backed by ChemEngine).
-- Question answers are validated server-side and deterministically (exact /
-  numeric comparison). Correct answers never leave the server.
+- Question answers are validated server-side and deterministically. Text and
+  numeric kinds use normalized comparison; ``formula`` and ``element`` kinds
+  are canonicalized by ChemEngine. Correct answers never leave the server.
 - Progress is persisted per authenticated user in the ``lesson_progress`` table.
 """
 
@@ -17,10 +18,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
+from chemengine.core.element import Element
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.learning.content import Lesson, get_lesson_by_slug, get_lessons
+from app.learning.content import Lesson, Question, get_lesson_by_slug, get_lessons
 from app.models.learning import LessonProgress
 
 
@@ -37,6 +39,59 @@ class LearningError(Exception):
 def _normalize_answer(answer: str) -> str:
     """Normalize a submitted answer for deterministic comparison."""
     return " ".join(answer.strip().lower().split())
+
+
+def _resolve_element(answer: str) -> str | None:
+    """Resolve an element answer to a canonical atomic-number string.
+
+    Accepts a symbol (``Na``), name (``sodium``, case-insensitive), or
+    atomic number (``11``). Returns ``None`` if the answer does not resolve
+    to a real element — never accepts an unverified guess.
+    """
+    token = answer.strip()
+    if not token:
+        return None
+    # Atomic-number string (digits only) → Element.from_z.
+    if token.isdigit():
+        try:
+            return str(Element.from_z(int(token)).atomic_number)
+        except Exception:
+            return None
+    # Symbol or case-insensitive name.
+    try:
+        return str(Element.from_symbol(token).atomic_number)
+    except Exception:
+        pass
+    try:
+        return str(Element.from_name(token.lower()).atomic_number)
+    except Exception:
+        return None
+
+
+def _canonicalize_formula(answer: str) -> str | None:
+    """Canonicalize a molecular formula via ChemEngine's formula parser.
+
+    Returns the canonical Hill-notation formula string, or ``None`` if the
+    input is not a valid chemical formula. Two representations of the same
+    molecule (e.g. ``H2O`` and ``HOH``) canonicalize to the same value;
+    chemically different inputs do not. Names/aliases are NOT accepted — a
+    formula question expects actual formula notation.
+    """
+    # ``parse_formula`` returns element counts, not a graph; ``formula_to_graph``
+    # builds the MolecularGraph whose ``molecular_formula`` is the engine's
+    # canonical form. Matching stays case-sensitive because formula symbols are
+    # (``Co`` = cobalt while ``CO`` = carbon monoxide).
+    from chemengine.parsing import formula_to_graph
+
+    token = answer.strip()
+    if not token:
+        return None
+    try:
+        graph = formula_to_graph(token)
+    except Exception:
+        return None
+    formula = getattr(graph, "molecular_formula", None)
+    return formula if isinstance(formula, str) and formula else None
 
 
 class LearningService:
@@ -87,8 +142,39 @@ class LearningService:
             )
         if not answer or not answer.strip():
             raise LearningError("invalid_answer", "Please provide an answer.")
-        is_correct = _normalize_answer(answer) == _normalize_answer(question.correct)
+        is_correct = LearningService._grade(question, answer)
         return is_correct, question.explanation
+
+    @staticmethod
+    def _grade(question: Question, answer: str) -> bool:
+        """Grade a submitted answer according to the question kind.
+
+        Chemistry kinds (``formula`` / ``element``) delegate to ChemEngine so
+        that equivalent representations are accepted and chemically different
+        ones are rejected — never silently accepted.
+        """
+        if question.kind == "element":
+            expected = _resolve_element(question.correct)
+            submitted = _resolve_element(answer)
+            if submitted is None:
+                raise LearningError(
+                    "invalid_answer",
+                    "That is not a recognised element. Answer with an element "
+                    "symbol, a full name, or an atomic number.",
+                )
+            return expected is not None and submitted == expected
+        if question.kind == "formula":
+            expected = _canonicalize_formula(question.correct)
+            submitted = _canonicalize_formula(answer)
+            if submitted is None:
+                raise LearningError(
+                    "invalid_answer",
+                    "That is not a valid chemical formula. Check the element "
+                    "symbols and their capitalisation.",
+                )
+            return expected is not None and submitted == expected
+        # multiple_choice / numeric: normalized exact comparison.
+        return _normalize_answer(answer) == _normalize_answer(question.correct)
 
     # ── Progress ──────────────────────────────────────────────────────
 

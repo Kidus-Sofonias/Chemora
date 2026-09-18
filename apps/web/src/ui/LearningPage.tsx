@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useApiClient } from '../api/apiContext';
 import { useLearning, userFacingMessage, type ActiveLesson } from '../learning/useLearning';
 import type { QuestionPublic, SectionPublic } from '../api/types';
+import { ExplorerResult } from './ExplorerResult';
 import { ElementDetails } from './elements/ElementDetails';
 import './learning.css';
 
@@ -10,8 +11,9 @@ import './learning.css';
  *
  * Content (sections, prose, questions) comes from the backend education
  * layer. Chemistry values inside `chemistry_spotlight` sections are fetched
- * live from the element API and rendered by the same engine-backed component
- * the Element Explorer uses. Answer grading and progress live server-side.
+ * live — elements from the element API, molecules from the chemistry explore
+ * API — and rendered by the same engine-backed components the Element and
+ * Chemistry Explorers use. Answer grading and progress live server-side.
  */
 export function LearningPage() {
   const api = useApiClient();
@@ -171,6 +173,9 @@ function SectionCard({ section, active, onComplete, onAnswer }: SectionCardProps
       {section.kind === 'chemistry_spotlight' && section.element_symbol ? (
         <Spotlight symbol={section.element_symbol} active={active} />
       ) : null}
+      {section.kind === 'chemistry_spotlight' && section.molecule_input ? (
+        <MoleculeSpotlight input={section.molecule_input} active={active} />
+      ) : null}
 
       {section.questions.map((question) => (
         <PracticeQuestion
@@ -180,6 +185,10 @@ function SectionCard({ section, active, onComplete, onAnswer }: SectionCardProps
           onAnswer={onAnswer}
         />
       ))}
+
+      {section.kind === 'practice' ? (
+        <PracticeResults questions={section.questions} active={active} />
+      ) : null}
 
       {section.kind !== 'practice' ? (
         <button
@@ -315,6 +324,95 @@ function PracticeQuestion({
           <p className="explanation-text">{result.explanation}</p>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/** Live engine analysis for a molecule spotlight section (M22 explore API). */
+function MoleculeSpotlight({
+  input,
+  active,
+}: {
+  input: string;
+  active: ActiveLesson;
+}) {
+  const result = active.molecules[input];
+  const error = active.moleculeError[input];
+  if (result) {
+    return (
+      <div className="spotlight" data-testid={`molecule-spotlight-${input}`}>
+        <ExplorerResult result={result} />
+      </div>
+    );
+  }
+  if (active.moleculeLoading[input]) {
+    return (
+      <p className="status" role="status" data-testid="molecule-loading">
+        Analysing {input} with the chemistry engine…
+      </p>
+    );
+  }
+  if (error) {
+    return (
+      <p className="error" role="alert" data-testid="molecule-error">
+        {error}
+      </p>
+    );
+  }
+  return null;
+}
+
+/**
+ * Practice summary for a practice section (M25).
+ *
+ * Every number is derived from server-graded results — the client never
+ * decides whether an answer was correct. Progress (correct / needs another
+ * look / accuracy) is shown alongside the explanations rather than as a score,
+ * and re-answering an incorrect question is always allowed.
+ */
+function PracticeResults({
+  questions,
+  active,
+}: {
+  questions: QuestionPublic[];
+  active: ActiveLesson;
+}) {
+  const attempted = questions.filter((q) => active.answers[q.id] !== undefined);
+  if (attempted.length === 0) {
+    return null;
+  }
+  const correct = attempted.filter((q) => active.answers[q.id].correct).length;
+  const incorrect = attempted.length - correct;
+  const accuracy = Math.round((100 * correct) / attempted.length);
+  const finished = incorrect === 0 && attempted.length === questions.length;
+  return (
+    <div className="practice-results" data-testid="practice-results">
+      <h4>Practice results</h4>
+      <dl className="practice-stats">
+        <div>
+          <dt>Attempted</dt>
+          <dd data-testid="results-attempted">
+            {attempted.length} of {questions.length}
+          </dd>
+        </div>
+        <div>
+          <dt>Correct</dt>
+          <dd data-testid="results-correct">{correct}</dd>
+        </div>
+        <div>
+          <dt>Needs another look</dt>
+          <dd data-testid="results-incorrect">{incorrect}</dd>
+        </div>
+        <div>
+          <dt>Accuracy</dt>
+          <dd data-testid="results-accuracy">{accuracy}%</dd>
+        </div>
+      </dl>
+      <p className="help muted">
+        {finished
+          ? 'Every question is right — read the explanations once more, then move on.'
+          : 'Accuracy is one signal, not the goal. Read each explanation and retry anything that needs another look.'}
+      </p>
     </div>
   );
 }

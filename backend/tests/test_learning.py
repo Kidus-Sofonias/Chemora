@@ -41,6 +41,8 @@ async def test_lesson_catalog(api_client: AsyncClient) -> None:
         "electron-configuration",
         "valence-electrons",
         "configuration-and-behavior",
+        "chemical-formulas",
+        "molecules-and-properties",
     ]
     first = lessons[0]
     assert set(first.keys()) == {
@@ -309,3 +311,174 @@ async def test_progress_unknown_lesson_404(
     response = await api_client.get("/api/v1/learning/lessons/no-such-lesson/progress")
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "lesson_not_found"
+# -- Expanded content and richer practice (M25) -----------------------------
+#
+# M25 adds two lessons and two ChemEngine-backed question kinds. Grading for
+# `formula` and `element` delegates to the engine (canonical formula / element
+# resolution), so equivalent notation is accepted while chemically different
+# answers are rejected — never silently accepted.
+
+
+@pytest.mark.asyncio
+async def test_catalog_reports_expanded_lesson_counts(api_client: AsyncClient) -> None:
+    """The two M25 lessons appear with their real section/question counts."""
+    response = await api_client.get("/api/v1/learning/lessons")
+    lessons = {lesson["slug"]: lesson for lesson in response.json()["lessons"]}
+    assert lessons["chemical-formulas"]["question_count"] == 2
+    assert lessons["chemical-formulas"]["section_count"] == 5
+    assert lessons["molecules-and-properties"]["question_count"] == 2
+    assert lessons["molecules-and-properties"]["subject"] == "molecular properties"
+
+
+@pytest.mark.asyncio
+async def test_molecule_spotlight_exposes_input_for_live_analysis(
+    api_client: AsyncClient,
+) -> None:
+    """A molecule spotlight names its input; the client computes it live."""
+    response = await api_client.get("/api/v1/learning/lessons/chemical-formulas")
+    assert response.status_code == 200
+    spotlight = next(
+        section
+        for section in response.json()["sections"]
+        if section["kind"] == "chemistry_spotlight"
+    )
+    assert spotlight["molecule_input"] == "H2O"
+    assert spotlight["element_symbol"] is None
+
+
+@pytest.mark.asyncio
+async def test_element_spotlight_leaves_molecule_input_unset(
+    api_client: AsyncClient,
+) -> None:
+    """Element spotlights carry an element symbol and no molecule input."""
+    response = await api_client.get("/api/v1/learning/lessons/electron-configuration")
+    spotlight = next(
+        section
+        for section in response.json()["sections"]
+        if section["kind"] == "chemistry_spotlight"
+    )
+    assert spotlight["element_symbol"] == "O"
+    assert spotlight["molecule_input"] is None
+
+
+@pytest.mark.asyncio
+async def test_expanded_lessons_hide_answer_keys(api_client: AsyncClient) -> None:
+    """New lessons never serialize correct answers or explanations."""
+    for slug in ("chemical-formulas", "molecules-and-properties"):
+        response = await api_client.get(f"/api/v1/learning/lessons/{slug}")
+        assert response.status_code == 200
+        for section in response.json()["sections"]:
+            for question in section["questions"]:
+                assert set(question.keys()) == {"id", "kind", "prompt", "options"}
+
+
+@pytest.mark.asyncio
+async def test_formula_answers_are_canonicalized_by_the_engine(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """Equivalent formula spellings grade identically (ChemEngine canonical)."""
+    await _login(api_client, mock_google_verifier)
+    for answer in ("H2O", "HOH"):
+        response = await api_client.post(
+            "/api/v1/learning/lessons/chemical-formulas/answers",
+            json={"question_id": "fm-1", "answer": answer},
+        )
+        assert response.status_code == 200, answer
+        assert response.json()["correct"] is True, answer
+
+
+@pytest.mark.asyncio
+async def test_chemically_different_formula_is_incorrect(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """A different composition is rejected rather than normalized away."""
+    await _login(api_client, mock_google_verifier)
+    response = await api_client.post(
+        "/api/v1/learning/lessons/chemical-formulas/answers",
+        json={"question_id": "fm-1", "answer": "CO2"},
+    )
+    assert response.status_code == 200
+    assert response.json()["correct"] is False
+
+
+@pytest.mark.asyncio
+async def test_unparseable_formula_is_invalid_answer(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """Non-formula text is a client-safe 422, never silently graded."""
+    await _login(api_client, mock_google_verifier)
+    response = await api_client.post(
+        "/api/v1/learning/lessons/chemical-formulas/answers",
+        json={"question_id": "fm-1", "answer": "banana"},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "invalid_answer"
+@pytest.mark.asyncio
+async def test_element_answers_accept_symbol_name_and_atomic_number(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """Symbol, case-insensitive name, and atomic number all resolve."""
+    await _login(api_client, mock_google_verifier)
+    for answer in ("Na", "sodium", "SODIUM", "11"):
+        response = await api_client.post(
+            "/api/v1/learning/lessons/molecules-and-properties/answers",
+            json={"question_id": "mp-1", "answer": answer},
+        )
+        assert response.status_code == 200, answer
+        assert response.json()["correct"] is True, answer
+
+
+@pytest.mark.asyncio
+async def test_real_but_different_element_is_incorrect(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """A valid element that is not the expected one is simply wrong."""
+    await _login(api_client, mock_google_verifier)
+    response = await api_client.post(
+        "/api/v1/learning/lessons/molecules-and-properties/answers",
+        json={"question_id": "mp-1", "answer": "Mg"},
+    )
+    assert response.status_code == 200
+    assert response.json()["correct"] is False
+
+
+@pytest.mark.asyncio
+async def test_non_element_answer_is_invalid(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """A token that is not an element is invalid, not graded as wrong."""
+    await _login(api_client, mock_google_verifier)
+    response = await api_client.post(
+        "/api/v1/learning/lessons/molecules-and-properties/answers",
+        json={"question_id": "mp-1", "answer": "unobtainium"},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "invalid_answer"
+
+
+@pytest.mark.asyncio
+async def test_every_chemistry_question_accepts_its_expected_answer(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """Every seeded formula/element question is objectively answerable.
+
+    Submitting the canonical expected answer must be graded correct. This
+    guards against a misconfigured question that could never be answered —
+    the failure mode a broken canonicalization would otherwise hide.
+    """
+    from app.learning.content import get_lessons
+
+    await _login(api_client, mock_google_verifier)
+    checked = 0
+    for lesson in get_lessons():
+        for question in lesson.questions:
+            if question.kind not in ("formula", "element"):
+                continue
+            response = await api_client.post(
+                f"/api/v1/learning/lessons/{lesson.slug}/answers",
+                json={"question_id": question.id, "answer": question.correct},
+            )
+            assert response.status_code == 200, question.id
+            assert response.json()["correct"] is True, question.id
+            checked += 1
+    assert checked >= 2

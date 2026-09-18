@@ -124,3 +124,42 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Richer practice + molecule spotlights (M25) ──────────────────────────── */
+
+/* Engine result cards render inside a spotlight; flatten them so the section
+   reads as one block rather than nested cards. */
+.spotlight .result > .card {
+  box-shadow: none;
+  margin-bottom: 0.75rem;
+}
+
+.practice-results {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e3e8f0;
+}
+
+.practice-results h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.practice-stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.practice-stats dt {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5b6577;
+}
+
+.practice-stats dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+}

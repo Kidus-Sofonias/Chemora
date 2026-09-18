@@ -169,8 +169,10 @@ export type SectionKind =
   | 'summary';
 
 /**
- * One lesson section. `element_symbol` is only set for `chemistry_spotlight`
- * sections, which pair prose with live engine data.
+ * One lesson section. `chemistry_spotlight` sections pair prose with live
+ * engine data: `element_symbol` names an element (M23 element API) and
+ * `molecule_input` names a molecule (M22 chemistry explore API). The client
+ * fetches whichever is set — lesson content never stores chemistry values.
  */
 export interface SectionPublic {
   id: string;
@@ -178,6 +180,7 @@ export interface SectionPublic {
   title: string;
   body: string[];
   element_symbol: string | null;
+  molecule_input: string | null;
   questions: QuestionPublic[];
 }
 

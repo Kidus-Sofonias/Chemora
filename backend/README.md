@@ -481,22 +481,33 @@ performed off the event loop (`asyncio.to_thread`).
 - The `period`/`group`/`block` metadata (including `group=3` for the f-block)
   is used verbatim by the frontend for periodic-table placement.
 
-## Learning Core (M24)
+## Learning Core (M24–M25)
 
-The first learning experience: structured lessons taught with live
-deterministic chemistry, plus server-validated practice and authenticated
-progress.
+Structured lessons taught with live deterministic chemistry, server-validated
+practice, and authenticated progress (M24), expanded in M25 with a coherent
+curriculum slice and ChemEngine-backed question types.
 
 ### Content ownership
 
 Lesson content lives in the isolated seed layer
 `app/learning/content.py` — it is **application data, not ChemEngine**. The
-engine stays computation-only; lessons reference chemistry entities (e.g.
-`element_symbol: "O"`) and clients fetch live engine-computed values from the
-existing element API. The content layer is designed to move to
-PostgreSQL/CMS storage later without changing the API contract. Currently
-three seeded lessons: *Electron Configuration*, *Valence Electrons*, and
-*From Configuration to Chemical Behavior*.
+engine stays computation-only; lessons reference chemistry entities and clients
+fetch live engine-computed values. The content layer is designed to move to
+PostgreSQL/CMS storage later without changing the API contract.
+
+Five seeded lessons, in curated order:
+
+1. *Electron Configurations* — `electron-configuration`
+2. *Valence Electrons* — `valence-electrons`
+3. *From Configuration to Chemical Behavior* — `configuration-and-behavior`
+4. *Chemical Formulas* — `chemical-formulas` (M25)
+5. *Molecules and Their Properties* — `molecules-and-properties` (M25)
+
+A `chemistry_spotlight` section names **either** an element
+(`element_symbol: "O"`, rendered by the client from
+`GET /api/v1/elements/{symbol}`) **or** a molecule (`molecule_input: "H2O"`,
+rendered from `POST /api/v1/chemistry/explore`). Chemistry values are never
+stored in lesson content.
 
 ### Endpoints
 
@@ -508,14 +519,29 @@ three seeded lessons: *Electron Configuration*, *Valence Electrons*, and
 | POST | `/api/v1/learning/lessons/{slug}/sections/{section_id}/complete` | session | Mark a section complete; lesson auto-completes when all are done |
 | POST | `/api/v1/learning/lessons/{slug}/answers` | session | Submit and validate an answer server-side |
 
-### Answer validation
+### Question kinds and answer validation
 
-Answers are validated **deterministically** (whitespace/case-normalized exact
-comparison) — no LLM. The correct answer and answer key never leave the
-server; the response carries `question_id`, `correct`, the question's
-`explanation`, and updated `progress`. Malformed bodies yield Pydantic 422s;
-unknown lessons/questions/sections yield structured
-`404 {detail: {code, message}}` errors.
+M24 shipped `multiple_choice` and `numeric`; M25 adds two **ChemEngine-backed**
+kinds. Validation is always deterministic — there is no LLM anywhere in grading:
+
+| Kind | Answer expected | Validation |
+|------|-----------------|------------|
+| `multiple_choice` | one of the options | normalized exact comparison |
+| `numeric` | a number as text | normalized exact comparison |
+| `formula` | formula notation (e.g. `H2O`) | canonicalized with ChemEngine `formula_to_graph(...).molecular_formula` (Hill notation) |
+| `element` | symbol (`Na`), full name (`sodium`, case-insensitive), or atomic number (`11`) | resolved via `Element.from_symbol` / `from_name` / `from_z` to an atomic number |
+
+Normalization is deliberately conservative: text kinds ignore case and
+surrounding whitespace only, and formula matching stays case-sensitive because
+formula symbols are (`Co` ≠ `CO`). Two spellings of one composition (`H2O`,
+`HOH`) canonicalize to the same formula and both grade correct; a different
+composition (`CO2`) does not. An answer the engine cannot parse at all is a
+client-safe `422 invalid_answer`, never silently "correct".
+
+The correct answer and answer key never leave the server; the response carries
+`question_id`, `correct`, the question's `explanation`, and updated `progress`.
+Malformed bodies yield Pydantic 422s; unknown lessons/questions/sections yield
+structured `404 {detail: {code, message}}` errors.
 
 ### Progress
 
@@ -527,9 +553,17 @@ Leaving and returning to a lesson resumes exactly where the user stopped.
 
 ### Tests
 
-17 tests in `tests/test_learning.py` run against the shared in-memory SQLite
+28 tests in `tests/test_learning.py` run against the shared in-memory SQLite
 `api_client` fixture and the real content layer: catalog/detail contracts,
 answer-key hiding, authentication requirements, progress
 create/update/complete/resume, correct/incorrect/normalized answers,
 persistence of recorded answers, and all structured error paths.
+
+M25 adds coverage for the expanded lessons (counts, molecule spotlights
+exposing `molecule_input`, answer-key hiding on the new lessons) and for the
+ChemEngine-backed kinds: `H2O`/`HOH` both correct, `CO2` incorrect, garbage →
+`422 invalid_answer`, element answers by symbol/name/atomic number, a valid but
+different element incorrect, non-element → `422`, plus a guard asserting every
+seeded `formula`/`element` question accepts its own expected answer — the check
+that catches a question which could never be graded correct.
 

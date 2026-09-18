@@ -220,10 +220,12 @@ sections).
 boxes (as in textbook aufbau diagrams); the engine does not provide 2D/3D
 atomic coordinates, and none are faked.
 
-## Learning Core (M24)
+## Learning Core (M24–M25)
 
 The Learn tab in the authenticated shell is the first Chemora learning
 experience: structured lessons whose chemistry comes from the live engine.
+M25 expands it with two more lessons, ChemEngine-backed question types, and a
+practice results view.
 
 ### Architecture
 
@@ -231,7 +233,8 @@ experience: structured lessons whose chemistry comes from the live engine.
 LearningPage (catalog ↔ lesson view)
   └─ useLearning(api)          state machine: catalog + active lesson
        ├─ ApiClient            /api/v1/learning/... (typed methods)
-       └─ ElementDetails       spotlight sections reuse the M23 component
+       ├─ ElementDetails       element spotlights reuse the M23 component
+       └─ ExplorerResult       molecule spotlights reuse the M22 component
 ```
 
 - **Catalog:** lists seeded lessons (title, description, subject, difficulty,
@@ -239,15 +242,25 @@ LearningPage (catalog ↔ lesson view)
   lesson detail plus the user's saved progress (resume).
 - **Lesson view:** progress bar (`role="progressbar"`), ordered section cards
   with per-section completion ("Mark section complete" — server-tracked).
-- **Chemistry spotlights:** `chemistry_spotlight` sections name an element;
-  the client fetches its live engine-computed detail from the existing
-  element API (cached per lesson) and renders it with the same
-  `ElementDetails` component the Element Explorer uses. No chemistry is
-  computed or inlined in the frontend.
-- **Practice:** multiple-choice and short-answer questions. Answers are
-  graded **server-side** — the client never sees the answer key and never
-  grades itself. Correct answers lock the question; incorrect answers show a
-  retry prompt plus the server's explanation.
+- **Chemistry spotlights:** a `chemistry_spotlight` section names either an
+  element or a molecule. The client fetches the matching live engine result —
+  `element_symbol` → element API, `molecule_input` → chemistry explore API
+  (both cached per lesson) — and renders it with the same component the
+  corresponding Explorer uses. A spotlight that fails to load degrades to
+  prose plus a user-facing note. No chemistry is computed or inlined in the
+  frontend.
+- **Practice:** multiple-choice, numeric, `formula`, and `element` questions.
+  Answers are graded **server-side** — the client never sees the answer key and
+  never grades itself; it chooses radio controls or a free-text input purely
+  from whether the question carries options. Correct answers lock the question;
+  incorrect answers show a retry prompt plus the server's explanation. A
+  `422 invalid_answer` is surfaced as a user-facing message (e.g. "not a valid
+  chemical formula") rather than as a wrong answer.
+- **Practice results (M25):** each practice section summarizes the session from
+  server-graded outcomes — attempted (of total), correct, needs another look,
+  and accuracy over the attempts made. Accuracy is presented as one signal
+  alongside the explanations rather than as a score, and there is no
+  gamification.
 - **Progress:** percent and completion come from the backend
   (`GET .../progress`, section-complete and answer responses). Leaving and
   returning to a lesson resumes exactly where the user stopped.
@@ -258,7 +271,9 @@ LearningPage (catalog ↔ lesson view)
 
 ### Limitations
 
-Three seeded demonstration lessons; no admin CMS yet (content lives in the
-backend seed layer); no quiz formats beyond multiple-choice/short answer; no
-offline support. All deferred to later milestones.
+Five seeded lessons; no admin CMS yet (content lives in the backend seed
+layer); no question types beyond multiple-choice / numeric / formula / element;
+no rich media inside sections; no offline support; progress is per-account with
+last-write-wins (no cross-device conflict resolution). All deferred to later
+milestones.
 

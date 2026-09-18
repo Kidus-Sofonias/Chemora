@@ -10,7 +10,9 @@ All progress/answer endpoints require authentication. Correct answers are
 never serialized to clients; validation happens server-side and
 deterministically. Lesson content lives in the backend content layer
 (``app.learning.content``); chemistry values referenced by lessons are served
-live from ChemEngine via the existing element API.
+live from ChemEngine via the existing element API (``chemistry_spotlight``
+sections name an element) and the existing chemistry explore API (sections
+name a molecule by formula/SMILES/InChI).
 """
 
 from __future__ import annotations
@@ -54,6 +56,7 @@ class SectionPublic(BaseModel):
     title: str
     body: list[str]
     element_symbol: str | None
+    molecule_input: str | None
     questions: list[QuestionPublic]
 
 
@@ -167,6 +170,7 @@ def _section_public(section: Section, lesson: Lesson) -> SectionPublic:
         title=section.title,
         body=list(section.body),
         element_symbol=section.element_symbol,
+        molecule_input=section.molecule_input,
         questions=questions,
     )
 

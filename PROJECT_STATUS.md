@@ -1,14 +1,14 @@
 # Chemora — Project Status Report
 
 **Date:** September 17, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M20+M22–M24 complete / Web M21–M24 complete
-**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) complete
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M20+M22–M25 complete / Web M21–M25 complete
+**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) complete
 
 ---
 
 ## Executive Summary
 
-ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), and the Chemistry Learning Core (M24) are **complete** (95 backend tests, 47 web tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a first ChemEngine-backed learning experience end to end.
+ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), the Chemistry Learning Core (M24), and the Learning & Practice Expansion (M25) are **complete** (106 backend tests, 52 web tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a ChemEngine-backed learning experience with server-graded practice end to end.
 
 | Metric | Value |
 |--------|-------|
@@ -19,9 +19,9 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Test Files** | 37 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
-| **Backend Tests** | 95 / 95 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24 Learning API) |
-| **Web Tests** | 47 / 47 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24 Learning) |
-| **Next Milestone** | M25 — To be scoped (expanding the learning core: more content, richer practice, admin CMS foundation) |
+| **Backend Tests** | 106 / 106 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API) |
+| **Web Tests** | 52 / 52 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning) |
+| **Next Milestone** | M26 — Content Management Foundation (to be scoped) |
 
 ---
 
@@ -94,8 +94,17 @@ The repository was restructured from a ChemEngine-only layout into the Chemora m
 - Web Learn tab: catalog, section progression, progress bar, server-graded practice with immediate feedback, structured-errors only
 - 17 backend tests, 10 frontend tests
 
-### ⬜ M25: Next Milestone (To Be Scoped)
-Expanding the learning core: more content, richer practice, and the admin CMS foundation. Scope, dependencies, and acceptance criteria to be defined before work begins.
+### ✅ M25: Learning & Practice Expansion (Complete)
+- Content expanded to 5 seeded lessons: *Chemical Formulas* and *Molecules and Their Properties* added to the M24 three — content still lives in the seed layer, outside ChemEngine
+- `chemistry_spotlight` sections can now name a molecule (`molecule_input`) as well as an element; the client fetches live results from the existing M22 chemistry explore API and reuses the `ExplorerResult` component
+- Two ChemEngine-backed answer kinds: `formula` (canonicalized via `formula_to_graph(...).molecular_formula`, so `H2O`/`HOH` both grade correct and `CO2` does not) and `element` (symbol / case-insensitive name / atomic number via `Element.from_symbol|from_name|from_z`)
+- Grading remains deterministic and server-side; unparseable chemistry answers return `422 invalid_answer` rather than being marked wrong; answer keys never leave the server
+- Defect fixed (found by testing, not by inspection): the in-progress `formula` kind used `parse_formula` (element counts) and read a non-existent `molecular_formula`, so no formula answer could ever be graded correct — corrected to the proper engine API with a regression guard over every seeded chemistry question
+- Practice results view per practice section (attempted / correct / needs another look / accuracy); no gamification
+- 11 new backend tests (106 total), 5 new frontend tests (52 total)
+
+### ⬜ M26: Content Management Foundation (To Be Scoped)
+Moving the seeded content layer into the database behind an admin CMS, without changing the learning API contract or the frontend learning architecture. Scope, dependencies, and acceptance criteria to be defined before work begins.
 
 ---
 
