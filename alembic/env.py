@@ -14,7 +14,9 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.db.base import Base
-from app.models.user import Session, User  # noqa: F401 — ensure models are imported
+from app.models.user import Session, User  # noqa: F401
+from app.models.content import Lesson, LessonQuestion, LessonSection  # noqa: F401
+from app.models.learning import LessonProgress  # noqa: F401
 
 # Alembic Config object
 config = context.config

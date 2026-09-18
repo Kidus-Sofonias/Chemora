@@ -197,9 +197,11 @@ def _lesson_detail_response(lesson: Lesson) -> LessonDetailResponse:
     response_model=LessonListResponse,
     summary="List available lessons",
 )
-async def list_lessons() -> LessonListResponse:
-    """Return the lesson catalog in curated order."""
-    lessons = LearningService.list_lessons()
+async def list_lessons(
+    service: Annotated[LearningService, Depends(get_learning_service)],
+) -> LessonListResponse:
+    """Return the published lesson catalog in curated order."""
+    lessons = await service.list_lessons()
     return LessonListResponse(
         lessons=[
             LessonSummary(
@@ -224,10 +226,13 @@ async def list_lessons() -> LessonListResponse:
     summary="Retrieve a lesson",
     responses={404: {"model": LearningErrorDetail}},
 )
-async def get_lesson(slug: str) -> LessonDetailResponse:
+async def get_lesson(
+    slug: str,
+    service: Annotated[LearningService, Depends(get_learning_service)],
+) -> LessonDetailResponse:
     """Return one lesson with its sections and questions (no answer keys)."""
     try:
-        lesson = LearningService.get_lesson(slug)
+        lesson = await service.get_lesson(slug)
     except LearningError as exc:
         raise HTTPException(
             status_code=404, detail={"code": exc.code, "message": exc.message}
@@ -253,7 +258,7 @@ async def get_progress(
         raise HTTPException(
             status_code=404, detail={"code": exc.code, "message": exc.message}
         ) from exc
-    return _progress_response(progress, service.get_lesson(slug))
+    return _progress_response(progress, await service.get_lesson(slug))
 
 
 @router.post(
@@ -275,7 +280,7 @@ async def complete_section(
         raise HTTPException(
             status_code=404, detail={"code": exc.code, "message": exc.message}
         ) from exc
-    return _progress_response(progress, service.get_lesson(slug))
+    return _progress_response(progress, await service.get_lesson(slug))
 
 
 class AnswerSubmission(BaseModel):
@@ -315,6 +320,6 @@ async def submit_answer(
         question_id=submission.question_id,
         correct=correct,
         explanation=explanation,
-        progress=_progress_response(progress, service.get_lesson(slug)),
+        progress=_progress_response(progress, await service.get_lesson(slug)),
     )
 

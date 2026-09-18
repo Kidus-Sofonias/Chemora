@@ -45,6 +45,9 @@ class UserResponse(BaseModel):
     avatar_url: str | None
     created_at: str
     last_login_at: str | None
+    # Content-management authorization flag (M26). Drives whether the admin
+    # tab is offered; the server re-checks authorization on every admin call.
+    is_admin: bool
 
     model_config = {"from_attributes": True}
 
@@ -81,6 +84,7 @@ def _user_to_response(user: User) -> UserResponse:
         avatar_url=user.avatar_url,
         created_at=user.created_at.isoformat() if user.created_at else "",
         last_login_at=user.last_login_at.isoformat() if user.last_login_at else None,
+        is_admin=user.is_admin,
     )
 
 

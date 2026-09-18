@@ -61,6 +61,26 @@ async def db_session(db_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, Non
         await session.rollback()
 
 
+@pytest_asyncio.fixture
+async def seeded_content(db_engine: AsyncEngine) -> None:
+    """Load the seeded lessons into the test database.
+
+    The content tables exist (via ``Base.metadata.create_all``) but are empty,
+    so the seed/import mechanism is exercised for real: every test that reads
+    lessons reads database-backed content, exactly as it would in production.
+    """
+    from app.learning.seed import seed_content
+
+    factory = async_sessionmaker(
+        db_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    async with factory() as session:
+        await seed_content(session)
+        await session.commit()
+
+
 # --- Mock Google Verifier ---
 
 
@@ -166,6 +186,7 @@ def sample_user_info() -> GoogleUserInfo:
 @pytest_asyncio.fixture
 async def api_client(
     db_engine: AsyncEngine,
+    seeded_content: None,
     mock_google_verifier: MockGoogleTokenVerifier,
     monkeypatch: pytest.MonkeyPatch,
 ) -> AsyncGenerator[AsyncClient, None]:

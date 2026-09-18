@@ -70,6 +70,12 @@ class Settings(BaseSettings):
     CORS_ALLOW_METHODS: list[str] = ["*"]
     CORS_ALLOW_HEADERS: list[str] = ["*"]
 
+    # --- Content administration (M26) ---
+    # Verified emails listed here are granted the admin flag at login time.
+    # Provisioning is configuration-driven — no admin email is hardcoded in
+    # application logic, and the flag is never auto-revoked here.
+    ADMIN_EMAILS: list[str] = []
+
     # --- Logging ---
     LOG_LEVEL: str = "INFO"
 
@@ -81,6 +87,12 @@ class Settings(BaseSettings):
     def model_post_init(self, _context: Any) -> None:  # noqa: ANN401
         """Post-init validation and defaults."""
         if not self.SESSION_SECRET:
+            if self.is_production:
+                raise ValueError(
+                    "SESSION_SECRET must be explicitly set in production. "
+                    "A randomly generated secret would invalidate sessions "
+                    "on restart and break multi-worker deployments."
+                )
             self.SESSION_SECRET = secrets.token_hex(32)
         if self.is_production:
             self.COOKIE_SECURE = True

@@ -1,8 +1,10 @@
 """Learning service — lessons, answer validation, and progress.
 
 Architecture:
-- Lesson content comes from the isolated seed layer (``app.learning.content``)
-  and can later move to a database/CMS without changing this contract.
+- Lesson content is read from PostgreSQL through the content repository
+  (M26); the student-facing contract is unchanged. The seeded definitions in
+  ``app.learning.content`` are now the *seed source* that populates the
+  database (``app.learning.seed``).
 - Chemistry values shown in lessons are NOT computed here;
   ``chemistry_spotlight`` sections reference elements by symbol and the client
   renders live data from the existing element API
@@ -18,12 +20,13 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from chemengine.core.element import Element
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.learning.content import Lesson, Question, get_lesson_by_slug, get_lessons
+from app.learning.content import Lesson, Question
 from app.models.learning import LessonProgress
+from app.repositories.content import ContentRepository
 
 
 class LearningError(Exception):
@@ -36,62 +39,15 @@ class LearningError(Exception):
         self.message = message
 
 
+from app.services.chemistry_validate import (
+    canonicalize_formula as _canonicalize_formula,
+    resolve_element as _resolve_element,
+)
+
+
 def _normalize_answer(answer: str) -> str:
     """Normalize a submitted answer for deterministic comparison."""
     return " ".join(answer.strip().lower().split())
-
-
-def _resolve_element(answer: str) -> str | None:
-    """Resolve an element answer to a canonical atomic-number string.
-
-    Accepts a symbol (``Na``), name (``sodium``, case-insensitive), or
-    atomic number (``11``). Returns ``None`` if the answer does not resolve
-    to a real element — never accepts an unverified guess.
-    """
-    token = answer.strip()
-    if not token:
-        return None
-    # Atomic-number string (digits only) → Element.from_z.
-    if token.isdigit():
-        try:
-            return str(Element.from_z(int(token)).atomic_number)
-        except Exception:
-            return None
-    # Symbol or case-insensitive name.
-    try:
-        return str(Element.from_symbol(token).atomic_number)
-    except Exception:
-        pass
-    try:
-        return str(Element.from_name(token.lower()).atomic_number)
-    except Exception:
-        return None
-
-
-def _canonicalize_formula(answer: str) -> str | None:
-    """Canonicalize a molecular formula via ChemEngine's formula parser.
-
-    Returns the canonical Hill-notation formula string, or ``None`` if the
-    input is not a valid chemical formula. Two representations of the same
-    molecule (e.g. ``H2O`` and ``HOH``) canonicalize to the same value;
-    chemically different inputs do not. Names/aliases are NOT accepted — a
-    formula question expects actual formula notation.
-    """
-    # ``parse_formula`` returns element counts, not a graph; ``formula_to_graph``
-    # builds the MolecularGraph whose ``molecular_formula`` is the engine's
-    # canonical form. Matching stays case-sensitive because formula symbols are
-    # (``Co`` = cobalt while ``CO`` = carbon monoxide).
-    from chemengine.parsing import formula_to_graph
-
-    token = answer.strip()
-    if not token:
-        return None
-    try:
-        graph = formula_to_graph(token)
-    except Exception:
-        return None
-    formula = getattr(graph, "molecular_formula", None)
-    return formula if isinstance(formula, str) and formula else None
 
 
 class LearningService:
@@ -103,19 +59,25 @@ class LearningService:
 
     # ── Lessons ───────────────────────────────────────────────────────
 
-    @staticmethod
-    def list_lessons() -> list[Lesson]:
-        """Return all lessons in curated order."""
-        return list(get_lessons())
+    async def list_lessons(self) -> list[Lesson]:
+        """Return all published lessons in catalog order.
 
-    @staticmethod
-    def get_lesson(slug: str) -> Lesson:
-        """Return a lesson by slug.
+        Content comes from the database-backed content repository (M26).
+        Drafts are never visible to students.
+        """
+        return await ContentRepository(self._db).list_lessons()
+
+    async def get_lesson(self, slug: str) -> Lesson:
+        """Return a published lesson by slug.
+
+        Unpublished drafts resolve to "not found" so that a draft slug is not
+        discoverable by enumeration.
 
         Raises:
-            LearningError: If the slug is unknown (``lesson_not_found``).
+            LearningError: If the slug is unknown or unpublished
+                (``lesson_not_found``).
         """
-        lesson = get_lesson_by_slug(slug)
+        lesson = await ContentRepository(self._db).get_lesson(slug)
         if lesson is None:
             raise LearningError("lesson_not_found", "That lesson does not exist.")
         return lesson
@@ -181,10 +143,13 @@ class LearningService:
     async def get_progress(self, user_id: uuid.UUID, slug: str) -> LessonProgress:
         """Return the user's progress row for a lesson, creating an empty one.
 
+        Uses IntegrityError recovery to handle concurrent first-time requests
+        from the same user for the same lesson safely.
+
         Raises:
             LearningError: If the lesson slug is unknown.
         """
-        lesson = self.get_lesson(slug)
+        lesson = await self.get_lesson(slug)
         progress = await self._find_progress(user_id, slug)
         if progress is None:
             progress = LessonProgress(
@@ -194,7 +159,14 @@ class LearningService:
                 answers={},
             )
             self._db.add(progress)
-            await self._db.flush()
+            try:
+                await self._db.flush()
+            except IntegrityError:
+                # Another concurrent request inserted first — re-fetch.
+                await self._db.rollback()
+                progress = await self._find_progress(user_id, slug)
+                if progress is None:
+                    raise
         # Re-derive completion in case content changed since the last visit.
         self._sync_completion(progress, lesson)
         return progress
@@ -209,7 +181,7 @@ class LearningService:
         Raises:
             LearningError: If the lesson or section id is unknown.
         """
-        lesson = self.get_lesson(slug)
+        lesson = await self.get_lesson(slug)
         if not any(section.id == section_id for section in lesson.sections):
             raise LearningError(
                 "section_not_found",
@@ -225,7 +197,7 @@ class LearningService:
         self, user_id: uuid.UUID, slug: str, question_id: str, answer: str
     ) -> tuple[bool, str, LessonProgress]:
         """Validate an answer, record the outcome, and return the result."""
-        lesson = self.get_lesson(slug)
+        lesson = await self.get_lesson(slug)
         correct, explanation = self.check_answer(lesson, question_id, answer)
         progress = await self.get_progress(user_id, slug)
         answers = dict(progress.answers)

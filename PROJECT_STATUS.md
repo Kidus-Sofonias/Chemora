@@ -1,8 +1,8 @@
 # Chemora — Project Status Report
 
-**Date:** September 17, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M20+M22–M25 complete / Web M21–M25 complete
-**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) complete
+**Date:** September 18, 2026
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M26 complete / Web M21–M25 complete
+**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) complete · Post-M26 corrective hardening pass complete
 
 ---
 
@@ -19,9 +19,9 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Test Files** | 37 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
-| **Backend Tests** | 106 / 106 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API) |
+| **Backend Tests** | 137 / 137 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26 Admin Content API) |
 | **Web Tests** | 52 / 52 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning) |
-| **Next Milestone** | M26 — Content Management Foundation (to be scoped) |
+| **Next Milestone** | M27 — (to be scoped) |
 
 ---
 
@@ -103,7 +103,27 @@ The repository was restructured from a ChemEngine-only layout into the Chemora m
 - Practice results view per practice section (attempted / correct / needs another look / accuracy); no gamification
 - 11 new backend tests (106 total), 5 new frontend tests (52 total)
 
-### ⬜ M26: Content Management Foundation (To Be Scoped)
+### ✅ M26: Content Management Foundation (Complete)
+- Content tables (`lessons`, `lesson_sections`, `lesson_questions`) with Alembic migration `003_content_tables`
+- `users.is_admin` flag for content-management authorization
+- Admin CRUD API: list, get, create, update, publish, unpublish (`/api/v1/admin/lessons`)
+- Content validation engine: metadata, sections, questions, chemistry references
+- Content repository with eager-loaded lesson trees (no N+1)
+- Database-backed content with idempotent seed/import (`app.learning.seed`)
+- 31 admin API tests covering authorization, CRUD, publication, validation, answer-key exposure
+
+### ✅ Post-M26 Corrective Hardening Pass (Complete)
+- Fixed `ForeignKeyConstraint` missing import in `content.py`
+- Fixed `LearningService` missing `await` on async `get_lesson` calls (3 methods)
+- Fixed `upsert_lesson` UNIQUE constraint violation on section re-update
+- Extracted shared chemistry validation into `chemistry_validate.py` (removed private-function coupling)
+- Added production `SESSION_SECRET` validation (rejects missing secret in production)
+- Added `IntegrityError` recovery for progress concurrency
+- Updated `alembic/env.py` to import all models for autogenerate
+- Added `.gitattributes` for consistent line endings
+- 137 backend tests passing, 52 frontend tests, 1635 ChemEngine tests
+
+### ⬜ M27: (To Be Scoped)
 Moving the seeded content layer into the database behind an admin CMS, without changing the learning API contract or the frontend learning architecture. Scope, dependencies, and acceptance criteria to be defined before work begins.
 
 ---

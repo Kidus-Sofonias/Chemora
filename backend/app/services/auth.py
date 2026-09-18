@@ -133,12 +133,21 @@ class AuthService:
 
         now = datetime.now(timezone.utc)
 
+        # Admin provisioning (M26): a verified email listed in the
+        # ADMIN_EMAILS setting is granted the admin flag. This is the only
+        # path that can elevate a user, it is configuration-driven, and it
+        # never revokes an existing admin.
+        admin_emails = {e.strip().lower() for e in settings.ADMIN_EMAILS}
+        is_admin = google_user.email.strip().lower() in admin_emails
+
         if user is not None:
             # Returning user — update metadata from verified token
             user.email = google_user.email
             user.display_name = google_user.name or user.display_name
             user.avatar_url = google_user.picture or user.avatar_url
             user.last_login_at = now
+            if is_admin:
+                user.is_admin = True
             logger.info(
                 "Returning user login",
                 extra={"user_id": str(user.id)},
@@ -151,6 +160,7 @@ class AuthService:
                 display_name=google_user.name,
                 avatar_url=google_user.picture,
                 last_login_at=now,
+                is_admin=is_admin,
             )
             self._db.add(user)
             await self._db.flush()  # Get the generated ID

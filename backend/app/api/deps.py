@@ -87,3 +87,29 @@ async def get_current_user(
         )
 
     return user
+
+
+async def get_current_admin(
+    user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    """Dependency that returns the current user only if they are an admin.
+
+    Builds on ``get_current_user``, so authentication is unchanged — this
+    adds the content-management authorization check, enforced server-side on
+    every admin request. A normal authenticated user gets 403; an
+    unauthenticated request never reaches this check (401 first).
+
+    Usage:
+        @router.get("/admin/lessons")
+        async def list_lessons(user: Annotated[User, Depends(get_current_admin)]):
+            ...
+    """
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "forbidden",
+                "message": "You do not have permission to do that.",
+            },
+        )
+    return user
