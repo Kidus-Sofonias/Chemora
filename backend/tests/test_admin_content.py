@@ -116,12 +116,14 @@ class TestAuthorization:
     async def test_unauthenticated_list_returns_401(
         self, api_client: AsyncClient
     ) -> None:
+        """Unauthenticated list returns 401."""
         response = await api_client.get("/api/v1/admin/lessons")
         assert response.status_code == 401
 
     async def test_unauthenticated_get_returns_401(
         self, api_client: AsyncClient
     ) -> None:
+        """Unauthenticated get returns 401."""
         response = await api_client.get(
             "/api/v1/admin/lessons/electron-configuration"
         )
@@ -132,6 +134,7 @@ class TestAuthorization:
         api_client: AsyncClient,
         mock_google_verifier: MockGoogleTokenVerifier,
     ) -> None:
+        """Normal user list returns 403."""
         await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
         response = await api_client.get("/api/v1/admin/lessons")
         assert response.status_code == 403
@@ -142,6 +145,7 @@ class TestAuthorization:
         api_client: AsyncClient,
         mock_google_verifier: MockGoogleTokenVerifier,
     ) -> None:
+        """Normal user get returns 403."""
         await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
         response = await api_client.get(
             "/api/v1/admin/lessons/electron-configuration"
@@ -153,6 +157,7 @@ class TestAuthorization:
         api_client: AsyncClient,
         mock_google_verifier: MockGoogleTokenVerifier,
     ) -> None:
+        """Normal user create returns 403."""
         await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
         response = await api_client.post(
             "/api/v1/admin/lessons", json=_lesson_payload()
@@ -164,6 +169,7 @@ class TestAuthorization:
         api_client: AsyncClient,
         mock_google_verifier: MockGoogleTokenVerifier,
     ) -> None:
+        """Normal user publish returns 403."""
         await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
         response = await api_client.post(
             "/api/v1/admin/lessons/electron-configuration/publish"
@@ -176,6 +182,7 @@ class TestAuthorization:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Admin list returns 200."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         response = await api_client.get("/api/v1/admin/lessons")
@@ -197,11 +204,12 @@ class TestAdminListLessons:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Admin list includes all seeded lessons."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         response = await api_client.get("/api/v1/admin/lessons")
         assert response.status_code == 200
-        slugs = [l["slug"] for l in response.json()["lessons"]]
+        slugs = [lesson["slug"] for lesson in response.json()["lessons"]]
         assert "electron-configuration" in slugs
         assert "valence-electrons" in slugs
         assert "chemical-formulas" in slugs
@@ -212,6 +220,7 @@ class TestAdminListLessons:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Admin summary includes published flag."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         response = await api_client.get("/api/v1/admin/lessons")
@@ -235,6 +244,7 @@ class TestAdminGetLesson:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Admin get includes answer keys."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         response = await api_client.get(
@@ -253,6 +263,7 @@ class TestAdminGetLesson:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Admin get includes sections ordering."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         response = await api_client.get(
@@ -270,6 +281,7 @@ class TestAdminGetLesson:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Admin get nonexistent lesson returns 404."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         response = await api_client.get("/api/v1/admin/lessons/nonexistent-slug")
@@ -290,6 +302,7 @@ class TestAdminCreateLesson:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Create lesson returns 201."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload()
@@ -305,12 +318,13 @@ class TestAdminCreateLesson:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Created lesson appears in admin catalog."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload(slug="catalog-test", order=99)
         await api_client.post("/api/v1/admin/lessons", json=payload)
         response = await api_client.get("/api/v1/admin/lessons")
-        slugs = [l["slug"] for l in response.json()["lessons"]]
+        slugs = [lesson["slug"] for lesson in response.json()["lessons"]]
         assert "catalog-test" in slugs
 
     async def test_created_lesson_invisible_to_student_api(
@@ -319,12 +333,13 @@ class TestAdminCreateLesson:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Created lesson invisible to student api."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload(slug="draft-only", order=100)
         await api_client.post("/api/v1/admin/lessons", json=payload)
         response = await api_client.get("/api/v1/learning/lessons")
-        slugs = [l["slug"] for l in response.json()["lessons"]]
+        slugs = [lesson["slug"] for lesson in response.json()["lessons"]]
         assert "draft-only" not in slugs
 
     async def test_duplicate_slug_returns_409(
@@ -333,6 +348,7 @@ class TestAdminCreateLesson:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Duplicate slug returns 409."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload(slug="dup-slug")
@@ -348,6 +364,7 @@ class TestAdminCreateLesson:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Invalid slug format returns 422."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload(slug="INVALID_SLUG!")
@@ -369,6 +386,7 @@ class TestAdminUpdateLesson:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Update preserves published state."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload(slug="update-test")
@@ -389,6 +407,7 @@ class TestAdminUpdateLesson:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Slug mismatch returns 400."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload(slug="original-slug")
@@ -405,6 +424,7 @@ class TestAdminUpdateLesson:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Update nonexistent lesson returns 404."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload(slug="no-such-lesson")
@@ -428,6 +448,7 @@ class TestAdminPublish:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Publish makes lesson visible to students."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload(slug="publish-test", order=50)
@@ -435,7 +456,7 @@ class TestAdminPublish:
         # Initially invisible
         student_resp = await api_client.get("/api/v1/learning/lessons")
         assert "publish-test" not in [
-            l["slug"] for l in student_resp.json()["lessons"]
+            lesson["slug"] for lesson in student_resp.json()["lessons"]
         ]
         # Publish
         response = await api_client.post(
@@ -446,7 +467,7 @@ class TestAdminPublish:
         # Now visible
         student_resp = await api_client.get("/api/v1/learning/lessons")
         assert "publish-test" in [
-            l["slug"] for l in student_resp.json()["lessons"]
+            lesson["slug"] for lesson in student_resp.json()["lessons"]
         ]
 
     async def test_unpublish_returns_to_draft(
@@ -455,6 +476,7 @@ class TestAdminPublish:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Unpublish returns to draft."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload(slug="unpublish-test", order=51)
@@ -467,7 +489,7 @@ class TestAdminPublish:
         assert response.json()["published"] is False
         student_resp = await api_client.get("/api/v1/learning/lessons")
         assert "unpublish-test" not in [
-            l["slug"] for l in student_resp.json()["lessons"]
+            lesson["slug"] for lesson in student_resp.json()["lessons"]
         ]
 
     async def test_publish_nonexistent_returns_404(
@@ -476,6 +498,7 @@ class TestAdminPublish:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Publish nonexistent returns 404."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         response = await api_client.post(
@@ -489,6 +512,7 @@ class TestAdminPublish:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Unpublish nonexistent returns 404."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         response = await api_client.post(
@@ -511,6 +535,7 @@ class TestContentValidation:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Empty sections returns 422."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload()
@@ -524,6 +549,7 @@ class TestContentValidation:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Invalid section kind returns 422."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload()
@@ -537,6 +563,7 @@ class TestContentValidation:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Practice without questions returns 422."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload()
@@ -552,6 +579,7 @@ class TestContentValidation:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Invalid difficulty returns 422."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload()
@@ -565,6 +593,7 @@ class TestContentValidation:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Multiple choice with one option returns 422."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         bad_question = {
@@ -591,6 +620,7 @@ class TestAnswerKeyExposure:
     async def test_student_lesson_detail_hides_answer_keys(
         self, api_client: AsyncClient
     ) -> None:
+        """Student lesson detail hides answer keys."""
         response = await api_client.get(
             "/api/v1/learning/lessons/electron-configuration"
         )
@@ -606,6 +636,7 @@ class TestAnswerKeyExposure:
         mock_google_verifier: MockGoogleTokenVerifier,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Admin lesson detail shows answer keys."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         response = await api_client.get(
@@ -618,3 +649,107 @@ class TestAnswerKeyExposure:
                 if "correct" in q:
                     has_answer = True
         assert has_answer, "Admin API should expose answer keys"
+
+
+class TestAdminPreview:
+    """Preview returns student-safe view without answer keys."""
+
+    async def test_preview_returns_200_for_admin(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Preview returns 200 for admin."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        response = await api_client.get(
+            "/api/v1/admin/lessons/electron-configuration/preview"
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["slug"] == "electron-configuration"
+        assert "sections" in data
+
+    async def test_preview_hides_answer_keys(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Preview hides answer keys."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        response = await api_client.get(
+            "/api/v1/admin/lessons/electron-configuration/preview"
+        )
+        assert response.status_code == 200
+        for section in response.json()["sections"]:
+            for q in section.get("questions", []):
+                assert "correct" not in q
+                assert "explanation" not in q
+
+    async def test_preview_returns_401_unauthenticated(
+        self, api_client: AsyncClient
+    ) -> None:
+        """Preview returns 401 unauthenticated."""
+        response = await api_client.get(
+            "/api/v1/admin/lessons/electron-configuration/preview"
+        )
+        assert response.status_code == 401
+
+    async def test_preview_returns_403_for_normal_user(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+    ) -> None:
+        """Preview returns 403 for normal user."""
+        await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
+        response = await api_client.get(
+            "/api/v1/admin/lessons/electron-configuration/preview"
+        )
+        assert response.status_code == 403
+
+    async def test_preview_returns_404_for_nonexistent(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Preview returns 404 for nonexistent."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        response = await api_client.get(
+            "/api/v1/admin/lessons/nonexistent/preview"
+        )
+        assert response.status_code == 404
+
+    async def test_admin_lesson_includes_timestamps(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Admin lesson includes timestamps."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        response = await api_client.get(
+            "/api/v1/admin/lessons/electron-configuration"
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "created_at" in data
+        assert "updated_at" in data
+
+    async def test_admin_summary_includes_updated_at(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Admin summary includes updated at."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        response = await api_client.get("/api/v1/admin/lessons")
+        for lesson in response.json()["lessons"]:
+            assert "updated_at" in lesson

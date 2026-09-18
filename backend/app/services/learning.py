@@ -27,6 +27,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.learning.content import Lesson, Question
 from app.models.learning import LessonProgress
 from app.repositories.content import ContentRepository
+from app.services.chemistry_validate import (
+    canonicalize_formula as _canonicalize_formula,
+)
+from app.services.chemistry_validate import resolve_element as _resolve_element
 
 
 class LearningError(Exception):
@@ -37,12 +41,6 @@ class LearningError(Exception):
         super().__init__(message)
         self.code = code
         self.message = message
-
-
-from app.services.chemistry_validate import (
-    canonicalize_formula as _canonicalize_formula,
-    resolve_element as _resolve_element,
-)
 
 
 def _normalize_answer(answer: str) -> str:

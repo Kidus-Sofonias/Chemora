@@ -1,8 +1,8 @@
 # Chemora — Project Status Report
 
 **Date:** September 18, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M26 complete / Web M21–M25 complete
-**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) complete · Post-M26 corrective hardening pass complete
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M27 complete / Web M21–M25 complete / Admin CMS M27 complete
+**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) complete · Post-M26 corrective hardening pass complete
 
 ---
 
@@ -19,9 +19,10 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Test Files** | 37 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
-| **Backend Tests** | 137 / 137 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26 Admin Content API) |
+| **Backend Tests** | 144 / 144 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview) |
 | **Web Tests** | 52 / 52 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning) |
-| **Next Milestone** | M27 — (to be scoped) |
+| **Admin Tests** | 8 / 8 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety) |
+| **Next Milestone** | M28 — (to be scoped) |
 
 ---
 
@@ -123,7 +124,19 @@ The repository was restructured from a ChemEngine-only layout into the Chemora m
 - Added `.gitattributes` for consistent line endings
 - 137 backend tests passing, 52 frontend tests, 1635 ChemEngine tests
 
-### ⬜ M27: (To Be Scoped)
+### ✅ M27: Production Content & Admin CMS (Complete)
+- Admin CMS web application (`apps/admin/`, React 18 + Vite + TypeScript, hash-routed SPA)
+- Dashboard: total/published/draft lesson counts from the admin API (no fabricated analytics)
+- Lesson list: title, status badge, difficulty, section/question counts, updated time, actions (edit / preview / publish / unpublish)
+- Lesson editor: metadata (slug — immutable after creation, title, description, subject, difficulty, estimated minutes, ordering), section add/edit/remove, question add/edit/remove, multiple-choice option management
+- Section types and question kinds in the UI match the backend constants exactly (`SECTION_KINDS`, `QUESTION_KINDS`) — no frontend-only types
+- Admin-only preview endpoint `GET /api/v1/admin/lessons/{slug}/preview` returns the student-safe view (answer keys stripped) of draft or published lessons without changing publication state
+- Admin DTOs now carry `created_at` / `updated_at` timestamps; admin list carries `updated_at`
+- Publishing requires an explicit action; edits never auto-publish; slug changes are rejected server-side (slug immutability protects `lesson_progress`)
+- Chemistry validation remains server-side and deterministic: formula questions via ChemEngine canonicalization, element questions via the element resolver (shared `chemistry_validate` service)
+- 8 frontend admin tests, 7 new backend tests (preview 200/401/403/404, answer-key stripping, timestamp fields)
+
+### ⬜ M28: (To Be Scoped)
 Moving the seeded content layer into the database behind an admin CMS, without changing the learning API contract or the frontend learning architecture. Scope, dependencies, and acceptance criteria to be defined before work begins.
 
 ---

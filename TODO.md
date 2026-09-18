@@ -1809,6 +1809,59 @@ of chemical truth.
 - 11 new backend tests (28 learning tests, 106 total) and 5 new frontend tests
   (52 total).
 
+### M26 — Content Management Foundation ✅ Complete
+
+Content moved from the seed layer into PostgreSQL behind an admin API, without
+changing the student learning contract.
+
+- Content tables (`lessons`, `lesson_sections`, `lesson_questions`) plus
+  `users.is_admin` (Alembic migration `003_content_tables`, reversible).
+- Admin API under `/api/v1/admin/lessons`: list (drafts included), retrieve
+  (answer keys included), create (always draft), replace (publish state
+  preserved), publish (validates first), unpublish. Slug changes are rejected
+  (400 slug_mismatch) so `lesson_progress.lesson_slug` stays valid.
+- Server-side validation before publish: metadata, section kinds, question
+  kinds, multiple-choice option rules, numeric answer format, and chemistry
+  references resolved through ChemEngine (formula canonicalization and element
+  resolution) — invalid content can never be published.
+- Idempotent seed/import (`python -m app.learning.seed`): the five seeded
+  lessons are published so the database-backed catalog matches M24/M25 exactly.
+- 31 admin API tests (authorization 401/403, CRUD, publish/unpublish,
+  duplicate slug, validation, answer-key exposure, draft visibility) plus a
+  corrective hardening pass (missing FK-constraint import, missing awaits on
+  async content fetches, section-replace constraint violation, production
+  SESSION_SECRET validation, progress-create IntegrityError recovery, shared
+  chemistry validation module, `.gitattributes`).
+
+### M27 — Production Content & Admin CMS ✅ Complete
+
+The content system becomes operable by an administrator without editing seed
+files.
+
+- Admin CMS web application (`apps/admin/`, React 18 + Vite + TypeScript,
+  hash-routed SPA, same conventions as `apps/web/`): dashboard with
+  total/published/draft counts, lesson list with status/difficulty/counts/
+  updated time and edit/preview/publish/unpublish actions, lesson editor with
+  metadata + section add/edit/remove + question add/edit/remove, and a
+  student-view preview page.
+- Section types and question kinds in the UI are exactly the backend constants
+  (`SECTION_KINDS`, `QUESTION_KINDS`) — no frontend-only question types.
+- New admin-only preview endpoint `GET /api/v1/admin/lessons/{slug}/preview`
+  returns the student-safe view of a lesson (answer keys and explanations
+  stripped) for drafts and published lessons alike, without modifying
+  publication state.
+- Admin DTOs now expose `created_at` / `updated_at` (and `updated_at` in the
+  lesson list) so the CMS can show real recency information.
+- Publishing requires an explicit action; edits never auto-publish; slugs are
+  immutable after creation; student progress survives content edits.
+- Chemistry validation stays deterministic and server-side (ChemEngine via the
+  shared `chemistry_validate` service) — no chemistry logic in TypeScript, no
+  LLM anywhere.
+- 7 new backend tests (preview 200/401/403/404, preview hides answer keys,
+  admin timestamp fields) and 8 admin frontend tests (dashboard stats,
+  navigation, status badges, publish/unpublish buttons, editor navigation,
+  preview rendering, answer-key absence in preview).
+
 ---
 
 ## Roadmap Summary
@@ -1823,9 +1876,10 @@ of chemical truth.
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
-| **Backend Tests** | 106 / 106 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning) |
+| **Backend Tests** | 144 / 144 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview) |
 | **Web Tests** | 52 / 52 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning) |
-| **Next Milestone** | M26 — Content Management Foundation (to be scoped: move the seed content layer into the database behind an admin CMS, without changing the learning API contract) |
+| **Admin Tests** | 8 / 8 passing (M27 admin CMS) |
+| **Next Milestone** | M28 — (to be scoped) |
 
 ### Phase Summary Table
 

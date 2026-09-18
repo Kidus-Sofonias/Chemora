@@ -22,8 +22,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.learning.content import Lesson, Question, Section
-from app.models.content import LessonQuestion, LessonSection
 from app.models.content import Lesson as LessonRow
+from app.models.content import LessonQuestion, LessonSection
 
 # Eager-load the full lesson tree in a fixed number of queries.
 _LESSON_LOAD = selectinload(LessonRow.sections).selectinload(LessonSection.questions)

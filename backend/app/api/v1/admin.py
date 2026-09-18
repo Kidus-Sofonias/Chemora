@@ -76,6 +76,8 @@ class AdminLesson(BaseModel):
     ordering: int
     published: bool
     published_at: str | None
+    created_at: str | None
+    updated_at: str | None
     sections: list[AdminSection]
 
 
@@ -91,6 +93,7 @@ class AdminLessonSummary(BaseModel):
     published: bool
     section_count: int
     question_count: int
+    updated_at: str | None
 
 
 class AdminLessonList(BaseModel):
@@ -219,6 +222,8 @@ def _lesson_response(row: LessonRow) -> AdminLesson:
         ordering=row.ordering,
         published=row.published,
         published_at=_iso(row.published_at),
+        created_at=_iso(row.created_at),
+        updated_at=_iso(row.updated_at),
         sections=[
             AdminSection(
                 id=section.section_id,
@@ -260,6 +265,7 @@ def _summary(row: LessonRow) -> AdminLessonSummary:
         published=row.published,
         section_count=len(row.sections or []),
         question_count=sum(len(s.questions or []) for s in row.sections or []),
+        updated_at=_iso(row.updated_at),
     )
 
 
@@ -404,6 +410,94 @@ async def admin_publish_lesson(
     except LearningError as exc:
         raise _http_error(exc, 404) from exc
     return _lesson_response(await service.get_lesson_row(slug))
+
+
+# --- Preview DTOs (student view, admin-only) ---
+
+
+class PreviewQuestionPublic(BaseModel):
+    """A question as students see it (no answer key)."""
+
+    id: str
+    kind: str
+    prompt: str
+    options: list[str]
+
+
+class PreviewSectionPublic(BaseModel):
+    """A section as students see it."""
+
+    id: str
+    kind: str
+    title: str
+    body: list[str]
+    element_symbol: str | None
+    molecule_input: str | None
+    questions: list[PreviewQuestionPublic]
+
+
+class PreviewLessonResponse(BaseModel):
+    """A lesson as students would see it — admin preview endpoint."""
+
+    id: str
+    slug: str
+    title: str
+    description: str
+    subject: str
+    difficulty: str
+    estimated_minutes: int
+    sections: list[PreviewSectionPublic]
+
+
+@router.get(
+    "/lessons/{slug}/preview",
+    response_model=PreviewLessonResponse,
+    summary="Preview a lesson as a student would see it",
+    responses={404: {"model": AdminErrorDetail}},
+)
+async def admin_preview_lesson(
+    slug: str,
+    service: Annotated[AdminContentService, Depends(get_admin_service)],
+    _admin: Annotated[User, Depends(get_current_admin)],
+) -> PreviewLessonResponse:
+    """Return a lesson in student-safe format for admin preview.
+
+    Answer keys are stripped.  The lesson need not be published.
+    """
+    try:
+        lesson = await service.get_lesson(slug)
+    except LearningError as exc:
+        raise _http_error(exc, 404) from exc
+    sections_out: list[PreviewSectionPublic] = []
+    for section in lesson.sections:
+        questions_out = [
+            PreviewQuestionPublic(
+                id=q.id, kind=q.kind, prompt=q.prompt, options=list(q.options)
+            )
+            for q in (lesson.question_by_id(qid) for qid in section.question_ids)
+            if q is not None
+        ]
+        sections_out.append(
+            PreviewSectionPublic(
+                id=section.id,
+                kind=section.kind,
+                title=section.title,
+                body=list(section.body),
+                element_symbol=section.element_symbol,
+                molecule_input=section.molecule_input,
+                questions=questions_out,
+            )
+        )
+    return PreviewLessonResponse(
+        id=lesson.id,
+        slug=lesson.slug,
+        title=lesson.title,
+        description=lesson.description,
+        subject=lesson.subject,
+        difficulty=lesson.difficulty,
+        estimated_minutes=lesson.estimated_minutes,
+        sections=sections_out,
+    )
 
 
 @router.post(

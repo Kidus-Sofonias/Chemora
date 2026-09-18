@@ -15,8 +15,11 @@ Frontend / Mobile / Admin
 The backend depends on ChemEngine. ChemEngine never depends on the backend,
 database, authentication, or AI.
 
-> **Milestone status:** Backend Foundation (M19) ✅ and Authentication (M20) ✅
-> are complete. This document covers the authentication system built in M20.
+> **Milestone status:** Backend Foundation (M19) ✅, Authentication (M20) ✅,
+> Chemistry Explorer (M22) ✅, Element Explorer (M23) ✅, Learning Core (M24) ✅,
+> Learning Expansion (M25) ✅, Content Management Foundation (M26) ✅, and
+> Production Content & Admin CMS (M27) ✅ are complete. This document covers the
+> authentication system (M20) and the content-management endpoints (M26/M27).
 
 ---
 
@@ -229,6 +232,13 @@ All under `/api/v1`.
 | `GET` | `/auth/me` | ✅ | Return the current authenticated user. |
 | `POST` | `/auth/logout` | — | Revoke the current server-side session and clear the cookie. |
 | `POST` | `/chemistry/explore` | — | Analyse a formula/SMILES/InChI/name through ChemEngine. |
+| `GET` | `/admin/lessons` | ✅ admin | List all lessons, drafts included. |
+| `GET` | `/admin/lessons/{slug}` | ✅ admin | Retrieve one lesson, answer keys included. |
+| `GET` | `/admin/lessons/{slug}/preview` | ✅ admin | Student-safe preview of a lesson (drafts included, answer keys stripped). |
+| `POST` | `/admin/lessons` | ✅ admin | Create a lesson (saved as a draft). |
+| `PUT` | `/admin/lessons/{slug}` | ✅ admin | Replace a lesson's content; publish state preserved; slug immutable. |
+| `POST` | `/admin/lessons/{slug}/publish` | ✅ admin | Publish a lesson (validates first). |
+| `POST` | `/admin/lessons/{slug}/unpublish` | ✅ admin | Return a published lesson to draft. |
 | `GET` | `/health` | — | Health check. |
 
 ### `POST /chemistry/explore` (M22 — Chemistry Explorer)

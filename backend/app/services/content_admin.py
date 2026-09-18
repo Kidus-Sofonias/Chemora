@@ -19,7 +19,7 @@ import re
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.learning.content import QUESTION_KINDS, SECTION_KINDS, Lesson, Question, Section
+from app.learning.content import QUESTION_KINDS, SECTION_KINDS, Lesson
 from app.models.content import Lesson as LessonRow
 from app.repositories.content import ContentRepository
 from app.services.chemistry_validate import canonicalize_formula, resolve_element

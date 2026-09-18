@@ -65,7 +65,12 @@ async def _main() -> None:
         except Exception:
             await session.rollback()
             raise
-    logger.info("Seeded %s lesson(s) (%s new, %s updated)", counts["lessons"], counts["created"], counts["updated"])
+    logger.info(
+        "Seeded %s lesson(s) (%s new, %s updated)",
+        counts["lessons"],
+        counts["created"],
+        counts["updated"],
+    )
 
 
 if __name__ == "__main__":

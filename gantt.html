@@ -573,7 +573,7 @@ body {
 .gantt-header .bar-col {
   grid-column: 2;
   display: grid;
-  grid-template-columns: repeat(76, 14px);
+  grid-template-columns: repeat(126, 14px);
   border-bottom: 1.5px solid var(--border-subtle);
   position: sticky;
   top: 0;
@@ -711,7 +711,7 @@ body {
 .gantt-row .bar-col {
   grid-column: 2;
   display: grid;
-  grid-template-columns: repeat(76, 14px);
+  grid-template-columns: repeat(126, 14px);
   border-bottom: 1px solid var(--border-subtle);
   align-items: center;
   position: relative;
@@ -2218,8 +2218,11 @@ const phases = [
     tasks: ['Two new lessons (Chemical Formulas; Molecules and Their Properties) — 5 total, content still outside ChemEngine', 'ChemEngine-backed answer kinds: formula (canonicalized via formula_to_graph) and element (symbol / name / atomic number)', 'Molecule spotlights via molecule_input reusing the M22 ExplorerResult component', 'Practice results view (attempted / correct / needs another look / accuracy) + invalid-answer UX', '11 new backend tests (106 total), 5 new frontend tests (52 total)'],
     ver: '0.3',     start: 106, dur: 6,  risk: 'medium',  status: 'complete', weight: 4 },
   { id: 26, name: 'Content Management Foundation (M26)', desc: 'Move the seeded content layer into the database behind an admin CMS, without changing the learning API contract',
-    tasks: ['Scope definition before work begins (content storage model, CMS surface, migration of the seeded lessons)'],
-    ver: '0.4',     start: 112, dur: 8,  risk: 'medium',  status: 'planned', weight: 4 }
+    tasks: ['Content tables lessons/lesson_sections/lesson_questions + users.is_admin (migration 003)', 'Admin API: list/get/create/update/publish/unpublish with server-side validation', 'Chemistry validation via ChemEngine (formula canonicalization, element resolution)', 'Idempotent seed/import of the five published lessons', '31 admin API tests + corrective hardening pass (imports, awaits, constraints, session secret)'],
+    ver: '0.4',     start: 112, dur: 8,  risk: 'medium',  status: 'complete', weight: 4 },
+  { id: 27, name: 'Production Content & Admin CMS (M27)', desc: 'Turn the M26 content foundation into a genuinely usable, production-oriented CMS operated without editing seed files',
+    tasks: ['Admin CMS app (apps/admin): dashboard, lesson list, lesson/section/question editors, preview', 'Admin-only preview endpoint returning the student-safe view (answer keys stripped)', 'created_at/updated_at timestamps in admin DTOs', 'Explicit publish action; slug immutability; student progress preserved', '7 new backend tests, 8 admin frontend tests'],
+    ver: '0.4',     start: 120, dur: 6,  risk: 'medium',  status: 'complete', weight: 4 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2768,7 +2771,9 @@ function buildMilestoneDots() {
     { label: 'Coordinates', week: 50 },
     { label: 'Rendering', week: 54 },
     { label: 'Nomenclature', week: 64 },
-    { label: 'v1.0.0', week: 76 }
+    { label: 'v1.0.0', week: 76 },
+    { label: 'M26 CMS', week: 118 },
+    { label: 'M27 Admin', week: 124 }
   ];
 
   // Create a progress line
@@ -2779,7 +2784,7 @@ function buildMilestoneDots() {
   // Fill line up to now
   var fillLine = document.createElement('div');
   fillLine.style.cssText = 'position:absolute;top:4px;left:0;height:1px;pointer-events:none;background:var(--accent-blue);transition:width 1s var(--ease-out);';
-  var nowPct = (nowWeek / 76) * 100;
+  var nowPct = (nowWeek / 126) * 100;
   fillLine.style.width = nowPct + '%';
   dom.milestoneDots.appendChild(fillLine);
 

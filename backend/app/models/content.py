@@ -85,7 +85,7 @@ class Lesson(Base, TimestampMixin):
         comment="When the lesson was last published",
     )
 
-    sections: Mapped[list["LessonSection"]] = relationship(
+    sections: Mapped[list[LessonSection]] = relationship(
         back_populates="lesson",
         cascade="all, delete-orphan",
         order_by="LessonSection.ordering",
@@ -142,7 +142,7 @@ class LessonSection(Base):
     ordering: Mapped[int] = mapped_column(Integer, nullable=False)
 
     lesson: Mapped[Lesson] = relationship(back_populates="sections")
-    questions: Mapped[list["LessonQuestion"]] = relationship(
+    questions: Mapped[list[LessonQuestion]] = relationship(
         back_populates="section",
         cascade="all, delete-orphan",
         order_by="LessonQuestion.ordering",
