@@ -1,8 +1,8 @@
 # Chemora — Project Status Report
 
 **Date:** September 19, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M29 complete / Web M21–M29 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor complete
-**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) complete · Post-M26 corrective hardening pass complete
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M30 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure complete
+**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) complete · Post-M26 corrective hardening pass complete
 
 ---
 
@@ -19,10 +19,10 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Test Files** | 37 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
-| **Backend Tests** | 199 / 199 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor) |
-| **Web Tests** | 71 / 71 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29 tutor UI) |
+| **Backend Tests** | 220 / 220 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache) |
+| **Web Tests** | 74 / 74 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
-| **Next Milestone** | None scoped (M30 not yet defined) |
+| **Next Milestone** | None scoped (M31 not yet defined) |
 
 ---
 
@@ -214,6 +214,51 @@ completed with the missing pieces, and tested end to end.
   conversation storage (not required by any criterion; stateless per-request
   design), live provider verification (no API key in the environment; the
   OpenAI/Anthropic paths are exercised through the abstraction seam).
+
+---
+
+### ✅ M30: AI Tutor Completion & Conversation Infrastructure (Complete — 2026-09-19)
+
+M30 takes the M29 tutor from a stateless request/response prototype to a
+complete conversational system. Implemented and verified:
+
+- **Persistent conversations:** `tutor_conversations` + `tutor_messages`
+  tables (`backend/app/models/tutor.py`, migration `004_tutor_conversations`
+  with FK CASCADE, composite indexes on `(user_id, updated_at)` and
+  `(conversation_id, seq)`), `TutorConversationRepository` with limits
+  (30 conversations/user, 200 messages/conversation) and **ownership on
+  every query** (foreign ids return 404, never existence leakage),
+  CRUD + messages endpoints under `/api/v1/learning/tutor/conversations`.
+- **Server-side history:** `TutorService.ask_in_conversation` /
+  `stream_in_conversation` load history from the owned conversation — the
+  client cannot inject foreign or arbitrary history (the M29 client-supplied
+  `history` field remains only on the legacy stateless endpoint).
+- **Streaming:** `generate_stream` added to all three providers behind the
+  unchanged `AIProvider` abstraction (`StreamEvent` text/tool_calls/final
+  protocol; OpenAI delta accumulation, Anthropic content-block events, mock
+  chunked streaming); `POST .../messages` streams SSE frames
+  (`delta`/`done`/`error`); tool calls execute server-side through the same
+  bounded allowlisted loop; partial answers persist even if the client
+  disconnects; provider failures become one stable error frame.
+- **Tool-result cache:** `ToolResultCache` (deterministic SHA-256 keys over
+  sorted canonical arguments, lazy TTL sweep, insertion-order eviction,
+  hit/miss/expiry counters) wired into `TutorToolbox` after argument
+  validation; failures never cached; conversation content and LLM responses
+  never cached; `AI_TOOL_CACHE_ENABLED/TTL/MAX_ENTRIES` settings.
+- **Frontend:** `TutorPage` extended — new/switch/delete conversations,
+  server-loaded history, incremental delta rendering with a streaming
+  indicator, distinct loading/streaming/error/empty states; `useTutor`
+  conversation state; `ApiClient.streamTutorMessage` + SSE frame parser.
+- **Tests:** +21 backend (CRUD, ownership, cross-user isolation, server-side
+  history, SSE well-formedness, streaming tool calls, provider failure,
+  malformed/oversized/unauthorized requests, cache hit/miss/expiration/
+  bounds, caps) and +3 net web (streaming round-trip, partial rendering,
+  history loading, deletion, switching, metadata hygiene) — 220 backend,
+  74 web, 13 admin, 1635 ChemEngine.
+
+**Deferred:** live provider verification (no API key in the environment),
+browser E2E (tooling unavailable — compensated with jsdom streaming tests),
+distributed rate limiting, model-generated conversation titles.
 
 ---
 

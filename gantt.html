@@ -2228,13 +2228,16 @@ const phases = [
             ver: '0.4',     start: 126, dur: 6,  risk: 'medium',  status: 'complete', weight: 4 },
   { id: 29, name: 'AI Chemistry Tutor (M29)', desc: 'A backend AI service that uses ChemEngine tools for deterministic chemistry, with provider abstraction, cost/abuse controls, and an authenticated chat tutor endpoint',
     tasks: ['AIProvider abstraction (OpenAI/Anthropic/mock) + config in settings', 'Backend AIService: retrieve relevant lesson content (controlled RAG boundary), call provider, invoke ChemEngine tools server-side for deterministic chemistry', 'Authenticated chat endpoint POST /api/v1/learning/tutor (session-gated, user identity from Chemora session)', 'Cost/abuse controls: per-request token limits, timeouts, cache, error/fallback handling, usage logging', 'Frontend chat tutor in the web client', 'Tests: provider abstraction, tool-call boundary, answer-key/content privacy, authz'],
-    ver: '0.5',     start: 132, dur: 8,  risk: 'high',    status: 'complete', weight: 5 }
+    ver: '0.5',     start: 132, dur: 8,  risk: 'high',    status: 'complete', weight: 5 },
+  { id: 30, name: 'AI Tutor Completion & Conversation Infrastructure (M30)', desc: 'Take the M29 tutor from a stateless prototype to a complete conversational system: persistent conversations with server-enforced ownership, streaming responses through the provider abstraction, and bounded deterministic ChemEngine tool-result caching',
+    tasks: ['Persistent tutor conversations + messages: models, Alembic migration, repository/service layers, session-derived ownership, server-side history, cross-user isolation, limits and indexes', 'Streaming tutor endpoint (POST + streaming response) reusing the AIProvider abstraction; partial responses, provider failures, interruption, unauthorized/malformed requests handled', 'Bounded deterministic tool-result cache: deterministic keys, TTL, entry bounds, tested hit/miss/expiration; never caches conversation content or LLM responses', 'Conversation-aware TutorService: history loaded server-side; all M29 security boundaries preserved (published-only retrieval, answer-key isolation, tool allowlist, rate limits)', 'TutorPage: conversation start/continue, history loading, incremental streaming rendering, retry/error/empty states, switching/deletion as exposed', 'Tests: conversation CRUD + isolation, streaming success/failure/interruption/tool calls, cache hit/miss/expiration, malformed/oversized requests, auth boundaries; full regression'],
+    ver: '0.6',     start: 140, dur: 6,  risk: 'medium',  status: 'complete', weight: 5 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 140;
+const TOTAL_WEEKS = 146;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;
@@ -2781,7 +2784,8 @@ function buildMilestoneDots() {
     { label: 'M26 CMS', week: 118 },
         { label: 'M27 Admin', week: 124 },
     { label: 'M28 Learning', week: 132 },
-    { label: 'M29 AI Tutor', week: 140 }
+    { label: 'M29 AI Tutor', week: 140 },
+    { label: 'M30 Conversations', week: 146 }
   ];
 
   // Create a progress line

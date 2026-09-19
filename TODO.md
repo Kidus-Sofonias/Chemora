@@ -5,7 +5,7 @@
 > **Version:** 0.10.0 → 1.0.0 (ChemEngine complete; monorepo migration complete)
 > **Last Updated:** September 19, 2026
 > **Owner:** Chemora Architecture Team
-> **Status:** Active Development — Backend M19–M29 complete, next milestone not yet scoped
+> **Status:** Active Development — Backend M19–M30 complete, next milestone not yet scoped
 
 ---
 
@@ -1977,6 +1977,104 @@ environment; real-provider paths are exercised through the abstraction seam).
 
 ---
 
+### M30 — AI Tutor Completion & Conversation Infrastructure (Complete)
+
+M30 is **complete** (2026-09-19). The scope below is retained for the record.
+M29 is complete. M30 takes the AI tutor from a stateless
+request/response prototype to a complete conversational system.
+
+**Objectives.** (1) Persist tutor conversations with server-enforced ownership
+so a student's tutoring history survives page reloads and is loaded server-side
+(the client can no longer supply arbitrary conversation history). (2) Stream
+tutor responses incrementally through the existing `AIProvider` abstraction.
+(3) Cache safe, deterministic ChemEngine tool results with bounded memory and
+TTL. All M29 protections (published-lessons-only retrieval, no answer keys,
+tool allowlist, schema validation, ChemEngine authority, rate limits, input/
+output bounds, stable error codes, server-side provider credentials) carry
+forward unchanged.
+
+**In scope:**
+- Persistent tutor conversations and messages: SQLAlchemy models, Alembic
+  migration, repository/service layers following the existing
+  Route → Service → Repository architecture, authenticated ownership derived
+  only from the server-side session, conversation creation/retrieval/listing
+  (as the UI requires)/deletion, server-side message history, cross-user
+  isolation, reasonable conversation/message limits, appropriate indexes and
+  constraints. A client-provided user id or ownership field is never trusted.
+- Tutor response streaming: a streaming endpoint (POST + streaming response,
+  because the request carries conversation/input state) reusing the existing
+  provider abstraction without redesign; authenticated, bounded input,
+  bounded execution; correct handling of provider tool calls, partial
+  responses, provider failures, interrupted/cancelled requests, unauthorized
+  and malformed requests.
+- Tool-result caching: bounded, deterministic cache for safe ChemEngine tool
+  results only (deterministic keys, TTL, entry/memory bounds, hit/miss and
+  expiration tests). Private conversation content and arbitrary LLM responses
+  are never cached.
+- Conversation-aware tutor: `TutorService` loads history server-side from the
+  persistence layer; the client cannot inject another user's history.
+- Frontend: extend the existing `TutorPage` for starting/continuing
+  conversations, loading history, incrementally rendering streamed responses,
+  clear loading/streaming/error/empty states, retry, and conversation
+  switching/deletion as the API exposes them. No unnecessary UI complexity.
+- Tests: backend coverage of conversation CRUD, ownership, cross-user
+  isolation, server-side history, streaming (success/failure/interruption/
+  tool calls), cache hit/miss/expiration, malformed and oversized requests,
+  and auth boundaries; web tests for history loading, streaming rendering,
+  partial responses, failure, retry, switching and deletion; full regression.
+
+**Out of scope:** ChemEngine algorithm changes (unless required by a
+demonstrated defect), chemistry in TypeScript, bypassing the provider
+abstraction, exposing API keys, trusting client ownership, exposing drafts or
+answer keys, vector search, speculative AI features, quizzes/exams, mobile,
+offline sync, CMS rebuild, ChemEngine v2/v3 roadmap items, and M31 work.
+
+**Acceptance criteria** (all satisfied — see `backend/app/models/tutor.py`,
+`backend/app/repositories/tutor.py`, `backend/app/services/ai/cache.py`,
+`backend/app/services/ai/service.py`, `backend/app/api/v1/tutor.py`,
+`apps/web/src/ui/TutorPage.tsx`):
+- [x] Persistent conversations work correctly; ownership is server-enforced
+  (every repository query filters by the session-derived `user_id`; a foreign
+  conversation is indistinguishable from a missing one — 404); cross-user
+  isolation is tested (`test_cross_user_isolation`); server-side conversation
+  history works (`test_server_side_history_and_persistence` — the client never
+  sends history).
+- [x] Streaming tutor responses work through the provider abstraction
+  (`POST /api/v1/learning/tutor/conversations/{id}/messages` emits SSE
+  `delta`/`done`/`error` frames; all three shipped providers implement
+  `generate_stream` behind the unchanged `AIProvider` abstraction); the
+  frontend incrementally renders streamed responses
+  (`useTutor` + `TutorStreamEvents` reader); streaming failure and
+  interruption are handled (mid-stream SSE error frames, non-2xx pre-flight,
+  partial answers persisted on disconnect).
+- [x] Safe deterministic ChemEngine tool results are cached correctly with
+  tested bounds and TTL (`ToolResultCache`: deterministic sorted-key + SHA-256
+  keys, lazy TTL sweep, insertion-order eviction; `test_tool_result_cache` —
+  hit/miss/expiration/bounds; failures are never cached; conversation content
+  and LLM responses are never cached).
+- [x] Existing M29 security boundaries remain intact (220 backend tests
+  include the full M29 suite unchanged); no answer keys or drafts are exposed.
+- [x] Full regression, static checks, and production builds pass; documentation
+  and the Gantt are reconciled.
+
+**Deferred (not acceptance criteria):** live provider verification (no API key
+in the environment; streaming providers are exercised through the abstraction
+seam with deterministic fakes), browser E2E (tooling unavailable in this
+environment — covered by jsdom streaming/interaction tests instead),
+distributed rate limiting, server-sent conversation titles auto-generated by
+the model.
+
+**Dependencies:** M29 (provider abstraction, tool allowlist, retrieval,
+auth boundary, cost controls). **Testing requirements:** unit + integration +
+security tests at every layer, full regression with exact totals recorded.
+**Security requirements:** session-derived identity only, per-user isolation,
+no secret exposure, bounded inputs and expensive operations, stable error
+surfacing. **Known limitations to record at completion:** live provider
+verification requires an API key (not present in the environment); browser
+E2E depends on tooling availability.
+
+---
+
 ## Roadmap Summary
 
 ### Overall Progress
@@ -1989,10 +2087,10 @@ environment; real-provider paths are exercised through the abstraction seam).
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
-| **Backend Tests** | 199 / 199 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor) |
-| **Web Tests** | 71 / 71 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29 tutor UI) |
+| **Backend Tests** | 220 / 220 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache) |
+| **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | None scoped (M30 not yet defined) |
+| **Next Milestone** | None scoped (M31 not yet defined) |
 
 ### Phase Summary Table
 
