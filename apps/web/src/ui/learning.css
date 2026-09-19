@@ -163,3 +163,88 @@
   margin: 0.15rem 0 0;
   font-weight: 600;
 }
+
+/* ── AI Chemistry Tutor (M29) ─────────────────────────────────────────── */
+
+.tutor-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.tutor-empty {
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+
+.tutor-empty h3 {
+  margin: 0 0 0.35rem;
+}
+
+.tutor-empty p {
+  margin: 0;
+  color: #5b6577;
+}
+
+.tutor-messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.tutor-message {
+  max-width: 85%;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.75rem;
+}
+
+.tutor-message p {
+  margin: 0.15rem 0 0;
+  overflow-wrap: break-word;
+}
+
+.tutor-role {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #5b6577;
+}
+
+.tutor-user {
+  align-self: flex-end;
+  background: var(--accent-blue, #e8f0fe);
+  border: 1px solid var(--border-subtle, #d7dce5);
+}
+
+.tutor-assistant {
+  align-self: flex-start;
+  background: #f6f7f9;
+  border: 1px solid var(--border-subtle, #d7dce5);
+}
+
+.tutor-form {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.tutor-input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tutor-input-row .explorer-input {
+  flex: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tutor-transcript {
+    scroll-behavior: smooth;
+  }
+}

@@ -8,6 +8,8 @@ import type {
   LessonDetail,
   LessonListResult,
   SessionResponse,
+  TutorResponse,
+  TutorTurn,
 } from './types';
 
 
@@ -157,6 +159,26 @@ export class ApiClient {
       `/api/v1/learning/lessons/${encodeURIComponent(slug)}/answers`,
       { method: 'POST', body: { question_id: questionId, answer } },
     );
+  }
+
+  /**
+   * POST /api/v1/learning/tutor — ask the AI chemistry tutor a question.
+   * The backend composes the answer (lesson context + ChemEngine tools +
+   * AI provider); the client never contacts a provider itself.
+   */
+  async askTutor(
+    message: string,
+    history: TutorTurn[] = [],
+    lessonSlug?: string,
+  ): Promise<TutorResponse> {
+    return this.request<TutorResponse>('/api/v1/learning/tutor', {
+      method: 'POST',
+      body: {
+        message,
+        history,
+        ...(lessonSlug ? { lesson_slug: lessonSlug } : {}),
+      },
+    });
   }
 
 

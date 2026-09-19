@@ -215,3 +215,20 @@ export interface AnswerResult {
   explanation: string;
   progress: LearningProgress;
 }
+
+// ── AI Chemistry Tutor (M29) ─────────────────────────────────────────────
+// Shapes mirror the backend Pydantic models for /api/v1/learning/tutor.
+// The response contains only the tutor's answer and opaque metadata — the
+// client never talks to an AI provider and never sees provider payloads.
+
+/** One prior conversation turn sent with a tutor request. */
+export interface TutorTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface TutorResponse {
+  answer: string;
+  lesson_slugs: string[];
+  tools_used: string[];
+}
