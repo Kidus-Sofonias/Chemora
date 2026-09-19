@@ -5,7 +5,7 @@
 > **Version:** 0.10.0 → 1.0.0 (ChemEngine complete; monorepo migration complete)
 > **Last Updated:** September 19, 2026
 > **Owner:** Chemora Architecture Team
-> **Status:** Active Development — Monorepo migration complete, Backend Foundation next
+> **Status:** Active Development — Backend M19–M29 complete, next milestone not yet scoped
 
 ---
 
@@ -1920,9 +1920,9 @@ experience without regressing the M26/M27 database/CMS architecture.
 
 ---
 
-### M29 — AI Chemistry Tutor (Scoped)
+### M29 — AI Chemistry Tutor (Complete)
 
-M28 is complete. M29 is now **scoped**, not started.
+M29 is **complete** (2026-09-19). The scope below is retained for the record.
 
 **Scope definition.** ChemEngine's AI Integration phase (Phase 13) is complete
 and tested: `ChemEngineAPI.execute_tool()` exposes chemistry tools with JSON-Schema
@@ -1956,16 +1956,24 @@ chemistry algorithms.
 - **Out of scope:** quizzes/exams platform, mobile app, offline sync, CMS authoring
   rebuild, new ChemEngine algorithms, client-side provider keys.
 
-**Acceptance criteria** (before M29 is marked complete):
-- Provider abstraction with ≥1 real + 1 mock provider, all swappable without backend edits.
-- Deterministic chemistry (formula/element/config/properties) always resolved via
+**Acceptance criteria** (all satisfied — see `backend/app/services/ai/`,
+`backend/app/api/v1/tutor.py`, `apps/web/src/ui/TutorPage.tsx`):
+- [x] Provider abstraction with ≥1 real + 1 mock provider, all swappable without backend edits — `AIProvider` protocol with `MockAIProvider`, `OpenAIProvider`, and `AnthropicProvider`, selected by `AI_PROVIDER` settings.
+- [x] Deterministic chemistry (formula/element/config/properties) always resolved via
   `ChemEngineAPI.execute_tool()` server-side; a test proves a wrong model answer on
-  chemistry is corrected by the engine.
-- `POST /api/v1/learning/tutor` returns 401 unauthenticated, 403 for non-students
-  where applicable, and never returns answer keys or draft content.
-- Cost controls enforced (max tokens, timeout, error/fallback on provider failure).
-- Web + backend tests for the provider boundary, authz, privacy, and a regression
-  test that ChemEngine remains the authority.
+  chemistry is corrected by the engine (`test_chemistry_authority_tool_wins`).
+- [x] `POST /api/v1/learning/tutor` returns 401 unauthenticated, 403 for non-students
+  where applicable (Chemora has no separate student role — every authenticated user
+  is a student, so the 403 path has no applicable case), and never returns answer keys or draft content (retrieval serializes prompts only; enforced by tests).
+- [x] Cost controls enforced (max input budget + output tokens, timeout,
+  bounded tool loop, per-user rate limit, error/fallback on provider failure).
+- [x] Web + backend tests for the provider boundary, authz, privacy, and a regression
+  test that ChemEngine remains the authority (35 backend tests, 9 web tests).
+
+**Deferred (not acceptance criteria):** streaming responses (in the scope prose,
+not the acceptance list — future enhancement), persistent conversation storage
+(stateless per-request design), live provider verification (no API key in the
+environment; real-provider paths are exercised through the abstraction seam).
 
 ---
 
@@ -1981,10 +1989,10 @@ chemistry algorithms.
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
-| **Backend Tests** | 164 / 164 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience) |
-| **Web Tests** | 62 / 62 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume) |
+| **Backend Tests** | 199 / 199 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor) |
+| **Web Tests** | 71 / 71 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | M29 — AI Chemistry Tutor (scoped) |
+| **Next Milestone** | None scoped (M30 not yet defined) |
 
 ### Phase Summary Table
 

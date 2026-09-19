@@ -17,9 +17,11 @@ database, authentication, or AI.
 
 > **Milestone status:** Backend Foundation (M19) ✅, Authentication (M20) ✅,
 > Chemistry Explorer (M22) ✅, Element Explorer (M23) ✅, Learning Core (M24) ✅,
-> Learning Expansion (M25) ✅, Content Management Foundation (M26) ✅, and
-> Production Content & Admin CMS (M27) ✅ are complete. This document covers the
-> authentication system (M20) and the content-management endpoints (M26/M27).
+> Learning Expansion (M25) ✅, Content Management Foundation (M26) ✅,
+> Production Content & Admin CMS (M27) ✅, Learning Experience Expansion (M28) ✅,
+> and AI Chemistry Tutor (M29) ✅ are complete. This document covers the
+> authentication system (M20), the content-management endpoints (M26/M27),
+> and the AI tutor service (M29).
 
 ---
 
@@ -577,4 +579,66 @@ ChemEngine-backed kinds: `H2O`/`HOH` both correct, `CO2` incorrect, garbage →
 different element incorrect, non-element → `422`, plus a guard asserting every
 seeded `formula`/`element` question accepts its own expected answer — the check
 that catches a question which could never be graded correct.
+
+## AI Chemistry Tutor (M29)
+
+A session-gated AI tutoring service. The LLM is an explanation surface only:
+every deterministic chemistry value comes from ChemEngine through an explicit,
+allowlisted tool boundary.
+
+```text
+Student → web tutor UI → POST /api/v1/learning/tutor (session-gated)
+    → TutorService: student-safe retrieval → provider ↔ tool loop
+          tool call → allowlist + schema validation → ChemEngineAPI
+    → answer (+ opaque metadata: lesson slugs, tools used)
+```
+
+### Components (backend/app/services/ai/)
+
+- **provider.py** — `AIProvider` protocol with three implementations:
+  `MockAIProvider` (deterministic, no network; the default),
+  `OpenAIProvider` (OpenAI-compatible chat completions), and
+  `AnthropicProvider` (Anthropic Messages API; OpenAI-shape tool calls are
+  translated internally so the orchestration stays provider-agnostic).
+  Selected via `AI_PROVIDER` (`mock` | `openai` | `anthropic`); keys are
+  server-side settings only and are never logged or returned to clients.
+- **tools.py** — `TutorToolbox`: the only path from a model tool call to
+  ChemEngine. Explicit student-safe allowlist (`parse_smiles`,
+  `parse_formula`, `compute_property`, `validate`,
+  `detect_functional_groups`, `calculate_electron_configuration`);
+  arguments validated against the registered JSON schemas with length
+  bounds; unknown/disallowed tools and raw engine exceptions never reach
+  the model or the client (stable `ToolError` codes instead).
+- **retrieval.py** — `ContentRetriever`: published lessons only, through the
+  same `ContentRepository` rules as the student API (drafts are not even
+  discoverable). Serialized context contains section prose and question
+  prompts only — answer keys are never included. Bounded context
+  (≤2 lessons, per-lesson character cap), deterministic keyword scoring;
+  a client-suggested `lesson_slug` is verified server-side.
+- **service.py** — `TutorService`: bounded provider/tool loop
+  (`AI_MAX_TOOL_ITERATIONS`), input token budget (`AI_MAX_INPUT_TOKENS`,
+  history trimmed to fit), output token cap, timeout, per-user sliding-window
+  rate limit (`AI_RATE_LIMIT_PER_MINUTE`), untrusted client history
+  sanitized, graceful fallback answer on provider/tool failure.
+
+### Endpoint
+
+`POST /api/v1/learning/tutor` — body `{message, history?, lesson_slug?}`.
+401 unauthenticated; identity always comes from the server-side Chemora
+session. Controlled failures map to stable codes: `422 invalid_message`,
+`429 rate_limited`, `504 ai_timeout`, `503 ai_unavailable`, `500 ai_auth` /
+`ai_error`. The response carries only `answer`, `lesson_slugs`, and
+`tools_used` — no provider payloads, no raw tool output, no internals.
+
+Streaming responses and persistent conversation storage are deliberate
+future enhancements (neither is an M29 acceptance criterion).
+
+### Tests
+
+35 tests in `tests/test_tutor.py` cover the provider boundary, the tool
+allowlist (unknown/disallowed/invalid-argument rejection), the mandatory
+chemistry-authority regression (a scripted provider demands a tool; the
+ChemEngine result is returned to the provider and the final answer is based
+on it), authentication, answer-key/draft isolation, the input budget, the
+rate limit, the bounded loop, and secret hygiene.
 

@@ -2228,7 +2228,7 @@ const phases = [
             ver: '0.4',     start: 126, dur: 6,  risk: 'medium',  status: 'complete', weight: 4 },
   { id: 29, name: 'AI Chemistry Tutor (M29)', desc: 'A backend AI service that uses ChemEngine tools for deterministic chemistry, with provider abstraction, cost/abuse controls, and an authenticated chat tutor endpoint',
     tasks: ['AIProvider abstraction (OpenAI/Anthropic/mock) + config in settings', 'Backend AIService: retrieve relevant lesson content (controlled RAG boundary), call provider, invoke ChemEngine tools server-side for deterministic chemistry', 'Authenticated chat endpoint POST /api/v1/learning/tutor (session-gated, user identity from Chemora session)', 'Cost/abuse controls: per-request token limits, timeouts, cache, error/fallback handling, usage logging', 'Frontend chat tutor in the web client', 'Tests: provider abstraction, tool-call boundary, answer-key/content privacy, authz'],
-    ver: '0.5',     start: 132, dur: 8,  risk: 'high',    status: 'planned',  weight: 5 }
+    ver: '0.5',     start: 132, dur: 8,  risk: 'high',    status: 'complete', weight: 5 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════

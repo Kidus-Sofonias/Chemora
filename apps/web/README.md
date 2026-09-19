@@ -6,9 +6,9 @@ Sign-In authentication integration on top of the M20 backend.
 > **Status:** Authentication integration (M21) ✅, Chemistry Explorer (M22) ✅,
 > Element Explorer (M23) ✅, Chemistry Learning Core (M24) ✅, Learning &
 > Practice Expansion (M25) ✅, Content Management Foundation (M26) ✅, Production
-> CMS (M27) ✅, and Chemistry Learning Experience Expansion (M28) ✅ are
-> complete. M29 (AI Chemistry Tutor) is scoped and not yet started. Mobile,
-> offline sync, and quizzes remain future milestones.
+> CMS (M27) ✅, Chemistry Learning Experience Expansion (M28) ✅, and the
+> AI Chemistry Tutor (M29) ✅ are complete. Mobile, offline sync, and quizzes
+> remain future milestones.
 
 ---
 
@@ -43,7 +43,34 @@ recognizable chemistry), `network-error` (backend unreachable), and
 `server-error` (backend failure) states. Errors are never auto-retried, and a
 request for the input already shown is skipped.
 
-### Endpoint
+
+---
+
+## AI Chemistry Tutor (M29)
+
+A chat tutor for signed-in students, available as the `Tutor` section in the
+authenticated navigation.
+
+```text
+TutorPage → useTutor → ApiClient.askTutor → POST /api/v1/learning/tutor
+                                   → TutorService (retrieval + provider + ChemEngine tools)
+```
+
+- **Client responsibilities only:** rendering the conversation, sending the
+  question plus prior turns as `history`, and showing empty / loading /
+  error / disabled states. All chemistry and all AI composition happen on
+  the backend — no chemistry computation and no provider contact in TS.
+- **Error handling:** structured backend errors (`detail.code` + `message`,
+  e.g. rate limit) are surfaced verbatim; network and unexpected server
+  failures fall back to generic messages so internals never reach the UI.
+  A failed send keeps the transcript for retry context.
+- **Privacy:** the transcript renders only user/assistant text. Tool
+  payloads, lesson metadata, and provider details are never displayed
+  (the response's `tools_used`/`lesson_slugs` are opaque metadata the UI
+  deliberately does not render).
+
+Tests: `tests/tutor.test.tsx` (9 tests) covers the auth gate, the
+send/history round-trip, loading/error/empty states, and metadata hygiene.### Endpoint
 
 `POST /api/v1/chemistry/explore` with `{ "input": "<identifier>" }` →
 `200` structured result, or `422` with
