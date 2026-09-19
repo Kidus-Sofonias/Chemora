@@ -8,7 +8,11 @@ import type {
   LessonDetail,
   LessonListResult,
   SessionResponse,
+  TutorConversationDetail,
+  TutorConversationListResponse,
+  TutorConversationSummary,
   TutorResponse,
+  TutorStreamEvent,
   TutorTurn,
 } from './types';
 
@@ -55,7 +59,7 @@ export class ApiError extends Error {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'DELETE';
   body?: unknown;
 }
 
@@ -179,6 +183,127 @@ export class ApiClient {
         ...(lessonSlug ? { lesson_slug: lessonSlug } : {}),
       },
     });
+  }
+
+  /** POST /api/v1/learning/tutor/conversations — create a conversation. */
+  async createTutorConversation(title?: string): Promise<TutorConversationSummary> {
+    return this.request<TutorConversationSummary>('/api/v1/learning/tutor/conversations', {
+      method: 'POST',
+      body: { ...(title ? { title } : {}) },
+    });
+  }
+
+  /** GET /api/v1/learning/tutor/conversations — list my conversations. */
+  async listTutorConversations(): Promise<TutorConversationListResponse> {
+    return this.request<TutorConversationListResponse>('/api/v1/learning/tutor/conversations');
+  }
+
+  /** GET /api/v1/learning/tutor/conversations/{id} — load its messages. */
+  async getTutorConversation(id: string): Promise<TutorConversationDetail> {
+    return this.request<TutorConversationDetail>(
+      `/api/v1/learning/tutor/conversations/${encodeURIComponent(id)}`,
+    );
+  }
+
+  /** DELETE /api/v1/learning/tutor/conversations/{id} — delete one of mine. */
+  async deleteTutorConversation(id: string): Promise<{ deleted: boolean }> {
+    return this.request<{ deleted: boolean }>(
+      `/api/v1/learning/tutor/conversations/${encodeURIComponent(id)}`,
+      { method: 'DELETE' },
+    );
+  }
+
+  /**
+   * POST /api/v1/learning/tutor/conversations/{id}/messages — ask a question
+   * inside a conversation and stream the answer as Server-Sent Events.
+   *
+   * Returns the Response so callers can consume frames incrementally; the
+   * backend persists the user message and the streamed answer server-side.
+   * Throws ApiError exactly like `request` for non-2xx responses.
+   */
+  async streamTutorMessage(
+    conversationId: string,
+    message: string,
+    lessonSlug?: string,
+  ): Promise<Response> {
+    const path = `/api/v1/learning/tutor/conversations/${encodeURIComponent(
+      conversationId,
+    )}/messages`;
+    let response: Response;
+    try {
+      response = await fetch(this.baseUrl + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          ...(lessonSlug ? { lesson_slug: lessonSlug } : {}),
+        }),
+        credentials: 'include',
+      });
+    } catch {
+      throw new ApiError(
+        'Could not reach the Chemora server. Check your connection and try again.',
+        null,
+      );
+    }
+    if (!response.ok) {
+      const text = await response.text();
+      let data: unknown = null;
+      if (text) {
+        try {
+          data = JSON.parse(text) as unknown;
+        } catch {
+          data = null;
+        }
+      }
+      const detail = readError(data);
+      throw new ApiError(
+        detail.message ?? `Request failed (${response.status}).`,
+        response.status,
+        detail.code,
+      );
+    }
+    return response;
+  }
+
+  /**
+   * Parse the SSE body of a tutor stream into structured events.
+   * Handles partial frames: buffers lines until a blank-line boundary.
+   */
+  async *tutorStreamEvents(response: Response): AsyncGenerator<TutorStreamEvent> {
+    const body = response.body;
+    if (!body) {
+      return;
+    }
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        let boundary = buffer.indexOf('\n\n');
+        while (boundary !== -1) {
+          const frame = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('data: ')) {
+              try {
+                yield JSON.parse(line.slice(6)) as TutorStreamEvent;
+              } catch {
+                // Malformed frame — skip it; never crash the transcript.
+              }
+            }
+          }
+          boundary = buffer.indexOf('\n\n');
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
   }
 
 

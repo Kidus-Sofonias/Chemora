@@ -232,3 +232,35 @@ export interface TutorResponse {
   lesson_slugs: string[];
   tools_used: string[];
 }
+
+// ── M30: persistent conversations + streaming ────────────────────────────
+
+/** Client-safe conversation metadata (never the messages themselves). */
+export interface TutorConversationSummary {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+}
+
+export interface TutorConversationListResponse {
+  conversations: TutorConversationSummary[];
+}
+
+export interface TutorConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface TutorConversationDetail {
+  id: string;
+  title: string;
+  messages: TutorConversationMessage[];
+}
+
+/** One Server-Sent Event frame from the streaming tutor endpoint. */
+export type TutorStreamEvent =
+  | { type: 'delta'; text: string }
+  | { type: 'done'; tools_used: string[]; lesson_slugs: string[] }
+  | { type: 'error'; code: string; message: string };

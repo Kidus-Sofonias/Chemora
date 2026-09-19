@@ -10,17 +10,67 @@ import {
   installFakeBackend,
   jsonResponse,
   type FakeBackend,
+  type Handler,
 } from './helpers';
 
 /**
- * M29 AI Chemistry Tutor — web tests.
+ * M29 + M30 AI Chemistry Tutor — web tests.
  *
- * The real ApiClient + AuthService run against the scriptable fake backend,
- * exactly like the explorer/learning suites. Assertions cover the M29
- * acceptance surface: auth gating, conversation round-trip, distinct
- * loading/empty/error states, structured-error surfacing, and the fact that
- * the client never sends or receives provider/tool internals.
+ * The real ApiClient/AuthService run against the scriptable fake backend.
+ * Coverage: the auth gate, the empty state, the streaming round-trip through
+ * persistent conversations, server-side history loading, streaming failure
+ * (SSE error frames + non-2xx), retry states, conversation switching and
+ * deletion, and metadata hygiene (tool payloads/provider details never
+ * rendered).
  */
+
+const CONVERSATION_ID = '11111111-1111-1111-1111-111111111111';
+
+/** Build a Response whose body is an SSE stream of the given JSON events. */
+function sseResponse(events: object[], status = 200): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const event of events) {
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
+        );
+      }
+      controller.close();
+    },
+  });
+  return new Response(stream, {
+    status,
+    headers: { 'Content-Type': 'text/event-stream' },
+  });
+}
+
+/** A deferred SSE response: frames are released when the test resolves it. */
+function deferredStream(): {
+  response: Response;
+  push: (event: object) => void;
+  close: () => void;
+} {
+  const encoder = new TextEncoder();
+  let controller: ReadableStreamDefaultController<Uint8Array> | null = null;
+  const stream = new ReadableStream<Uint8Array>({
+    start(c) {
+      controller = c;
+    },
+  });
+  return {
+    response: new Response(stream, {
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream' },
+    }),
+    push(event) {
+      controller!.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+    },
+    close() {
+      controller!.close();
+    },
+  };
+}
 
 async function setupApp(): Promise<FakeBackend> {
   const backend = installFakeBackend();
@@ -32,7 +82,6 @@ async function setupApp(): Promise<FakeBackend> {
     return jsonResponse(404, { detail: 'not found' });
   });
   render(<App service={service} provider={provider} api={api} />);
-  // Wait for the authenticated shell with the section nav.
   await screen.findByRole('button', { name: /Explore/ });
   return backend;
 }
@@ -41,6 +90,40 @@ async function openTutor() {
   const user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: /Tutor/ }));
   return user;
+}
+
+interface StreamedRequest {
+  body: { message: string };
+  url: string;
+}
+
+function tutorStreamHandler(
+  streamed: StreamedRequest[],
+  events: object[] | ((request: { message: string }) => object[]),
+): Handler {
+  return (_method, url, body) => {
+    if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
+    if (url.endsWith('/learning/tutor/conversations') && _method === 'POST') {
+      return jsonResponse(201, {
+        id: CONVERSATION_ID,
+        title: '',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        message_count: 0,
+      });
+    }
+    if (url.endsWith('/learning/tutor/conversations')) {
+      return jsonResponse(200, { conversations: [] });
+    }
+    if (url.endsWith('/messages')) {
+      const payload = body as { message: string };
+      streamed.push({ url, body: payload });
+      const frames =
+        typeof events === 'function' ? events(payload) : events;
+      return sseResponse(frames);
+    }
+    return jsonResponse(404, { detail: 'not found' });
+  };
 }
 
 describe('AI Chemistry Tutor (web)', () => {
@@ -56,7 +139,6 @@ describe('AI Chemistry Tutor (web)', () => {
     backend.setHandler(() => jsonResponse(401, { detail: 'Not authenticated' }));
     render(<App service={service} provider={provider} api={api} />);
 
-    // The login screen is shown instead of any tutor content.
     await screen.findByTestId('google-sign-in-host');
     expect(screen.queryByRole('button', { name: /Tutor/ })).toBeNull();
   });
@@ -70,24 +152,17 @@ describe('AI Chemistry Tutor (web)', () => {
     expect(screen.getByLabelText(/Ask your chemistry question/i)).toBeInTheDocument();
   });
 
-  test('sends a question and renders the tutor answer', async () => {
+  test('creates a conversation and streams the answer incrementally', async () => {
     const backend = await setupApp();
-    backend.setHandler((method, url, body) => {
-      if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
-      if (url.endsWith('/learning/tutor')) {
-        expect(method).toBe('POST');
-        const payload = body as { message: string; history: unknown[] };
-        expect(payload.message).toBe('What is the molar mass of water?');
-        expect(payload.history).toEqual([]);
-        return jsonResponse(200, {
-          answer: 'Water is H2O — about 18.02 g/mol.',
-          lesson_slugs: ['molar-mass'],
-          tools_used: ['compute_property'],
-        });
-      }
-      return jsonResponse(404, { detail: 'not found' });
-    });
     const user = await openTutor();
+    const streamed: StreamedRequest[] = [];
+    backend.setHandler(
+      tutorStreamHandler(streamed, [
+        { type: 'delta', text: 'Water is ' },
+        { type: 'delta', text: 'H2O — about 18.02 g/mol.' },
+        { type: 'done', tools_used: ['compute_property'], lesson_slugs: ['molar-mass'] },
+      ]),
+    );
 
     await user.type(screen.getByLabelText(/Ask your chemistry question/i), 'What is the molar mass of water?');
     await user.click(screen.getByTestId('tutor-send'));
@@ -96,99 +171,202 @@ describe('AI Chemistry Tutor (web)', () => {
     expect(screen.getByTestId('tutor-message-user')).toBeInTheDocument();
     expect(screen.getByTestId('tutor-message-assistant')).toHaveTextContent('18.02 g/mol');
     expect(screen.queryByTestId('tutor-empty')).toBeNull();
+
+    // The client creates the conversation and streams the message into it;
+    // it does NOT send client-side history — history lives server-side.
+    const created = backend.requests.filter((r) =>
+      r.url.endsWith('/learning/tutor/conversations'),
+    );
+    expect(created.length).toBe(1);
+    expect(streamed.length).toBe(1);
+    expect(streamed[0].body).toEqual({ message: 'What is the molar mass of water?' });
+    expect(streamed[0].url).toContain(`/learning/tutor/conversations/${CONVERSATION_ID}/messages`);
+    expect(streamed[0].body).not.toHaveProperty('history');
   });
 
-  test('sends prior turns as conversation history', async () => {
+  test('renders a partial answer before the stream completes', async () => {
     const backend = await setupApp();
-    const tutorBodies: unknown[] = [];
-    let call = 0;
-    backend.setHandler((_m, url, body) => {
+    const user = await openTutor();
+    const deferred = deferredStream();
+    backend.setHandler((method, url, body) => {
       if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
-      if (url.endsWith('/learning/tutor')) {
-        tutorBodies.push(body);
-        call += 1;
+      if (url.endsWith('/learning/tutor/conversations') && method === 'POST') {
+        return jsonResponse(201, {
+          id: CONVERSATION_ID,
+          title: '',
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+          message_count: 0,
+        });
+      }
+      if (url.endsWith('/messages')) {
+        void body;
+        return deferred.response;
+      }
+      return jsonResponse(404, { detail: 'not found' });
+    });
+
+    await user.type(screen.getByLabelText(/Ask your chemistry question/i), 'hello');
+    await user.click(screen.getByTestId('tutor-send'));
+    await screen.findByTestId('tutor-message-user');
+
+    deferred.push({ type: 'delta', text: 'Partial answer so far' });
+    await waitFor(() => {
+      expect(screen.getByTestId('tutor-message-assistant')).toHaveTextContent(
+        'Partial answer so far',
+      );
+    });
+    // Still streaming — the done marker has not arrived.
+    expect(screen.getByTestId('tutor-streaming')).toBeInTheDocument();
+
+    deferred.push({ type: 'done', tools_used: [], lesson_slugs: [] });
+    deferred.close();
+    await waitFor(() => {
+      expect(screen.queryByTestId('tutor-streaming')).toBeNull();
+    });
+  });
+
+  test('loads persisted history from the server when switching conversations', async () => {
+    const backend = await setupApp();
+    const user = await openTutor();
+    backend.setHandler((method, url) => {
+      if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
+      if (url.endsWith('/learning/tutor/conversations') && method === 'POST') {
+        return jsonResponse(201, {
+          id: CONVERSATION_ID,
+          title: 'Stored chat',
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+          message_count: 2,
+        });
+      }
+      if (url.endsWith('/learning/tutor/conversations')) {
         return jsonResponse(200, {
-          answer: call === 1 ? 'H2O is water.' : 'Its molar mass is about 18.02 g/mol.',
-          lesson_slugs: [],
-          tools_used: [],
+          conversations: [
+            {
+              id: CONVERSATION_ID,
+              title: 'Stored chat',
+              created_at: '2026-01-01T00:00:00Z',
+              updated_at: '2026-01-01T00:00:00Z',
+              message_count: 2,
+            },
+          ],
+        });
+      }
+      if (url.includes(`/learning/tutor/conversations/${CONVERSATION_ID}`)) {
+        return jsonResponse(200, {
+          id: CONVERSATION_ID,
+          title: 'Stored chat',
+          messages: [
+            { role: 'user', content: 'Earlier question' },
+            { role: 'assistant', content: 'Earlier answer' },
+          ],
         });
       }
       return jsonResponse(404, { detail: 'not found' });
     });
-    const user = await openTutor();
 
-    await user.type(screen.getByLabelText(/Ask your chemistry question/i), 'What is H2O?');
-    await user.click(screen.getByTestId('tutor-send'));
-    await screen.findByText('H2O is water.');
+    await user.click(screen.getByTestId('tutor-toggle-conversations'));
+    await user.click(screen.getByTestId(`tutor-open-${CONVERSATION_ID}`));
 
-    await user.type(screen.getByLabelText(/Ask your chemistry question/i), 'And its mass?');
-    await user.click(screen.getByTestId('tutor-send'));
-    await screen.findByText('Its molar mass is about 18.02 g/mol.');
-
-    expect(tutorBodies.length).toBe(2);
-    const second = tutorBodies[1] as { history: { role: string; content: string }[] };
-    expect(second.history).toEqual([
-      { role: 'user', content: 'What is H2O?' },
-      { role: 'assistant', content: 'H2O is water.' },
-    ]);
+    await screen.findByText('Earlier question');
+    expect(screen.getByText('Earlier answer')).toBeInTheDocument();
+    // The transcript shows server-side history; the client never supplied it.
+    expect(screen.getByTestId('tutor-message-user')).toBeInTheDocument();
+    expect(screen.getByTestId('tutor-message-assistant')).toBeInTheDocument();
   });
 
-  test('shows a loading state while waiting for the answer', async () => {
+  test('shows a loading state while waiting for the first stream byte', async () => {
     const backend = await setupApp();
-    let resolveTutor: (v: Response) => void;
-    const pending = new Promise<Response>((resolve) => {
-      resolveTutor = resolve;
-    });
-    backend.setHandler((_m, url) => {
+    const user = await openTutor();
+    const deferred = deferredStream();
+    backend.setHandler((method, url) => {
       if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
-      if (url.endsWith('/learning/tutor')) return pending;
+      if (url.endsWith('/learning/tutor/conversations') && method === 'POST') {
+        return jsonResponse(201, {
+          id: CONVERSATION_ID,
+          title: '',
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+          message_count: 0,
+        });
+      }
+      if (url.endsWith('/messages')) return deferred.response;
       return jsonResponse(404, { detail: 'not found' });
     });
-    const user = await openTutor();
 
     await user.type(screen.getByLabelText(/Ask your chemistry question/i), 'hello');
     await user.click(screen.getByTestId('tutor-send'));
 
-    expect(await screen.findByTestId('tutor-loading')).toBeInTheDocument();
-    // Input is disabled while a request is in flight.
+    // The stream response resolves quickly; the visible in-flight state is
+    // "streaming" with the composer disabled until the answer finishes.
+    await screen.findByTestId('tutor-message-user');
+    await screen.findByTestId('tutor-streaming');
     expect(screen.getByTestId('tutor-input')).toBeDisabled();
 
-    resolveTutor!(
-      jsonResponse(200, { answer: 'Done.', lesson_slugs: [], tools_used: [] }),
-    );
+    deferred.push({ type: 'delta', text: 'Done.' });
+    deferred.push({ type: 'done', tools_used: [], lesson_slugs: [] });
+    deferred.close();
     await screen.findByText('Done.');
-    expect(screen.queryByTestId('tutor-loading')).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByTestId('tutor-streaming')).toBeNull();
+    });
   });
 
-  test('surfaces structured backend errors and keeps the transcript', async () => {
+  test('surfaces structured backend errors before streaming starts', async () => {
     const backend = await setupApp();
-    backend.setHandler((_m, url) => {
+    const user = await openTutor();
+    backend.setHandler((method, url) => {
       if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
-      if (url.endsWith('/learning/tutor')) {
+      if (url.endsWith('/learning/tutor/conversations') && method === 'POST') {
+        return jsonResponse(201, {
+          id: CONVERSATION_ID,
+          title: '',
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+          message_count: 0,
+        });
+      }
+      if (url.endsWith('/messages')) {
         return jsonResponse(429, {
           detail: { code: 'rate_limited', message: "You're sending questions too quickly." },
         });
       }
       return jsonResponse(404, { detail: 'not found' });
     });
-    const user = await openTutor();
 
     await user.type(screen.getByLabelText(/Ask your chemistry question/i), 'hello');
     await user.click(screen.getByTestId('tutor-send'));
 
     await screen.findByTestId('tutor-error');
     expect(screen.getByRole('alert')).toHaveTextContent(/too quickly/);
-    // The failed question stays in the transcript for retry context.
     expect(screen.getByTestId('tutor-message-user')).toBeInTheDocument();
+  });
+
+  test('surfaces mid-stream SSE error frames', async () => {
+    const backend = await setupApp();
+    const user = await openTutor();
+    backend.setHandler(
+      tutorStreamHandler([], [
+        { type: 'delta', text: 'Partial…' },
+        { type: 'error', code: 'ai_timeout', message: 'The tutoring service took too long.' },
+      ]),
+    );
+
+    await user.type(screen.getByLabelText(/Ask your chemistry question/i), 'hello');
+    await user.click(screen.getByTestId('tutor-send'));
+
+    await screen.findByTestId('tutor-error');
+    expect(screen.getByRole('alert')).toHaveTextContent(/took too long/);
   });
 
   test('distinguishes a network failure from a server error', async () => {
     const backend = await setupApp();
+    const user = await openTutor();
     backend.setHandler((_m, url) => {
       if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
       return jsonResponse(404, { detail: 'not found' });
     });
-    const user = await openTutor();
 
     await user.type(screen.getByLabelText(/Ask your chemistry question/i), 'hello');
     backend.failNextRequestOnce();
@@ -200,48 +378,82 @@ describe('AI Chemistry Tutor (web)', () => {
 
   test('never exposes tool payloads or provider metadata in the transcript', async () => {
     const backend = await setupApp();
-    backend.setHandler((_m, url) => {
-      if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
-      if (url.endsWith('/learning/tutor')) {
-        return jsonResponse(200, {
-          answer: 'The molar mass of water is 18.02 g/mol.',
-          lesson_slugs: ['molar-mass'],
-          tools_used: ['compute_property'],
-        });
-      }
-      return jsonResponse(404, { detail: 'not found' });
-    });
     const user = await openTutor();
+    backend.setHandler(
+      tutorStreamHandler([], [
+        { type: 'delta', text: 'The molar mass of water is 18.02 g/mol.' },
+        { type: 'done', tools_used: ['compute_property'], lesson_slugs: ['molar-mass'] },
+      ]),
+    );
 
     await user.type(screen.getByLabelText(/Ask your chemistry question/i), 'mass of water?');
     await user.click(screen.getByTestId('tutor-send'));
     await screen.findByTestId('tutor-message-assistant');
 
-    // Raw metadata keys must not be rendered anywhere in the UI.
     expect(screen.queryByText(/tools_used/)).toBeNull();
     expect(screen.queryByText(/lesson_slugs/)).toBeNull();
     expect(screen.queryByText(/compute_property/)).toBeNull();
   });
 
-  test('clear resets the conversation to the empty state', async () => {
+  test('deletes the open conversation and resets to the empty state', async () => {
     const backend = await setupApp();
-    backend.setHandler((_m, url) => {
+    const user = await openTutor();
+    let deleted = false;
+    backend.setHandler((method, url) => {
       if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
-      if (url.endsWith('/learning/tutor')) {
-        return jsonResponse(200, { answer: 'Answer.', lesson_slugs: [], tools_used: [] });
+      if (url.endsWith('/learning/tutor/conversations') && method === 'POST') {
+        return jsonResponse(201, {
+          id: CONVERSATION_ID,
+          title: '',
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+          message_count: 0,
+        });
+      }
+      if (url.endsWith('/messages')) {
+        return sseResponse([
+          { type: 'delta', text: 'Answer.' },
+          { type: 'done', tools_used: [], lesson_slugs: [] },
+        ]);
+      }
+      if (
+        url.endsWith(`/learning/tutor/conversations/${CONVERSATION_ID}`) &&
+        method === 'DELETE'
+      ) {
+        deleted = true;
+        return jsonResponse(200, { deleted: true });
       }
       return jsonResponse(404, { detail: 'not found' });
     });
-    const user = await openTutor();
 
     await user.type(screen.getByLabelText(/Ask your chemistry question/i), 'hi');
     await user.click(screen.getByTestId('tutor-send'));
     await screen.findByTestId('tutor-message-assistant');
 
-    await user.click(screen.getByTestId('tutor-clear'));
+    await user.click(screen.getByTestId('tutor-delete-conversation'));
     await waitFor(() => {
-      expect(screen.getByTestId('tutor-empty')).toBeInTheDocument();
+      expect(deleted).toBe(true);
     });
+    await screen.findByTestId('tutor-empty');
     expect(screen.queryByTestId('tutor-message-user')).toBeNull();
+  });
+
+  test('new conversation button clears the local view', async () => {
+    const backend = await setupApp();
+    const user = await openTutor();
+    backend.setHandler(
+      tutorStreamHandler([], [
+        { type: 'delta', text: 'Answer.' },
+        { type: 'done', tools_used: [], lesson_slugs: [] },
+      ]),
+    );
+
+    await user.type(screen.getByLabelText(/Ask your chemistry question/i), 'hi');
+    await user.click(screen.getByTestId('tutor-send'));
+    await screen.findByTestId('tutor-message-assistant');
+
+    await user.click(screen.getByTestId('tutor-new-conversation'));
+    await screen.findByTestId('tutor-empty');
+    expect(screen.queryByTestId('tutor-message-assistant')).toBeNull();
   });
 });
