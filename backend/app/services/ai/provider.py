@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterator
+from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
@@ -52,9 +54,31 @@ class AIProviderError(Exception):
         self.message = message
 
 
+@dataclass(slots=True)
+class StreamEvent:
+    """One event from a provider's streaming completion.
+
+    Kinds:
+        "text": ``payload`` is a str chunk of the assistant's answer.
+        "tool_calls": ``payload`` is the OpenAI-shape tool_calls dict — the
+            turn requested tools; no more text will follow for this turn.
+        "final": ``payload`` is the full accumulated answer text for this
+            turn (always emitted last, exactly once).
+    """
+
+    kind: str
+    payload: Any  # noqa: ANN401
+
+
 @runtime_checkable
 class AIProvider(Protocol):
-    """Minimal provider contract for the chemistry tutor."""
+    """Minimal provider contract for the chemistry tutor.
+
+    ``generate`` is required. ``generate_stream`` is optional: when a
+    provider implements it, the tutor streams the answer to the client
+    incrementally (M30); otherwise the tutor falls back to ``generate``
+    and emits the answer as a single chunk.
+    """
 
     def generate(
         self,
@@ -64,6 +88,25 @@ class AIProvider(Protocol):
         timeout_seconds: float,
     ) -> Any:  # noqa: ANN401
         """Return a chat completion (text or structured tool calls)."""
+        ...
+
+
+class StreamCapableProvider(Protocol):
+    """Structural type for providers that also support streaming (M30).
+
+    Every shipped provider implements ``generate_stream``; the tutor checks
+    for it so third-party providers without streaming still work through the
+    non-streaming path.
+    """
+
+    def generate_stream(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        max_output_tokens: int,
+        timeout_seconds: float,
+    ) -> Iterator[StreamEvent]:
+        """Yield incremental :class:`StreamEvent` items for one turn."""
         ...
 
 
@@ -98,6 +141,24 @@ class MockAIProvider:
             "deterministic placeholder response; configure AI_PROVIDER=openai "
             "for a real model."
         )
+
+    def generate_stream(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        max_output_tokens: int,
+        timeout_seconds: float,
+    ) -> Iterator[StreamEvent]:
+        """Stream the deterministic placeholder response in fixed chunks.
+
+        Mirrors :meth:`generate` (records the call, never requests tools) so
+        the streaming path is fully testable without any external service.
+        """
+        text = self.generate(messages, tools, max_output_tokens, timeout_seconds)
+        chunk_size = 24
+        for i in range(0, len(text), chunk_size):
+            yield StreamEvent("text", text[i : i + chunk_size])
+        yield StreamEvent("final", text)
 
 def make_provider(
     provider_name: str,
@@ -235,6 +296,104 @@ class OpenAIProvider:
                 "The tutoring service returned an unexpected response.",
             ) from None
 
+    def generate_stream(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        max_output_tokens: int,
+        timeout_seconds: float,
+    ) -> Iterator[StreamEvent]:
+        """Stream the completion as incremental :class:`StreamEvent` items.
+
+        Emits ``text`` events for content chunks, a single ``tool_calls``
+        event when the turn requests tools, and a ``final`` event with the
+        accumulated answer at the end.
+        """
+        try:
+            import httpx
+            from openai import (
+                APITimeoutError,
+                AuthenticationError,
+                OpenAI,
+                OpenAIError,
+                RateLimitError,
+            )
+        except ImportError as exc:  # pragma: no cover - only with real provider
+            raise AIProviderError(
+                PROVIDER_ERROR,
+                "OpenAI provider support is not installed. Install the 'openai' "
+                "package or set AI_PROVIDER=mock.",
+            ) from exc
+
+        try:
+            with httpx.Client(
+                base_url=self._api_base,
+                timeout=httpx.Timeout(timeout_seconds, read=timeout_seconds),
+            ) as http_client:
+                client = OpenAI(
+                    base_url=self._api_base,
+                    api_key=self._api_key,
+                    http_client=http_client,
+                    max_retries=0,
+                )
+                stream = client.chat.completions.create(
+                    model=self._model,
+                    messages=messages,
+                    tools=tools or None,
+                    max_tokens=max_output_tokens,
+                    timeout=timeout_seconds,
+                    stream=True,
+                )
+                collected_tool_calls: dict[int, dict[str, Any]] = {}
+                accumulated: list[str] = []
+                for chunk in stream:
+                    if not getattr(chunk, "choices", None):
+                        continue
+                    delta = chunk.choices[0].delta
+                    for tc in getattr(delta, "tool_calls", None) or []:
+                        slot = collected_tool_calls.setdefault(
+                            tc.index,
+                            {
+                                "id": "",
+                                "type": "function",
+                                "function": {"name": "", "arguments": ""},
+                            },
+                        )
+                        if getattr(tc, "id", None):
+                            slot["id"] = tc.id
+                        if getattr(tc.function, "name", None):
+                            slot["function"]["name"] = tc.function.name
+                        if getattr(tc.function, "arguments", None):
+                            slot["function"]["arguments"] += tc.function.arguments
+                    content = getattr(delta, "content", None)
+                    if content:
+                        accumulated.append(content)
+                        yield StreamEvent("text", content)
+                if collected_tool_calls:
+                    ordered = [
+                        collected_tool_calls[i]
+                        for i in sorted(collected_tool_calls)
+                    ]
+                    yield StreamEvent("tool_calls", {"tool_calls": ordered})
+                    return
+                yield StreamEvent("final", "".join(accumulated))
+        except (httpx.TimeoutException, APITimeoutError) as exc:
+            raise AIProviderError(TIMEOUT, "The tutoring service took too long.") from exc
+        except AuthenticationError:
+            logger.warning("OpenAI authentication failed")
+            raise AIProviderError(
+                AUTH_FAILURE, "The tutoring service is misconfigured."
+            ) from None
+        except RateLimitError:
+            raise AIProviderError(
+                RATE_LIMIT, "The tutoring service is busy. Please try again shortly."
+            ) from None
+        except (OpenAIError, httpx.HTTPError) as exc:
+            logger.warning("OpenAI provider error: %s", type(exc).__name__)
+            raise AIProviderError(
+                UNAVAILABLE, "The tutoring service is unavailable."
+            ) from None
+
 
 class AnthropicProvider:
     """Anthropic Messages-API provider.
@@ -332,6 +491,88 @@ class AnthropicProvider:
             return {"tool_calls": tool_calls}
         return "".join(text_parts)
 
+    def generate_stream(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        max_output_tokens: int,
+        timeout_seconds: float,
+    ) -> Iterator[StreamEvent]:
+        """Stream the Anthropic Messages API response incrementally."""
+        try:
+            import anthropic
+        except ImportError as exc:  # pragma: no cover - only with real provider
+            raise AIProviderError(
+                PROVIDER_ERROR,
+                "Anthropic provider support is not installed. Install the "
+                "'anthropic' package or set AI_PROVIDER=mock.",
+            ) from exc
+
+        system_text, turns = _to_anthropic_messages(messages)
+        collected_tools: list[dict[str, Any]] = []
+        accumulated: list[str] = []
+        try:
+            with anthropic.Anthropic(
+                api_key=self._api_key,
+                base_url=self._api_base or None,
+                timeout=timeout_seconds,
+                max_retries=0,
+            ) as client, client.messages.stream(
+                model=self._model,
+                max_tokens=max_output_tokens,
+                system=system_text,
+                messages=turns,
+                tools=tools or anthropic.NOT_GIVEN,
+            ) as stream:
+                for event in stream:
+                    if (
+                        event.type == "content_block_start"
+                        and event.content_block.type == "tool_use"
+                    ):
+                        collected_tools.append(
+                            {
+                                "id": event.content_block.id,
+                                "type": "function",
+                                "function": {
+                                    "name": event.content_block.name,
+                                    "arguments": "",
+                                },
+                            }
+                        )
+                    elif (
+                        event.type == "content_block_delta"
+                        and event.delta.type == "input_json_delta"
+                    ):
+                        collected_tools[-1]["function"]["arguments"] += (
+                            event.delta.partial_json
+                        )
+                    elif (
+                        event.type == "content_block_delta"
+                        and event.delta.type == "text_delta"
+                    ):
+                        accumulated.append(event.delta.text)
+                        yield StreamEvent("text", event.delta.text)
+        except (TimeoutError, anthropic.APITimeoutError) as exc:
+            raise AIProviderError(TIMEOUT, "The tutoring service took too long.") from exc
+        except anthropic.AuthenticationError:
+            logger.warning("Anthropic authentication failed")
+            raise AIProviderError(
+                AUTH_FAILURE, "The tutoring service is misconfigured."
+            ) from None
+        except anthropic.RateLimitError:
+            raise AIProviderError(
+                RATE_LIMIT, "The tutoring service is busy. Please try again shortly."
+            ) from None
+        except anthropic.APIError as exc:
+            logger.warning("Anthropic provider error: %s", type(exc).__name__)
+            raise AIProviderError(
+                UNAVAILABLE, "The tutoring service is unavailable."
+            ) from None
+        if collected_tools:
+            yield StreamEvent("tool_calls", {"tool_calls": collected_tools})
+            return
+        yield StreamEvent("final", "".join(accumulated))
+
 
 def _to_anthropic_messages(
     messages: list[dict[str, Any]],
@@ -426,6 +667,8 @@ __all__ = [
     "AnthropicProvider",
     "MockAIProvider",
     "OpenAIProvider",
+    "StreamCapableProvider",
+    "StreamEvent",
     "make_provider",
     "TIMEOUT",
     "RATE_LIMIT",

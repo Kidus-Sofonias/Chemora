@@ -24,12 +24,25 @@ import logging
 import time
 import uuid
 from collections import defaultdict, deque
+from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass
+from datetime import datetime
+from typing import cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.services.ai.provider import AIProvider, AIProviderError, make_provider
+from app.repositories.tutor import (
+    ConversationLimitError,
+    TutorConversationRepository,
+)
+from app.services.ai.provider import (
+    AIProvider,
+    AIProviderError,
+    StreamCapableProvider,
+    StreamEvent,
+    make_provider,
+)
 from app.services.ai.retrieval import ContentRetriever, RetrievedContext
 from app.services.ai.tools import ToolError, TutorToolbox
 
@@ -53,6 +66,9 @@ AI_TIMEOUT = "ai_timeout"
 AI_AUTH = "ai_auth"
 AI_UNAVAILABLE = "ai_unavailable"
 AI_ERROR = "ai_error"
+CONVERSATION_NOT_FOUND = "conversation_not_found"
+CONVERSATION_LIMIT = "conversation_limit"
+MESSAGE_LIMIT = "message_limit"
 
 _CATEGORY_TO_CODE = {
     "timeout": AI_TIMEOUT,
@@ -87,6 +103,17 @@ class TutorAnswer:
     answer: str
     lesson_slugs: list[str]
     tools_used: list[str]
+
+
+@dataclass(slots=True)
+class ConversationSummary:
+    """Client-safe conversation metadata (never the messages themselves)."""
+
+    id: uuid.UUID
+    title: str
+    created_at: datetime
+    updated_at: datetime
+    message_count: int
 
 
 class _RateLimiter:
@@ -321,6 +348,375 @@ class TutorService:
             raise TutorError(INVALID_MESSAGE, "That question is too long. Please shorten it.")
         return text
 
+    # ── Conversations (M30) ────────────────────────────────────
+
+    @staticmethod
+    def _validate_title(title: str | None) -> str:
+        """Normalize a client-supplied conversation title (bounded, optional)."""
+        return (title or "").strip()[:200]
+
+    async def create_conversation(
+        self, user_id: uuid.UUID, title: str | None = None
+    ) -> ConversationSummary:
+        """Create an empty conversation owned by the authenticated user."""
+        repo = TutorConversationRepository(self._db)
+        try:
+            conversation = await repo.create_conversation(
+                user_id, self._validate_title(title)
+            )
+        except ConversationLimitError as exc:
+            code = (
+                CONVERSATION_LIMIT
+                if exc.code == "conversation_limit"
+                else MESSAGE_LIMIT
+            )
+            raise TutorError(code, exc.message) from exc
+        return ConversationSummary(
+            id=conversation.id,
+            title=conversation.title,
+            created_at=conversation.created_at,
+            updated_at=conversation.updated_at,
+            message_count=0,
+        )
+
+    async def list_conversations(
+        self, user_id: uuid.UUID
+    ) -> list[ConversationSummary]:
+        """List the authenticated user's conversations (metadata only)."""
+        repo = TutorConversationRepository(self._db)
+        rows = await repo.list_conversations(user_id)
+        summaries: list[ConversationSummary] = []
+        for row in rows:
+            summaries.append(
+                ConversationSummary(
+                    id=row.id,
+                    title=row.title,
+                    created_at=row.created_at,
+                    updated_at=row.updated_at,
+                    message_count=len(row.messages) if row.messages else 0,
+                )
+            )
+        return summaries
+
+    async def get_conversation_messages(
+        self, user_id: uuid.UUID, conversation_id: uuid.UUID
+    ) -> list[dict[str, str]]:
+        """Return one conversation's messages (ownership enforced).
+
+        Raises:
+            TutorError: ``conversation_not_found`` when the conversation does
+                not exist or belongs to another user (indistinguishable —
+                existence is never leaked across users).
+        """
+        repo = TutorConversationRepository(self._db)
+        conversation = await repo.get_conversation(conversation_id, user_id)
+        if conversation is None:
+            raise TutorError(
+                CONVERSATION_NOT_FOUND,
+                "That conversation could not be found.",
+            )
+        messages = await repo.list_messages(conversation.id)
+        return [
+            {"role": m.role, "content": m.content}
+            for m in messages
+            if m.role in ("user", "assistant")
+        ]
+
+    async def delete_conversation(
+        self, user_id: uuid.UUID, conversation_id: uuid.UUID
+    ) -> bool:
+        """Delete one conversation (ownership enforced).
+
+        Returns False (or raises not-found) when it does not exist or is not
+        owned by the user.
+        """
+        repo = TutorConversationRepository(self._db)
+        deleted = await repo.delete_conversation(conversation_id, user_id)
+        return deleted
+
+    async def ask_in_conversation(
+        self,
+        user_id: uuid.UUID,
+        conversation_id: uuid.UUID,
+        message: str,
+        lesson_slug: str | None = None,
+    ) -> TutorAnswer:
+        """Ask a question inside a persistent conversation (M30).
+
+        History is loaded **server-side** from the owned conversation — the
+        client cannot inject foreign or arbitrary history. The user message
+        and the final answer are persisted before returning.
+        """
+        repo = TutorConversationRepository(self._db)
+        conversation = await repo.get_conversation(conversation_id, user_id)
+        if conversation is None:
+            raise TutorError(
+                CONVERSATION_NOT_FOUND,
+                "That conversation could not be found.",
+            )
+        stored = await repo.list_messages(conversation.id)
+        server_history = [
+            {"role": m.role, "content": m.content}
+            for m in stored
+            if m.role in ("user", "assistant")
+        ]
+        text = self._validate_message(message)
+        self._limiter.check(user_id)
+
+        await self._append(repo, conversation, "user", text)
+        try:
+            retrieval = await ContentRetriever(self._db).retrieve(text, lesson_slug)
+            tools_used: list[str] = []
+            answer = await self._run_provider_loop(
+                text, server_history, retrieval, tools_used
+            )
+        except Exception:
+            await self._db.rollback()
+            raise
+        await self._append(repo, conversation, "assistant", answer)
+        await self._db.commit()
+        return TutorAnswer(
+            answer=answer,
+            lesson_slugs=retrieval.lesson_slugs,
+            tools_used=tools_used,
+        )
+
+    @staticmethod
+    async def _append(
+        repo: TutorConversationRepository,
+        conversation: object,
+        role: str,
+        content: str,
+    ) -> None:
+        """Append a message, translating limit errors to stable codes."""
+        try:
+            await repo.append_message(conversation, role, content)  # type: ignore[arg-type]
+        except ConversationLimitError as exc:
+            raise TutorError(
+                CONVERSATION_LIMIT if exc.code == "conversation_limit"
+                else MESSAGE_LIMIT,
+                exc.message,
+            ) from exc
+
+    async def assert_conversation(
+        self, user_id: uuid.UUID, conversation_id: uuid.UUID
+    ) -> None:
+        """Raise ``conversation_not_found`` unless the user owns the id.
+
+        Used by the API layer to return a real 404 status before a streaming
+        response starts. Existence is never leaked across users.
+        """
+        repo = TutorConversationRepository(self._db)
+        conversation = await repo.get_conversation(conversation_id, user_id)
+        if conversation is None:
+            raise TutorError(
+                CONVERSATION_NOT_FOUND,
+                "That conversation could not be found.",
+            )
+
+    async def stream_in_conversation(
+        self,
+        user_id: uuid.UUID,
+        conversation_id: uuid.UUID,
+        message: str,
+        lesson_slug: str | None = None,
+        *,
+        check_limiter: bool = True,
+    ) -> AsyncIterator[dict[str, object]]:
+        """Stream a tutoring answer inside a persistent conversation (M30).
+
+        Event protocol (dicts, encoded as SSE by the API layer):
+            {"type": "delta", "text": "..."}   — incremental answer chunk
+            {"type": "done", "tools_used": [...], "lesson_slugs": [...]}
+            {"type": "error", "code": "...", "message": "..."}
+
+        Guarantees:
+        - The conversation must exist and belong to the user; the user's
+          message is persisted (and committed) before generation starts.
+        - Tool calls run through the same bounded, allowlisted loop as the
+          non-streaming path; provider tool traffic never reaches the client.
+        - The assistant message is persisted in a ``finally`` block, so an
+          interrupted stream still leaves the partial answer behind.
+        - Provider failures become a single stable ``error`` event.
+        """
+        repo = TutorConversationRepository(self._db)
+        conversation = await repo.get_conversation(conversation_id, user_id)
+        if conversation is None:
+            raise TutorError(
+                CONVERSATION_NOT_FOUND,
+                "That conversation could not be found.",
+            )
+        stored = await repo.list_messages(conversation.id)
+        server_history = [
+            {"role": m.role, "content": m.content}
+            for m in stored
+            if m.role in ("user", "assistant")
+        ]
+        text = self._validate_message(message)
+        if check_limiter:
+            self._limiter.check(user_id)
+        await self._append(repo, conversation, "user", text)
+        await self._db.commit()
+
+        retrieval = await ContentRetriever(self._db).retrieve(text, lesson_slug)
+        tools_used: list[str] = []
+        answer_parts: list[str] = []
+        try:
+            async for event in self._stream_provider_loop(
+                text, server_history, retrieval, tools_used
+            ):
+                if event.get("type") == "delta":
+                    answer_parts.append(str(event.get("text", "")))
+                yield event
+            yield {
+                "type": "done",
+                "tools_used": tools_used,
+                "lesson_slugs": retrieval.lesson_slugs,
+            }
+        finally:
+            # Persist the accumulated answer whether the stream completed,
+            # failed mid-way, or the client disconnected.
+            answer = "".join(answer_parts)
+            if answer:
+                try:
+                    await self._append(repo, conversation, "assistant", answer)
+                    await self._db.commit()
+                except Exception:  # noqa: BLE001 - cleanup must never raise
+                    logger.exception("Failed to persist streamed tutor answer")
+                    await self._db.rollback()
+
+    async def _stream_provider_loop(
+        self,
+        question: str,
+        history: list[dict[str, str]],
+        retrieval: RetrievedContext,
+        tools_used: list[str],
+    ) -> AsyncIterator[dict[str, object]]:
+        """Bounded provider/tool loop that streams the final answer text.
+
+        Non-final turns (tool-call round-trips) are handled silently and
+        server-side, exactly like :meth:`_run_provider_loop`. When the
+        provider produces answer text, it is yielded incrementally.
+        """
+        import asyncio
+        import queue
+
+        budget = self._input_budget_chars()
+        fixed = len(retrieval.system_prompt) + len(question) + len(retrieval.context_text)
+        history = self._trim_history_to_budget(history, max(budget - fixed, 0))
+
+        messages: list[dict[str, object]] = [
+            {"role": "system", "content": retrieval.system_prompt}
+        ]
+        if retrieval.context_text:
+            messages.append(
+                {
+                    "role": "system",
+                    "content": "Relevant Chemora lesson content:\n"
+                    + retrieval.context_text,
+                }
+            )
+        for turn in history:
+            messages.append({"role": turn["role"], "content": turn["content"]})
+        messages.append({"role": "user", "content": question})
+        tool_defs = self._toolbox.openai_tool_definitions()
+        can_stream = hasattr(self._provider, "generate_stream")
+
+        for _ in range(settings.AI_MAX_TOOL_ITERATIONS):
+            if can_stream:
+                # Pump the blocking event iterator from a worker thread into
+                # a queue so the event loop can await chunks incrementally.
+                events: queue.Queue[object] = queue.Queue()
+                loop = asyncio.get_running_loop()
+
+                def _pump(iterator: Iterator[StreamEvent], q: queue.Queue[object]) -> None:
+                    """Drain the blocking iterator into the queue."""
+                    try:
+                        for item in iterator:
+                            q.put(item)
+                    except AIProviderError as exc:
+                        q.put(exc)
+                    except Exception:  # noqa: BLE001 - never leak internals
+                        logger.exception("Streaming provider failure")
+                        q.put(AIProviderError("provider_error", "x"))
+                    finally:
+                        q.put(None)
+
+                stream_provider = cast(
+                    "StreamCapableProvider", self._provider
+                )
+                loop.run_in_executor(
+                    None,
+                    _pump,
+                    _safe_stream_iter(stream_provider, messages, tool_defs),
+                    events,
+                )
+                accumulated: list[str] = []
+                while True:
+                    raw = await asyncio.to_thread(events.get)
+                    if raw is None:
+                        break
+                    if isinstance(raw, AIProviderError):
+                        code = _CATEGORY_TO_CODE.get(raw.category, AI_ERROR)
+                        raise TutorError(code, raw.message) from raw
+                    item = cast(StreamEvent, raw)
+                    if item.kind == "tool_calls":
+                        calls = self._extract_tool_calls(
+                            item.payload.get("tool_calls", [])
+                        )
+                        if not calls:
+                            yield {"type": "delta", "text": _FALLBACK_ANSWER}
+                            return
+                        messages.append(
+                            {"role": "assistant", "content": "", "tool_calls": calls}
+                        )
+                        for call_id, name, arguments in calls:
+                            tools_used.append(name)
+                            messages.append(
+                                self._execute_tool_message(call_id, name, arguments)
+                            )
+                        break  # next loop iteration with the tool results
+                    if item.kind == "text":
+                        chunk = str(item.payload)
+                        accumulated.append(chunk)
+                        yield {"type": "delta", "text": chunk}
+                else:
+                    continue
+                if accumulated:
+                    # Streaming turn produced text — the answer is done.
+                    return
+                continue  # tool round-trip happened; loop again
+            # Non-streaming provider: reuse the plain loop.
+            result = await self._call_provider(messages, tool_defs)
+            if isinstance(result, dict) and result.get("tool_calls"):
+                calls = self._extract_tool_calls(result["tool_calls"])
+                if not calls:
+                    yield {"type": "delta", "text": _FALLBACK_ANSWER}
+                    return
+                messages.append({"role": "assistant", "content": "", "tool_calls": calls})
+                for call_id, name, arguments in calls:
+                    tools_used.append(name)
+                    messages.append(self._execute_tool_message(call_id, name, arguments))
+                continue
+            text_out = result if isinstance(result, str) else ""
+            yield {"type": "delta", "text": text_out or _FALLBACK_ANSWER}
+            return
+
+        # Hard loop bound reached — never spin forever.
+        logger.warning("Tutor streaming tool loop hit the iteration cap")
+        yield {"type": "delta", "text": _FALLBACK_ANSWER}
+
+    @staticmethod
+    def _history_for_provider(
+        messages: list[dict[str, str]],
+    ) -> list[dict[str, str]]:
+        """Filter persisted messages to the provider-safe user/assistant form."""
+        return [
+            {"role": m["role"], "content": m["content"]}
+            for m in messages
+            if m.get("role") in ("user", "assistant")
+        ]
+
     @staticmethod
     def _clean_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
         """Filter untrusted client history to safe user/assistant turns."""
@@ -334,5 +730,27 @@ class TutorService:
                 continue
             cleaned.append({"role": role, "content": content.strip()[:MAX_HISTORY_CHARS]})
         return cleaned
+
+
+def _safe_stream_iter(
+    provider: StreamCapableProvider,
+    messages: list[dict[str, object]],
+    tool_defs: list[dict[str, object]],
+) -> Iterator[StreamEvent]:
+    """Call ``generate_stream`` and normalize synchronous setup failures.
+
+    A provider may raise :class:`AIProviderError` while *creating* the
+    generator (e.g. a missing SDK); wrapping keeps the pump thread delivering
+    the error as a queue item instead of losing it.
+    """
+    try:
+        return provider.generate_stream(
+            messages,
+            tool_defs,
+            settings.AI_MAX_OUTPUT_TOKENS,
+            settings.AI_TIMEOUT_SECONDS,
+        )
+    except AIProviderError as exc:
+        return cast("Iterator[StreamEvent]", iter([exc]))
 
 

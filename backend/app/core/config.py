@@ -102,6 +102,10 @@ class Settings(BaseSettings):
     AI_MAX_TOOL_ITERATIONS: int = 5
     # Optional per-user request cap (empty = unset / no fixed limit).
     AI_RATE_LIMIT_PER_MINUTE: int = 20
+    # M30: deterministic tool-result cache (safe ChemEngine results only).
+    AI_TOOL_CACHE_ENABLED: bool = True
+    AI_TOOL_CACHE_TTL_SECONDS: float = 600.0
+    AI_TOOL_CACHE_MAX_ENTRIES: int = 256
 
     # --- Logging ---
     LOG_LEVEL: str = "INFO"

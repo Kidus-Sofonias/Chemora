@@ -29,6 +29,9 @@ from typing import Any
 
 from chemengine.core.tool_interface import ChemEngineAPI
 
+from app.core.config import settings
+from app.services.ai.cache import ToolResultCache, shared_tool_cache
+
 logger = logging.getLogger(__name__)
 
 #: Tools the tutor may invoke, with the reason each is exposed.
@@ -56,11 +59,22 @@ class ToolError(Exception):
 
 
 class TutorToolbox:
-    """Validated, allowlisted bridge between the tutor loop and ChemEngine."""
+    """Validated, allowlisted bridge between the tutor loop and ChemEngine.
 
-    def __init__(self, engine: ChemEngineAPI | None = None) -> None:
-        """Initialize with the ChemEngine facade (shared instance by default)."""
+    Every allowlisted tool is deterministic, so successful results are cached
+    (M30) in a bounded TTL cache keyed by tool name + validated arguments.
+    The cache stores only the engine's own outputs — never conversation
+    content and never LLM responses — so ChemEngine remains the authority.
+    """
+
+    def __init__(
+        self,
+        engine: ChemEngineAPI | None = None,
+        cache: ToolResultCache | None = None,
+    ) -> None:
+        """Initialize with the ChemEngine facade and optional cache override."""
         self._engine = engine if engine is not None else ChemEngineAPI()
+        self._cache = cache if cache is not None else shared_tool_cache
 
     @property
     def allowed_names(self) -> frozenset[str]:
@@ -102,6 +116,15 @@ class TutorToolbox:
             raise ToolError("tool_unavailable", "That tool is temporarily unavailable.")
         self._validate_arguments(name, arguments, schema)
 
+        # M30: deterministic results are cacheable — every allowlisted tool
+        # is pure. Cache lookups happen after validation so unvalidated input
+        # can never poison or pollute the cache.
+        cache_enabled = bool(settings.AI_TOOL_CACHE_ENABLED)
+        if cache_enabled:
+            cached = self._cache.get(name, arguments)
+            if cached is not None:
+                return cached
+
         try:
             result = self._engine.execute_tool(name, arguments)
         except Exception as exc:  # noqa: BLE001 - boundary converts everything
@@ -113,6 +136,8 @@ class TutorToolbox:
         # ChemEngine returns {"error": ...} on internal failure.
         if "error" in result:
             raise ToolError("tool_failed", "The chemistry calculation failed.")
+        if cache_enabled:
+            self._cache.put(name, arguments, result)
         return result
 
     # ── Validation internals ──────────────────────────────────────────
