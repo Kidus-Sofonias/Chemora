@@ -5,7 +5,7 @@
 > **Version:** 0.10.0 → 1.0.0 (ChemEngine complete; monorepo migration complete)
 > **Last Updated:** September 19, 2026
 > **Owner:** Chemora Architecture Team
-> **Status:** Active Development — Backend M19–M30 complete, next milestone not yet scoped
+> **Status:** Active Development — Backend M19–M30 complete; M31 (Production Readiness & Release Engineering) scoped, implementation not started
 
 ---
 
@@ -2075,6 +2075,148 @@ E2E depends on tooling availability.
 
 ---
 
+### M31 — Production Readiness & Release Engineering (Scoped)
+
+M31 is **scoped** (2026-09-19); implementation has **not started**. M30 is
+complete. M31 is deliberately **not** a chemistry-feature milestone: it takes
+the existing Chemora system through a production-readiness and
+release-engineering pass so the application can be deployed, tested,
+monitored, and maintained reliably. All product functionality delivered
+through M30 must remain intact.
+
+**Objectives.** (1) Verify the system deploys against a real production
+database. (2) Verify the AI provider paths against real credentials only
+where they are genuinely available. (3) Add real CI that runs the project's
+own backend/ChemEngine/web/admin checks and fails when they fail.
+(4) Establish a reproducible release/build and environment/secrets
+verification process. (5) Add critical browser E2E coverage where reliable
+browser automation is feasible. (6) Measure the project's existing documented
+coverage/benchmark targets accurately. (7) Complete the release-engineering
+documentation already identified in the roadmap. (8) Ensure
+production-critical failure diagnostics and health checks exist without
+exposing sensitive information. (9) Dispose of the M30 deferred items
+correctly.
+
+**In scope:**
+- **Production database verification:** verify the complete Alembic chain
+  (001 → latest) against a real PostgreSQL environment — fresh migration,
+  upgrade path, schema/application agreement, PostgreSQL constraints and
+  indexes, tutor conversation persistence on PostgreSQL, rollback/downgrade
+  assessment where appropriate, and understood migration failure behavior.
+  SQLite is used only where existing tests intentionally use it and never
+  substitutes for PostgreSQL verification. If no PostgreSQL instance is
+  available, the environment blocker is documented explicitly and the
+  requirement is not claimed as live-verified.
+- **Real AI provider smoke verification (only if valid credentials exist):**
+  real provider initialization, one real authenticated request, a normal
+  tutor response, the tool-call path where feasible, the streaming path,
+  provider failure and timeout behavior, and observable usage/cost behavior.
+  API keys are never printed, committed, placed in frontend code, or exposed
+  through API responses; a live test is never fabricated; nothing is
+  purchased and no external accounts are created. Without credentials, the
+  maximum safe offline/provider-seam verification is performed and the live
+  blocker documented.
+- **CI/CD:** a real repository pipeline reflecting the actual monorepo
+  structure that runs, at minimum — backend `pytest`/`ruff`/`mypy`, web
+  tests/`tsc`/production build, admin tests/`tsc`/production build, and
+  ChemEngine tests plus relevant static checks — and fails when any required
+  check fails. No superficial single-command workflow; existing checks are
+  never weakened to make CI green.
+- **Release/build verification:** a reproducible release-validation process
+  covering web and admin production builds, the backend startup/import path,
+  the migration chain, environment configuration, required environment
+  variables, absence of committed secrets, `.env` remaining ignored, and
+  `.env.example` completeness/safety; document the minimum environment
+  required to run Chemora.
+- **Browser E2E (where technically feasible):** browser automation introduced
+  only if it integrates cleanly with the existing web architecture and CI,
+  prioritizing critical flows — authentication shell, Chemistry Explorer
+  basic load, learning navigation, tutor conversation creation, streaming,
+  persistence/reload, deletion, and the logout/auth boundary. If reliable
+  automation is not achievable in this environment, the exact blocker is
+  documented instead of creating fake E2E coverage; browser verification is
+  claimed only if an actual browser executes the tests.
+- **Coverage + benchmark baselines:** measure the roadmap's existing
+  documented targets — the Phase 1.6 benchmark baseline, the Phase 1 DoD
+  coverage boxes, and backend/web coverage where applicable — reproducibly
+  and accurately. New percentages are never invented; targets are never
+  deleted or weakened; if a target is not currently attainable, the exact
+  gap is documented.
+- **API/project documentation:** complete the release-engineering
+  documentation already identified in the roadmap where applicable — API
+  reference, developer setup instructions, CI/CD documentation, release
+  procedure, environment variable documentation, production deployment
+  prerequisites, migration procedure, and testing commands — never claiming
+  infrastructure exists when it does not.
+- **Observability/failure diagnostics:** where supported by the existing
+  architecture, improve structured logging, request/error identification,
+  provider failure diagnostics, database failure diagnostics, startup
+  validation, and health/readiness checks — proportionate, without a
+  heavyweight observability platform, and never logging API keys,
+  credentials, private conversation contents, answer keys, or sensitive user
+  data.
+- **M30 deferred-item disposition:** live provider smoke test — included
+  (above). Browser E2E — included where technically feasible (above).
+  Distributed rate limiting — implemented only if the actual deployment
+  architecture requires it; otherwise documented as future work.
+  Model-generated conversation titles — NOT implemented (a UX enhancement,
+  not release engineering) unless the roadmap explicitly establishes it as a
+  release requirement.
+
+**Out of scope:** new ChemEngine chemistry domains, organometallic chemistry,
+polymer chemistry, biomolecules, a reaction-mechanism engine, GNN
+integration, WebAssembly ChemEngine, crystallography, NMR prediction, drug
+discovery, retrosynthesis, docking, quantum chemistry, a chemical database
+engine, a mobile application, offline sync, the quizzes/exams platform, a CMS
+rebuild, speculative AI features, vector search, and M32/M33 work. The
+ChemEngine v2.0/v3.0 future roadmap remains separately labeled as a
+longer-term roadmap and is NOT relabeled as M31.
+
+**Acceptance criteria** (M31 is complete only when all of the following
+hold):
+- [ ] Production PostgreSQL migration path is verified, or an explicit
+  environment blocker is documented.
+- [ ] Real AI provider smoke verification is performed where credentials are
+  available, or the lack of credentials is explicitly documented.
+- [ ] CI automatically executes the project's required backend, ChemEngine,
+  web, and admin checks.
+- [ ] CI correctly fails on broken required checks.
+- [ ] Production builds are reproducible.
+- [ ] Environment/secrets configuration is documented and safe.
+- [ ] Critical browser E2E coverage exists if the environment supports
+  reliable browser automation; otherwise the exact blocker and compensating
+  tests are documented.
+- [ ] Existing documented coverage/benchmark targets are measured accurately.
+- [ ] Existing API/developer/release documentation is updated where required.
+- [ ] Production-critical diagnostics/health checks are adequate without
+  exposing sensitive information.
+- [ ] M29 and M30 functionality remains regression-safe.
+- [ ] No new P0/P1 security issues are introduced.
+- [ ] Full regression passes.
+- [ ] Static checks pass.
+- [ ] Builds pass.
+- [ ] TODO.md is reconciled.
+- [ ] PROJECT_STATUS.md is reconciled.
+- [ ] gantt.html is updated.
+- [ ] M31 commits are focused.
+- [ ] Changes are pushed.
+- [ ] HEAD == origin/master.
+- [ ] Working tree is clean.
+
+**Dependencies:** M30 (conversations/streaming/cache must remain intact),
+M29 (provider abstraction and its security boundaries), the Alembic chain
+(001–004), and the existing monorepo tooling (pytest, ruff, mypy, tsc,
+vite build). **Testing requirements:** full regression (ChemEngine, backend,
+web, admin) with exact totals recorded; CI runs the same checks; browser E2E
+must actually execute a browser or be documented as blocked. **Security
+requirements:** no secrets committed or logged, no credentials in frontend
+code, no sensitive conversation content or answer keys in logs or
+diagnostics. **Known limitations to record at completion:** whichever of
+PostgreSQL verification, live provider smoke, and browser E2E could not be
+executed in this environment, with exact blockers.
+
+---
+
 ## Roadmap Summary
 
 ### Overall Progress
@@ -2090,7 +2232,7 @@ E2E depends on tooling availability.
 | **Backend Tests** | 220 / 220 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | None scoped (M31 not yet defined) |
+| **Next Milestone** | M31 — Production Readiness & Release Engineering (scoped; implementation not started) |
 
 ### Phase Summary Table
 

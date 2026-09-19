@@ -2231,13 +2231,16 @@ const phases = [
     ver: '0.5',     start: 132, dur: 8,  risk: 'high',    status: 'complete', weight: 5 },
   { id: 30, name: 'AI Tutor Completion & Conversation Infrastructure (M30)', desc: 'Take the M29 tutor from a stateless prototype to a complete conversational system: persistent conversations with server-enforced ownership, streaming responses through the provider abstraction, and bounded deterministic ChemEngine tool-result caching',
     tasks: ['Persistent tutor conversations + messages: models, Alembic migration, repository/service layers, session-derived ownership, server-side history, cross-user isolation, limits and indexes', 'Streaming tutor endpoint (POST + streaming response) reusing the AIProvider abstraction; partial responses, provider failures, interruption, unauthorized/malformed requests handled', 'Bounded deterministic tool-result cache: deterministic keys, TTL, entry bounds, tested hit/miss/expiration; never caches conversation content or LLM responses', 'Conversation-aware TutorService: history loaded server-side; all M29 security boundaries preserved (published-only retrieval, answer-key isolation, tool allowlist, rate limits)', 'TutorPage: conversation start/continue, history loading, incremental streaming rendering, retry/error/empty states, switching/deletion as exposed', 'Tests: conversation CRUD + isolation, streaming success/failure/interruption/tool calls, cache hit/miss/expiration, malformed/oversized requests, auth boundaries; full regression'],
-    ver: '0.6',     start: 140, dur: 6,  risk: 'medium',  status: 'complete', weight: 5 }
+    ver: '0.6',     start: 140, dur: 6,  risk: 'medium',  status: 'complete', weight: 5 },
+  { id: 31, name: 'Production Readiness & Release Engineering (M31)', desc: 'Take the completed Chemora system through a production-readiness and release-engineering pass — deployment verification, real CI, reproducible release validation, secrets hygiene, critical browser E2E where feasible, accurate coverage/benchmark baselines, and production diagnostics — without adding new chemistry features',
+    tasks: ['Production database verification: full Alembic chain (001 → latest) against real PostgreSQL — fresh apply, upgrade path, schema agreement, constraints/indexes, tutor conversation persistence, rollback assessment, failure behavior; SQLite never substitutes; document the blocker if no instance is available', 'Real AI provider smoke verification only where valid credentials exist: real init, authenticated request, normal response, tool-call and streaming paths, failure/timeout handling, observable usage; never print/commit/expose keys, never fabricate a live test', 'CI/CD pipeline reflecting the actual monorepo structure: backend pytest/ruff/mypy, web tests/tsc/build, admin tests/tsc/build, ChemEngine tests + static checks; fails on broken required checks; no weakened checks', 'Release/build verification: reproducible web + admin production builds, backend startup/import path, migration chain, environment configuration, required env vars, no committed secrets, .env ignored, .env.example complete; document the minimum run environment', 'Browser E2E where technically feasible: auth shell, explorer load, learning navigation, tutor conversation create/stream/persist/reload/delete, logout boundary — or the exact blocker documented with compensating tests', 'Coverage + benchmark baselines: measure the documented Phase 1.6 benchmark baseline, Phase 1 DoD coverage boxes, and backend/web coverage where applicable — accurately, never inventing or weakening targets', 'Release documentation: API reference, developer setup, CI/CD docs, release procedure, env var documentation, deployment prerequisites, migration procedure, testing commands', 'Observability/diagnostics: structured logging, request/error identification, provider/database failure diagnostics, startup validation, health/readiness checks — never logging keys, credentials, private conversation content, or answer keys', 'M30 deferred disposition: live provider smoke in; browser E2E where feasible; distributed rate limiting only if the deployment architecture requires it; model-generated titles excluded (UX, not release engineering)'],
+    ver: '0.7',     start: 146, dur: 6,  risk: 'medium',  status: 'planned', weight: 5 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 146;
+const TOTAL_WEEKS = 152;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;
@@ -2785,7 +2788,8 @@ function buildMilestoneDots() {
         { label: 'M27 Admin', week: 124 },
     { label: 'M28 Learning', week: 132 },
     { label: 'M29 AI Tutor', week: 140 },
-    { label: 'M30 Conversations', week: 146 }
+    { label: 'M30 Conversations', week: 146 },
+    { label: 'M31 Production', week: 152 }
   ];
 
   // Create a progress line
