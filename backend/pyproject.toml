@@ -68,6 +68,17 @@ plugins = ["pydantic.mypy"]
 module = "chemengine.*"
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# The OpenAI SDK is an optional runtime dependency (AI_PROVIDER=openai); it is
+# imported lazily inside the provider and is not installed in test runs.
+module = "openai.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Same for the Anthropic SDK (AI_PROVIDER=anthropic).
+module = "anthropic.*"
+ignore_missing_imports = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"

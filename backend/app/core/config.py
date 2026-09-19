@@ -79,6 +79,30 @@ class Settings(BaseSettings):
     # application logic, and the flag is never auto-revoked here.
     ADMIN_EMAILS: list[str] = []
 
+    # --- AI (M29: AI Chemistry Tutor) ---
+    # AI is opt-in. When AI_PROVIDER is "mock" (the default) the tutor uses the
+    # in-process MockAIProvider so the system is fully testable without any
+    # external LLM or API key. Set to "openai" for an OpenAI-compatible HTTP
+    # API or "anthropic" for the Anthropic Messages API.
+    AI_PROVIDER: str = "mock"
+    # OpenAI-compatible API base (override for providers like Ollama / proxies).
+    AI_API_BASE: str = "https://api.openai.com/v1"
+    AI_API_KEY: str = ""  # Server-side only. Never exposed to the client.
+    AI_MODEL: str = "gpt-4o-mini"
+    # Anthropic Messages API (used when AI_PROVIDER="anthropic").
+    AI_ANTHROPIC_BASE: str = "https://api.anthropic.com"
+    AI_ANTHROPIC_API_KEY: str = ""  # Server-side only. Never exposed to the client.
+    AI_ANTHROPIC_MODEL: str = "claude-sonnet-4-5"
+    # Cost/abuse controls (enforced per request).
+    AI_TIMEOUT_SECONDS: float = 30.0
+    # Approximate character budget for the assembled prompt (≈4 chars/token);
+    # assembled inputs are trimmed to stay inside it.
+    AI_MAX_INPUT_TOKENS: int = 4000
+    AI_MAX_OUTPUT_TOKENS: int = 512
+    AI_MAX_TOOL_ITERATIONS: int = 5
+    # Optional per-user request cap (empty = unset / no fixed limit).
+    AI_RATE_LIMIT_PER_MINUTE: int = 20
+
     # --- Logging ---
     LOG_LEVEL: str = "INFO"
 
