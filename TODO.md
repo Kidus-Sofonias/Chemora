@@ -3,7 +3,7 @@
 > **📊 Live Gantt chart**: Open [`gantt.html`](gantt.html) in your browser for an interactive, animated visualization of this roadmap. Automatically updates when phase statuses change.
 
 > **Version:** 0.10.0 → 1.0.0 (ChemEngine complete; monorepo migration complete)
-> **Last Updated:** September 10, 2026
+> **Last Updated:** September 19, 2026
 > **Owner:** Chemora Architecture Team
 > **Status:** Active Development — Monorepo migration complete, Backend Foundation next
 
@@ -84,7 +84,7 @@ Each phase contains:
 | **Code Coverage** | ~70% (estimated) | >95% |
 | **Known Defects** | 0 (all regression-tested) | 0 |
 | **Stub Modules** | 0 packages | 0 |
-| **Last Updated** | August 2026 | — |
+| **Last Updated** | September 19, 2026 | — |
 
 ### Version History
 
@@ -1874,6 +1874,52 @@ files.
 
 ---
 
+### M28 — Chemistry Learning Experience Expansion ✅ Complete
+
+Formally scoped, implemented from the audited pre-existing M28 work-in-progress,
+and completed. M28 makes Chemora a substantially more useful chemistry learning
+experience without regressing the M26/M27 database/CMS architecture.
+
+- **Scope definition.** M28 was previously "(to be scoped)". After auditing the
+  existing uncommitted M28 WIP against the roadmap, M28 was scoped as the
+  **Chemistry Learning Experience Expansion** — a coherent curriculum built on
+  the existing learning system, Chemistry Explorer, Element Explorer, and
+  ChemEngine. It does **not** rebuild the CMS, does not add quiz/AI/offline/
+  mobile features, and does not start M29.
+- **Curriculum expansion (6 new lessons).** Added, in curated order after the
+  five M24/M25 lessons: periodic-table, periodic-trends, chemical-bonding,
+  molar-mass, stoichiometry, acids-bases.
+- Each new lesson follows the established structure: coherent ordered sections,
+  a `chemistry_spotlight` section (element or molecule) tied to ChemEngine, a
+  practice section, and summary. Every question id is resolvable; every lesson
+  passes the strict publish validator.
+- **Content architecture preserved.** Content still lives in PostgreSQL via the
+  M26/M27 CMS. `app/learning/content.py` remains an idempotent seed/import
+  source only — re-seeding never duplicates lessons and it cannot override
+  already-edited production drafts. The database remains the runtime source of
+  truth; there is no competing runtime content source.
+- **Learning navigation.** Added previous/next section navigation with an
+  `aria-current` focused section, a position indicator, first-incomplete-section
+  resume focus within a lesson, and a catalog-level resume experience
+  (`GET /api/v1/learning/progress`): continue / review labels and per-lesson
+  progress lines. Progress remains recorded only by the backend; completion
+  never occurs before required work.
+- **Deterministic chemistry authority.** No chemistry algorithms were added in
+  TypeScript. Element spotlights come from the existing element API and molecule
+  spotlights from the chemistry explore API, both ChemEngine-backed. Chemistry
+  references are validated at authoring/publish time through ChemEngine.
+- **New tests (all meaningful, failure paths included).** Backend +15
+  (publish validation across the whole seed, M28-curriculum ordering/coherence,
+  idempotent re-seed, publication-state preservation, valid + invalid molecule
+  reference publish/rejections). Web +10 (resume badges, continue/review,
+  prev/next nav, aria-current, focused-section resume-focus, no console
+  errors). Admin +2.
+- **Cleanup.** Removed the generated `.browser-verify/chemora.db` artifact (it
+  is generated runtime state, not a test fixture) and added a `.gitignore`
+  rule for it.
+
+---
+
 ## Roadmap Summary
 
 ### Overall Progress
@@ -1886,10 +1932,10 @@ files.
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
-| **Backend Tests** | 149 / 149 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion) |
-| **Web Tests** | 52 / 52 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning) |
-| **Admin Tests** | 11 / 11 passing (M27 admin CMS incl. deletion flow) |
-| **Next Milestone** | M28 — (to be scoped) |
+| **Backend Tests** | 164 / 164 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience) |
+| **Web Tests** | 62 / 62 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume) |
+| **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
+| **Next Milestone** | M29 — (to be scoped) |
 
 ### Phase Summary Table
 

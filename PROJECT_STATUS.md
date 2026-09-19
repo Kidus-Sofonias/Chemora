@@ -1,14 +1,14 @@
 # Chemora — Project Status Report
 
-**Date:** September 18, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M27 complete / Web M21–M25 complete / Admin CMS M27 complete
-**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) complete · Post-M26 corrective hardening pass complete
+**Date:** September 19, 2026
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M28 complete / Web M21–M28 complete / Admin CMS M27 complete
+**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) complete · Post-M26 corrective hardening pass complete
 
 ---
 
 ## Executive Summary
 
-ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), the Chemistry Learning Core (M24), and the Learning & Practice Expansion (M25) are **complete** (106 backend tests, 52 web tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a ChemEngine-backed learning experience with server-graded practice end to end.
+ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), the Chemistry Learning Core (M24), the Learning & Practice Expansion (M25), the Content Management Foundation (M26), the Production Content CMS (M27), and the Chemistry Learning Experience Expansion (M28) are **complete** (164 backend tests, 62 web tests, 13 admin tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a ChemEngine-backed learning experience with server-graded practice and a coherent, expanded curriculum end to end.
 
 | Metric | Value |
 |--------|-------|
@@ -19,10 +19,10 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Test Files** | 37 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
-| **Backend Tests** | 149 / 149 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion) |
-| **Web Tests** | 52 / 52 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning) |
-| **Admin Tests** | 11 / 11 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow) |
-| **Next Milestone** | M28 — (to be scoped) |
+| **Backend Tests** | 164 / 164 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience) |
+| **Web Tests** | 62 / 62 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume) |
+| **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
+| **Next Milestone** | M29 — (to be scoped) |
 
 ---
 
@@ -139,8 +139,15 @@ The repository was restructured from a ChemEngine-only layout into the Chemora m
 - 11 frontend admin tests, 12 new backend tests (preview 200/401/403/404, answer-key stripping, timestamp fields, deletion lifecycle incl. progress-protected deletion and force delete)
 - End-to-end browser verification of the admin CMS in Chrome (21/21 checks): auth gate, dashboard, lesson list, editor, preview without answer keys, delete with confirm + 409 force path, verified server-side (404 after delete)
 
-### ⬜ M28: (To Be Scoped)
-Moving the seeded content layer into the database behind an admin CMS, without changing the learning API contract or the frontend learning architecture. Scope, dependencies, and acceptance criteria to be defined before work begins.
+### ✅ M28: Chemistry Learning Experience Expansion (Complete)
+Formally scoped after auditing the pre-existing uncommitted M28 work against the roadmap, then implemented and completed.
+- Six new lessons in a coherent curriculum after the five M24/M25 lessons: periodic-table, periodic-trends, chemical-bonding, molar-mass, stoichiometry, acids-bases
+- Every lesson keeps the established structure (ordered sections, a ChemEngine-backed `chemistry_spotlight` section, practice, summary) and passes the strict publish validator
+- Content remains in PostgreSQL via the M26/M27 CMS; `app/learning/content.py` is an idempotent seed/import source only (re-seeding never duplicates, never overrides edited drafts). No competing runtime content source.
+- Previous/next section navigation with `aria-current` focus, position indicator, first-incomplete-section resume focus, and a catalog-level resume (`GET /api/v1/learning/progress`) with continue/review labels and per-lesson progress
+- Chemistry authority stays in ChemEngine — no chemistry algorithms added in TypeScript; element/molecule spotlights come from the existing ChemEngine-backed APIs and molecule references are validated at authoring/publish time
+- Backend +15 tests, Web +10 tests, Admin +2 tests (all meaningful, incl. failure paths); prior suites remain green
+- Removed the generated `.browser-verify/chemora.db` runtime artifact and added a `.gitignore` rule for it
 
 ---
 
