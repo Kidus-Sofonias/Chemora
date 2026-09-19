@@ -129,6 +129,11 @@ export class ApiClient {
     );
   }
 
+  /** GET /api/v1/learning/progress — progress across all started lessons. */
+  async getAllLessonProgress(): Promise<{ progress: LearningProgress[] }> {
+    return this.request<{ progress: LearningProgress[] }>('/api/v1/learning/progress');
+  }
+
   /** POST /api/v1/learning/lessons/{slug}/sections/{id}/complete */
   async completeLessonSection(slug: string, sectionId: string): Promise<LearningProgress> {
     return this.request<LearningProgress>(

@@ -44,6 +44,9 @@ docs/_build/
 # Benchmark data
 *.benchmark
 
+# Browser verification runtime artifacts
+.browser-verify/
+
 # Internal tooling
 .freebuff/
 

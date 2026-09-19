@@ -104,6 +104,12 @@ class LearningProgressResponse(BaseModel):
     completed: bool
 
 
+class ProgressListResponse(BaseModel):
+    """The authenticated user's progress across all started lessons."""
+
+    progress: list[LearningProgressResponse]
+
+
 class AnswerResultResponse(BaseModel):
     """Server-side answer validation result. Never includes the answer key."""
 
@@ -239,6 +245,47 @@ async def get_lesson(
             status_code=404, detail={"code": exc.code, "message": exc.message}
         ) from exc
     return _lesson_detail_response(lesson)
+
+
+@router.get(
+    "/progress",
+    response_model=ProgressListResponse,
+    summary="List the user's progress across all lessons",
+)
+async def list_progress(
+    service: Annotated[LearningService, Depends(get_learning_service)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> ProgressListResponse:
+    """Return progress for every lesson the user has started.
+
+    Powers catalog "continue" badges so a returning student can resume where
+    they left off. Progress rows for lessons that no longer exist or are no
+    longer published are omitted — drafts stay invisible.
+    """
+    rows = await service.list_progress(user.id)
+    # One query for the section ids of every published lesson; percent is
+    # derived the same way as the per-lesson endpoint (_progress_response).
+    sections_by_slug = {
+        lesson.slug: [section.id for section in lesson.sections]
+        for lesson in await service.list_lessons()
+    }
+    progress_responses: list[LearningProgressResponse] = []
+    for row in rows:
+        section_ids = sections_by_slug.get(row.lesson_slug)
+        if section_ids is None:
+            continue
+        done = sum(1 for sid in section_ids if sid in row.completed_sections)
+        percent = round(100 * done / len(section_ids)) if section_ids else 0
+        progress_responses.append(
+            LearningProgressResponse(
+                lesson_slug=row.lesson_slug,
+                completed_sections=list(row.completed_sections),
+                answers=dict(row.answers),
+                progress_percent=percent,
+                completed=row.completed_at is not None,
+            )
+        )
+    return ProgressListResponse(progress=progress_responses)
 
 
 @router.get(

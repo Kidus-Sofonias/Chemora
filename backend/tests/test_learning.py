@@ -43,6 +43,13 @@ async def test_lesson_catalog(api_client: AsyncClient) -> None:
         "configuration-and-behavior",
         "chemical-formulas",
         "molecules-and-properties",
+        # M28 curriculum expansion.
+        "periodic-table",
+        "periodic-trends",
+        "chemical-bonding",
+        "molar-mass",
+        "stoichiometry",
+        "acids-bases",
     ]
     first = lessons[0]
     assert set(first.keys()) == {
@@ -482,3 +489,96 @@ async def test_every_chemistry_question_accepts_its_expected_answer(
             assert response.json()["correct"] is True, question.id
             checked += 1
     assert checked >= 2
+
+
+# -- M28: catalog progress for resume -------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_progress_list_starts_empty(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """A user who has not started anything gets an empty progress list."""
+    await _login(api_client, mock_google_verifier)
+    response = await api_client.get("/api/v1/learning/progress")
+    assert response.status_code == 200
+    assert response.json() == {"progress": []}
+
+
+@pytest.mark.asyncio
+async def test_progress_list_requires_authentication(api_client: AsyncClient) -> None:
+    """The catalog progress endpoint requires authentication."""
+    response = await api_client.get("/api/v1/learning/progress")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_progress_list_reports_started_lessons(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """Lessons the user started appear with derived percentages."""
+    await _login(api_client, mock_google_verifier)
+    await api_client.post(
+        "/api/v1/learning/lessons/electron-configuration/sections/intro/complete"
+    )
+    response = await api_client.get("/api/v1/learning/progress")
+    assert response.status_code == 200
+    rows = response.json()["progress"]
+    by_slug = {row["lesson_slug"]: row for row in rows}
+    assert by_slug["electron-configuration"]["progress_percent"] == 20
+    assert by_slug["electron-configuration"]["completed"] is False
+
+
+@pytest.mark.asyncio
+async def test_progress_list_hides_unpublished_lessons(
+    api_client: AsyncClient,
+    mock_google_verifier: MockGoogleTokenVerifier,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Progress rows pointing at unpublished lessons are omitted.
+
+    A student completes a lesson, the lesson is later unpublished, and the
+    catalog progress must stop advertising it — drafts stay invisible.
+    """
+    from tests.test_admin_content import (  # noqa: PLC0415
+        ADMIN_EMAIL,
+        _grant_admin,
+        _lesson_payload,
+    )
+
+    slug = "progress-hidden-lesson"
+    payload = _lesson_payload(slug=slug, order=99)
+    payload["sections"] = payload["sections"][:1]  # single-section lesson
+
+    # Admin creates and publishes a scratch lesson.
+    _grant_admin(monkeypatch)
+    mock_google_verifier.register_token(
+        "m28_admin_token", sub="sub_m28_admin", email=ADMIN_EMAIL
+    )
+    await api_client.post("/api/v1/auth/google", json={"credential": "m28_admin_token"})
+    created = await api_client.post("/api/v1/admin/lessons", json=payload)
+    assert created.status_code == 201
+    published = await api_client.post(f"/api/v1/admin/lessons/{slug}/publish")
+    assert published.status_code == 200
+
+    # A student completes the lesson's only section.
+    mock_google_verifier.register_token(
+        "m28_student_token", sub="sub_m28_student", email="student@chemora.test"
+    )
+    await api_client.post("/api/v1/auth/google", json={"credential": "m28_student_token"})
+    complete = await api_client.post(
+        f"/api/v1/learning/lessons/{slug}/sections/intro/complete"
+    )
+    assert complete.status_code == 200
+    rows = (await api_client.get("/api/v1/learning/progress")).json()["progress"]
+    assert any(row["lesson_slug"] == slug for row in rows)
+
+    # Admin unpublishes the lesson.
+    await api_client.post("/api/v1/auth/google", json={"credential": "m28_admin_token"})
+    unpublished = await api_client.post(f"/api/v1/admin/lessons/{slug}/unpublish")
+    assert unpublished.status_code == 200
+
+    # The student's catalog progress no longer lists the unpublished lesson.
+    await api_client.post("/api/v1/auth/google", json={"credential": "m28_student_token"})
+    rows = (await api_client.get("/api/v1/learning/progress")).json()["progress"]
+    assert not any(row["lesson_slug"] == slug for row in rows)

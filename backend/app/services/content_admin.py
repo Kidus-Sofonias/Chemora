@@ -22,7 +22,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.learning.content import QUESTION_KINDS, SECTION_KINDS, Lesson
 from app.models.content import Lesson as LessonRow
 from app.repositories.content import ContentRepository
-from app.services.chemistry_validate import canonicalize_formula, resolve_element
+from app.services.chemistry_validate import (
+    canonicalize_formula,
+    resolve_element,
+    resolve_molecule,
+)
 from app.services.learning import LearningError
 
 _SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -366,5 +370,15 @@ class AdminContentService:
                         "field": "sections",
                         "message": f"Section '{section.id}' references an unknown "
                         f"element '{symbol}'.",
+                    }
+                )
+            molecule = section.molecule_input
+            if molecule and resolve_molecule(molecule) is None:
+                errors.append(
+                    {
+                        "field": "sections",
+                        "message": f"Section '{section.id}' references an unparseable "
+                        f"molecule '{molecule}'. Use a molecular formula, SMILES, "
+                        "InChI, or a known common name.",
                     }
                 )

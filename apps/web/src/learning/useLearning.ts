@@ -28,6 +28,9 @@ export type CatalogState =
   | { kind: 'error'; network: boolean; message: string }
   | { kind: 'ready'; lessons: LessonSummary[] };
 
+/** Per-lesson progress for the catalog (resume support, M28). */
+export type CatalogProgress = Record<string, LearningProgress>;
+
 /** Everything rendered for an open lesson. */
 export interface ActiveLesson {
   lesson: LessonDetail;
@@ -107,6 +110,7 @@ function patchActive(
 
 export function useLearning(api: ApiClient) {
   const [catalog, setCatalog] = useState<CatalogState>({ kind: 'loading' });
+  const [progressBySlug, setProgressBySlug] = useState<CatalogProgress>({});
   const [current, setCurrent] = useState<LessonState>({ kind: 'idle' });
   const elementCache = useRef(new Map<string, ElementDetail>());
   const moleculeCache = useRef(new Map<string, ChemistryExploreResult>());
@@ -117,9 +121,24 @@ export function useLearning(api: ApiClient) {
     api
       .getLessons()
       .then((result) => {
-        if (!cancelled) {
-          setCatalog({ kind: 'ready', lessons: result.lessons });
+        if (cancelled) {
+          return;
         }
+        setCatalog({ kind: 'ready', lessons: result.lessons });
+        // Resume support (M28): fetch progress for every started lesson.
+        // Best-effort — a failure here leaves the catalog fully usable.
+        api
+          .getAllLessonProgress()
+          .then((all) => {
+            if (!cancelled) {
+              setProgressBySlug(
+                Object.fromEntries(all.progress.map((p) => [p.lesson_slug, p])),
+              );
+            }
+          })
+          .catch(() => {
+            /* catalog stays usable without progress badges */
+          });
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -273,6 +292,14 @@ export function useLearning(api: ApiClient) {
     setCurrent({ kind: 'idle' });
   }, []);
 
+  /** Update the catalog's cached progress after in-lesson changes. */
+  const noteProgress = useCallback((progress: LearningProgress | null) => {
+    if (!progress) {
+      return;
+    }
+    setProgressBySlug((prev) => ({ ...prev, [progress.lesson_slug]: progress }));
+  }, []);
+
   const completeSection = useCallback(
     async (slug: string, sectionId: string) => {
       setCurrent((prev) =>
@@ -282,6 +309,7 @@ export function useLearning(api: ApiClient) {
       );
       try {
         const progress = await api.completeLessonSection(slug, sectionId);
+        noteProgress(progress);
         setCurrent((prev) =>
           patchActive(prev, (a) => {
             a.progress = progress;
@@ -309,6 +337,7 @@ export function useLearning(api: ApiClient) {
       );
       try {
         const result = await api.submitLessonAnswer(slug, questionId, answer);
+        noteProgress(result.progress);
         setCurrent((prev) =>
           patchActive(prev, (a) => {
             a.answers[questionId] = result;
@@ -331,6 +360,7 @@ export function useLearning(api: ApiClient) {
 
   return {
     catalog,
+    progressBySlug,
     current,
     openLesson,
     backToCatalog,

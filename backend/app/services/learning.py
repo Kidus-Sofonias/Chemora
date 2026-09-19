@@ -169,6 +169,17 @@ class LearningService:
         self._sync_completion(progress, lesson)
         return progress
 
+    async def list_progress(self, user_id: uuid.UUID) -> list[LessonProgress]:
+        """Return the user's progress rows for every lesson.
+
+        Used by the catalog so a returning student can see where they left
+        off. Only lessons the user has actually started have rows.
+        """
+        result = await self._db.execute(
+            select(LessonProgress).where(LessonProgress.user_id == user_id)
+        )
+        return list(result.scalars().all())
+
     async def complete_section(
         self, user_id: uuid.UUID, slug: str, section_id: str
     ) -> LessonProgress:

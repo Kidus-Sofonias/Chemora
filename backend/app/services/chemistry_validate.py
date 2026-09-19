@@ -37,6 +37,28 @@ def resolve_element(answer: str) -> str | None:
         return None
 
 
+def resolve_molecule(input_text: str) -> str | None:
+    """Resolve a molecule reference through ChemEngine's format auto-detection.
+
+    Accepts molecular formulas (``H2O``), SMILES (``CCO``), InChI, and known
+    common names — the same inputs the M22 chemistry explore API accepts, so
+    what validates here is exactly what the client can analyse live. Returns
+    the canonical molecular formula, or ``None`` if the input cannot be
+    resolved — never an unverified guess.
+    """
+    from chemengine.parsing import parse_any
+
+    token = input_text.strip()
+    if not token:
+        return None
+    try:
+        graph = parse_any(token)
+    except Exception:
+        return None
+    formula = getattr(graph, "molecular_formula", None)
+    return formula if isinstance(formula, str) and formula else None
+
+
 def canonicalize_formula(answer: str) -> str | None:
     """Canonicalize a molecular formula via ChemEngine's formula parser.
 

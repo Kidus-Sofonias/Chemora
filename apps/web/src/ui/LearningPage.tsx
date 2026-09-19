@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApiClient } from '../api/apiContext';
 import { useLearning, userFacingMessage, type ActiveLesson } from '../learning/useLearning';
 import type { QuestionPublic, SectionPublic } from '../api/types';
@@ -17,7 +17,7 @@ import './learning.css';
  */
 export function LearningPage() {
   const api = useApiClient();
-  const { catalog, current, openLesson, backToCatalog, completeSection, submitAnswer } =
+  const { catalog, progressBySlug, current, openLesson, backToCatalog, completeSection, submitAnswer } =
     useLearning(api);
 
   if (current.kind === 'ready') {
@@ -70,25 +70,43 @@ export function LearningPage() {
 
       {catalog.kind === 'ready' ? (
         <ul className="lesson-list" data-testid="lesson-list">
-          {catalog.lessons.map((lesson) => (
-            <li key={lesson.slug}>
-              <article className="card lesson-card">
-                <h3>{lesson.title}</h3>
-                <p>{lesson.description}</p>
-                <p className="help muted">
-                  {lesson.subject} Â· {lesson.difficulty} Â· {lesson.estimated_minutes} min
-                  Â· {lesson.section_count} sections Â· {lesson.question_count} questions
-                </p>
-                <button
-                  type="button"
-                  className="button"
-                  onClick={() => void openLesson(lesson.slug)}
-                >
-                  Start lesson
-                </button>
-              </article>
-            </li>
-          ))}
+          {catalog.lessons.map((lesson) => {
+            const progress = progressBySlug[lesson.slug];
+            const actionLabel = progress?.completed
+              ? 'Review lesson'
+              : progress && progress.progress_percent > 0
+                ? 'Continue lesson'
+                : 'Start lesson';
+            return (
+              <li key={lesson.slug}>
+                <article className="card lesson-card">
+                  <h3>{lesson.title}</h3>
+                  <p>{lesson.description}</p>
+                  <p className="help muted">
+                    {lesson.subject} · {lesson.difficulty} · {lesson.estimated_minutes} min
+                    · {lesson.section_count} sections · {lesson.question_count} questions
+                  </p>
+                  {progress ? (
+                    <p
+                      className="help muted"
+                      data-testid={`catalog-progress-${lesson.slug}`}
+                    >
+                      {progress.completed
+                        ? 'Completed ✓'
+                        : `${progress.progress_percent}% complete — continue where you left off`}
+                    </p>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={() => void openLesson(lesson.slug)}
+                  >
+                    {actionLabel}
+                  </button>
+                </article>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
     </section>
@@ -105,6 +123,45 @@ interface LessonViewProps {
 function LessonView({ active, onBack, onComplete, onAnswer }: LessonViewProps) {
   const { lesson, progress } = active;
   const percent = progress?.progress_percent ?? 0;
+  // Resume (M28): focus the first incomplete section, or the first section
+  // when the lesson is untouched or already complete.
+  const firstIncomplete = lesson.sections.findIndex(
+    (section) => !progress?.completed_sections.includes(section.id),
+  );
+  const [focusIndex, setFocusIndex] = useState(
+    firstIncomplete === -1 ? 0 : firstIncomplete,
+  );
+
+  const scrollToSection = (index: number) => {
+    const section = lesson.sections[index];
+    if (!section) {
+      return;
+    }
+    setFocusIndex(index);
+    // jsdom has no layout engine — guard for tests.
+    document
+      .querySelector(`[data-testid="section-${section.id}"]`)
+      ?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  };
+
+  // Scroll once on open so a returning student resumes where they left off.
+  const resumed = useRef(false);
+  useEffect(() => {
+    if (resumed.current) {
+      return;
+    }
+    resumed.current = true;
+    const section = lesson.sections[focusIndex];
+    if (section && focusIndex > 0) {
+      document
+        .querySelector(`[data-testid="section-${section.id}"]`)
+        ?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const currentSection = lesson.sections[focusIndex];
+  const position = lesson.sections.map((s) => s.id).indexOf(currentSection?.id ?? '');
   return (
     <section className="learning lesson-view" aria-labelledby="lesson-title">
       <button type="button" className="button back-button" onClick={onBack}>
@@ -133,11 +190,39 @@ function LessonView({ active, onBack, onComplete, onAnswer }: LessonViewProps) {
         </p>
       </header>
 
+      {lesson.sections.length > 1 ? (
+        <nav className="section-nav" aria-label="Section navigation" data-testid="section-nav">
+          <button
+            type="button"
+            className="button"
+            disabled={position <= 0}
+            onClick={() => scrollToSection(position - 1)}
+            data-testid="nav-prev"
+          >
+            ← Previous section
+          </button>
+          <span className="help muted" data-testid="nav-position">
+            Section {position + 1} of {lesson.sections.length}
+            {currentSection ? `: ${currentSection.title}` : ''}
+          </span>
+          <button
+            type="button"
+            className="button"
+            disabled={position >= lesson.sections.length - 1}
+            onClick={() => scrollToSection(position + 1)}
+            data-testid="nav-next"
+          >
+            Next section →
+          </button>
+        </nav>
+      ) : null}
+
       {lesson.sections.map((section) => (
         <SectionCard
           key={section.id}
           section={section}
           active={active}
+          focused={section.id === currentSection?.id}
           onComplete={(id) => onComplete(lesson.slug, id)}
           onAnswer={(qid, answer) => onAnswer(lesson.slug, qid, answer)}
         />
@@ -151,16 +236,18 @@ function LessonView({ active, onBack, onComplete, onAnswer }: LessonViewProps) {
 interface SectionCardProps {
   section: SectionPublic;
   active: ActiveLesson;
+  focused: boolean;
   onComplete: (sectionId: string) => Promise<void>;
   onAnswer: (questionId: string, answer: string) => Promise<unknown>;
 }
 
-function SectionCard({ section, active, onComplete, onAnswer }: SectionCardProps) {
+function SectionCard({ section, active, focused, onComplete, onAnswer }: SectionCardProps) {
   const completed = active.progress?.completed_sections.includes(section.id) ?? false;
   return (
     <article
-      className={`card section-card kind-${section.kind}`}
+      className={`card section-card kind-${section.kind}${focused ? ' section-focused' : ''}`}
       data-testid={`section-${section.id}`}
+      aria-current={focused ? 'true' : undefined}
     >
       <h3>
         {section.title}

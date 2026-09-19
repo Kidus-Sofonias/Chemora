@@ -61,6 +61,16 @@ const { mockListLessons, mockLesson, mockPreview, apiMocks } = vi.hoisted(
           ordering: 1,
           questions: [],
         },
+        {
+          id: 'spotlight',
+          kind: 'chemistry_spotlight',
+          title: 'See it live',
+          body: ['Watch the engine compute.'],
+          element_symbol: 'O',
+          molecule_input: null,
+          ordering: 2,
+          questions: [],
+        },
       ],
     };
 
@@ -317,5 +327,53 @@ describe('Admin CMS', () => {
       });
     });
     confirmSpy.mockRestore();
+  });
+});
+
+describe('Admin CMS — M28 chemistry reference authoring', () => {
+  it('exposes molecule input authoring for chemistry spotlight sections', async () => {
+    window.location.hash = '/lessons';
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByText('Electron Configurations')).toBeInTheDocument();
+    });
+    const user = userEvent.setup();
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Edit Lesson' }),
+      ).toBeInTheDocument();
+    });
+    // The SectionEditor offers Element Symbol and Molecule Input fields for
+    // chemistry_spotlight sections so admins can author engine references.
+    expect(screen.getByLabelText(/Element Symbol/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Molecule Input/)).toBeInTheDocument();
+  });
+
+  it('shows validation feedback when the backend rejects chemistry content', async () => {
+    window.location.hash = '/lessons';
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByText('Electron Configurations')).toBeInTheDocument();
+    });
+    const user = userEvent.setup();
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Edit Lesson' }),
+      ).toBeInTheDocument();
+    });
+    // Save → backend 422 with per-field chemistry validation errors.
+    apiMocks.updateLesson.mockRejectedValueOnce(
+      new api.ApiError(422, {
+        errors: [
+          { field: 'sections', message: "Section 'spotlight' references an unparseable molecule 'Xx999'." },
+        ],
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(screen.getByText(/unparseable molecule/)).toBeInTheDocument();
+    });
   });
 });
