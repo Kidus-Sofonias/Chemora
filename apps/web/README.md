@@ -6,8 +6,9 @@ Sign-In authentication integration on top of the M20 backend.
 > **Status:** Authentication integration (M21) ✅, Chemistry Explorer (M22) ✅,
 > Element Explorer (M23) ✅, Chemistry Learning Core (M24) ✅, Learning &
 > Practice Expansion (M25) ✅, Content Management Foundation (M26) ✅, Production
-> CMS (M27) ✅, Chemistry Learning Experience Expansion (M28) ✅, and the
-> AI Chemistry Tutor (M29) ✅ are complete. Mobile, offline sync, and quizzes
+> CMS (M27) ✅, Chemistry Learning Experience Expansion (M28) ✅, the
+> AI Chemistry Tutor (M29) ✅, and AI Tutor Completion & Conversation
+> Infrastructure (M30) ✅ are complete. Mobile, offline sync, and quizzes
 > remain future milestones.
 
 ---
@@ -69,8 +70,33 @@ TutorPage → useTutor → ApiClient.askTutor → POST /api/v1/learning/tutor
   (the response's `tools_used`/`lesson_slugs` are opaque metadata the UI
   deliberately does not render).
 
-Tests: `tests/tutor.test.tsx` (9 tests) covers the auth gate, the
-send/history round-trip, loading/error/empty states, and metadata hygiene.### Endpoint
+Tests: `tests/tutor.test.tsx` (12 tests) covers the auth gate, the
+streaming round-trip through a persistent conversation, partial-response
+rendering, server-side history loading, mid-stream and pre-flight errors,
+network-vs-server failure, retry/empty states, conversation switching and
+deletion, and metadata hygiene.
+
+### Conversations & streaming (M30)
+
+Tutoring happens inside persistent, server-owned conversations:
+
+- **New conversation** clears the local view; the first message creates a
+  conversation implicitly when none is open.
+- **My conversations** lists the user's conversations from the server;
+  opening one loads its persisted history (the client never supplies
+  history — the server owns the transcript).
+- **Streaming:** answers arrive as SSE frames and are rendered
+  incrementally into the assistant bubble, with a distinct
+  "Tutor is typing…" state, disabled composer while in flight, and a
+  fallback message when a stream ends without text.
+- **Failures:** pre-flight errors (404/422/429) and mid-stream `error`
+  frames surface the backend's stable user-facing message; the user's
+  question stays in the transcript for retry context.
+- **Deletion:** the open conversation can be deleted; the view resets to
+  the empty state.
+
+No chemistry computation, provider contact, or tool payload rendering ever
+happens in the client.### Endpoint
 
 `POST /api/v1/chemistry/explore` with `{ "input": "<identifier>" }` →
 `200` structured result, or `422` with

@@ -19,9 +19,10 @@ database, authentication, or AI.
 > Chemistry Explorer (M22) ✅, Element Explorer (M23) ✅, Learning Core (M24) ✅,
 > Learning Expansion (M25) ✅, Content Management Foundation (M26) ✅,
 > Production Content & Admin CMS (M27) ✅, Learning Experience Expansion (M28) ✅,
-> and AI Chemistry Tutor (M29) ✅ are complete. This document covers the
+> AI Chemistry Tutor (M29) ✅, and AI Tutor Completion & Conversation
+> Infrastructure (M30) ✅ are complete. This document covers the
 > authentication system (M20), the content-management endpoints (M26/M27),
-> and the AI tutor service (M29).
+> and the AI tutor service (M29/M30).
 
 ---
 
@@ -630,8 +631,56 @@ session. Controlled failures map to stable codes: `422 invalid_message`,
 `ai_error`. The response carries only `answer`, `lesson_slugs`, and
 `tools_used` — no provider payloads, no raw tool output, no internals.
 
-Streaming responses and persistent conversation storage are deliberate
-future enhancements (neither is an M29 acceptance criterion).
+## Tutor Conversations & Streaming (M30)
+
+The tutor persists conversations and streams answers. All endpoints are
+session-gated and ownership is enforced at the storage layer: every query in
+`TutorConversationRepository` filters by the session-derived `user_id`, so a
+foreign conversation id is indistinguishable from a missing one (404).
+
+```text
+POST   /api/v1/learning/tutor/conversations                  create (201)
+GET    /api/v1/learning/tutor/conversations                  list mine
+GET    /api/v1/learning/tutor/conversations/{id}             messages in order
+DELETE /api/v1/learning/tutor/conversations/{id}             delete (cascade)
+POST   /api/v1/learning/tutor/conversations/{id}/messages    ask + SSE stream
+```
+
+- **Persistence:** `tutor_conversations` / `tutor_messages`
+  (migration `004_tutor_conversations`; FK CASCADE to `users`, composite
+  indexes `(user_id, updated_at)` and `(conversation_id, seq)`). Caps:
+  30 conversations per user, 200 messages per conversation — over the cap
+  returns stable `409 conversation_limit` / `409 message_limit`. Only
+  user/assistant text is persisted; system prompts and provider tool
+  traffic are never stored.
+- **Server-side history:** asking inside a conversation loads prior turns
+  from the owned conversation; the client never supplies history there.
+- **Streaming:** the messages endpoint responds `text/event-stream` with
+  `data:` JSON frames — `{type: "delta", text}` for incremental answer
+  chunks, `{type: "done", tools_used, lesson_slugs}` on completion, and
+  `{type: "error", code, message}` for stable failures. Ownership, message
+  validation, and the rate limit are checked before the stream starts (real
+  HTTP statuses); the user message is persisted before generation and the
+  answer is persisted even if the client disconnects mid-stream. Tool calls
+  run through the same bounded allowlisted loop as the non-streaming path.
+- **Streaming providers:** every shipped provider implements
+  `generate_stream` yielding `StreamEvent` items (`text` deltas, one
+  `tool_calls` event, a `final` accumulated text) behind the unchanged
+  `AIProvider` abstraction; the loop pumps the blocking iterator off the
+  event loop and falls back to the non-streaming path when a provider lacks
+  streaming.
+- **Tool-result cache:** successful allowlisted tool calls are cached
+  (deterministic SHA-256 key over tool name + canonical sorted arguments,
+  lazy TTL sweep, insertion-order eviction; `AI_TOOL_CACHE_ENABLED`,
+  `AI_TOOL_CACHE_TTL_SECONDS`, `AI_TOOL_CACHE_MAX_ENTRIES`). Failures are
+  never cached; conversation content and LLM responses are never cached.
+
+### Tests
+
+21 tests in `tests/test_m30_conversations.py` cover conversation CRUD,
+limits, cross-user isolation, server-side history, SSE well-formedness,
+streaming tool calls, provider failure frames, malformed/oversized/
+unauthorized requests, and cache hit/miss/expiration/bounds.
 
 ### Tests
 
