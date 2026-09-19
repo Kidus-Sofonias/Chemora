@@ -8,11 +8,12 @@
 
 All progress/answer endpoints require authentication. Correct answers are
 never serialized to clients; validation happens server-side and
-deterministically. Lesson content lives in the backend content layer
-(``app.learning.content``); chemistry values referenced by lessons are served
-live from ChemEngine via the existing element API (``chemistry_spotlight``
-sections name an element) and the existing chemistry explore API (sections
-name a molecule by formula/SMILES/InChI).
+deterministically. Since M26, lesson content is read from PostgreSQL through
+the content repository; ``app.learning.content`` is the seed source that
+populates it. Chemistry values referenced by lessons are served live from
+ChemEngine via the existing element API (``chemistry_spotlight`` sections name
+an element) and the existing chemistry explore API (sections name a molecule
+by formula/SMILES/InChI).
 """
 
 from __future__ import annotations

@@ -47,6 +47,9 @@ class Settings(BaseSettings):
 
     # --- Google Authentication ---
     GOOGLE_CLIENT_ID: str = ""
+    # Retained for operator/documentation reference only. google-auth's
+    # ``verify_oauth2_token`` hard-checks the issuer internally, so verification
+    # (``app/services/google_auth.py``) never consults this list.
     GOOGLE_ALLOWED_ISSUERS: list[str] = [
         "https://accounts.google.com",
         "accounts.google.com",

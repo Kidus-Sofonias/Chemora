@@ -1,8 +1,10 @@
 """Lesson progress database model.
 
 Tracks per-user learning progress for lessons identified by their stable
-content-layer slug. Lesson content itself is not stored in the database (see
-``app/learning/content.py``); only progress is persisted.
+content-layer slug. Since M26 the authoritative lesson content lives in
+PostgreSQL (see ``app/models/content.py``); ``app/learning/content.py`` is the
+seed source that populates the database. This table persists only a user's
+progress.
 """
 
 from __future__ import annotations
