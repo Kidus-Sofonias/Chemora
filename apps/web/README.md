@@ -4,8 +4,11 @@ The Chemora browser application — this milestone (M21) implements the Google
 Sign-In authentication integration on top of the M20 backend.
 
 > **Status:** Authentication integration (M21) ✅, Chemistry Explorer (M22) ✅,
-> Element Explorer (M23) ✅, and the Chemistry Learning Core (M24) ✅ are
-> complete. Quizzes, CMS, AI, and offline sync are future milestones.
+> Element Explorer (M23) ✅, Chemistry Learning Core (M24) ✅, Learning &
+> Practice Expansion (M25) ✅, Content Management Foundation (M26) ✅, Production
+> CMS (M27) ✅, and Chemistry Learning Experience Expansion (M28) ✅ are
+> complete. M29 (AI Chemistry Tutor) is scoped and not yet started. Mobile,
+> offline sync, and quizzes remain future milestones.
 
 ---
 
@@ -264,6 +267,8 @@ LearningPage (catalog ↔ lesson view)
 - **Progress:** percent and completion come from the backend
   (`GET .../progress`, section-complete and answer responses). Leaving and
   returning to a lesson resumes exactly where the user stopped.
+  (M28 also adds catalog-level resume via `GET /api/v1/learning/progress`
+  with continue/review labels and per-lesson progress on the catalog.)
 - **Errors:** structured backend messages only (`detail.code` +
   `detail.message`); raw server details are never surfaced (`userFacingMessage`
   helper). Network failures show "Cannot reach the Chemora server" and are

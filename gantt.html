@@ -2225,13 +2225,16 @@ const phases = [
     ver: '0.4',     start: 120, dur: 6,  risk: 'medium',  status: 'complete', weight: 4 },
   { id: 28, name: 'Chemistry Learning Experience Expansion (M28)', desc: 'Expand the learning experience: a coherent M28 curriculum on the M26/M27 database/CMS architecture, with lesson navigation and resume',
     tasks: ['Six new lessons (periodic-table, periodic-trends, chemical-bonding, molar-mass, stoichiometry, acids-bases) after the five M24/M25 lessons', 'Lesson navigation: previous/next sections, aria-current focus, position indicator, first-incomplete-section resume focus', 'Catalog-level resume: GET /api/v1/learning/progress with continue/review labels and per-lesson progress', 'Content stays in PostgreSQL; app/learning/content.py is an idempotent seed/import source only', 'Molecule references validated at authoring/publish time through ChemEngine', '15 new backend tests, 10 new web tests, 2 admin tests (fail paths included)'],
-    ver: '0.4',     start: 126, dur: 6,  risk: 'medium',  status: 'complete', weight: 4 }
+            ver: '0.4',     start: 126, dur: 6,  risk: 'medium',  status: 'complete', weight: 4 },
+  { id: 29, name: 'AI Chemistry Tutor (M29)', desc: 'A backend AI service that uses ChemEngine tools for deterministic chemistry, with provider abstraction, cost/abuse controls, and an authenticated chat tutor endpoint',
+    tasks: ['AIProvider abstraction (OpenAI/Anthropic/mock) + config in settings', 'Backend AIService: retrieve relevant lesson content (controlled RAG boundary), call provider, invoke ChemEngine tools server-side for deterministic chemistry', 'Authenticated chat endpoint POST /api/v1/learning/tutor (session-gated, user identity from Chemora session)', 'Cost/abuse controls: per-request token limits, timeouts, cache, error/fallback handling, usage logging', 'Frontend chat tutor in the web client', 'Tests: provider abstraction, tool-call boundary, answer-key/content privacy, authz'],
+    ver: '0.5',     start: 132, dur: 8,  risk: 'high',    status: 'planned',  weight: 5 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 132;
+const TOTAL_WEEKS = 140;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;
@@ -2776,8 +2779,9 @@ function buildMilestoneDots() {
     { label: 'Nomenclature', week: 64 },
     { label: 'v1.0.0', week: 76 },
     { label: 'M26 CMS', week: 118 },
-    { label: 'M27 Admin', week: 124 },
-    { label: 'M28 Learning', week: 132 }
+        { label: 'M27 Admin', week: 124 },
+    { label: 'M28 Learning', week: 132 },
+    { label: 'M29 AI Tutor', week: 140 }
   ];
 
   // Create a progress line

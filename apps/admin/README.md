@@ -1,5 +1,5 @@
-# Admin Dashboard
+# Chemora Admin Dashboard
 
-This directory will contain the administrative CMS/dashboard for Chemora — content management, user administration, and analytics.
-
-> **Status**: Reserved — not yet implemented. This is part of a future milestone.
+Admin CMS application — content management served by the backend (M26 foundation,
+M27 production CMS). This is a standalone React + Vite + TypeScript SPA
+(`apps/admin/`) consuming the authenticated `/api/v1/admin/*` API.

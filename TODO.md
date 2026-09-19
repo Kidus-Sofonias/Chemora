@@ -1916,7 +1916,56 @@ experience without regressing the M26/M27 database/CMS architecture.
   errors). Admin +2.
 - **Cleanup.** Removed the generated `.browser-verify/chemora.db` artifact (it
   is generated runtime state, not a test fixture) and added a `.gitignore`
-  rule for it.
+    rule for it.
+
+---
+
+### M29 — AI Chemistry Tutor (Scoped)
+
+M28 is complete. M29 is now **scoped**, not started.
+
+**Scope definition.** ChemEngine's AI Integration phase (Phase 13) is complete
+and tested: `ChemEngineAPI.execute_tool()` exposes chemistry tools with JSON-Schema
+signatures, `ToolRegistry` converts them to OpenAI/Anthropic tool formats, and
+`OfflineInference` provides a local fallback path. The remaining gap is a backend
+AI service that wires an LLM provider to these tools behind the existing auth/session
+boundary. M29 is therefore the **AI Chemistry Tutor** — a backend AI service layer
+with a provider abstraction and a student-facing chat tutor. It does **not** add
+quizzes, mobile, offline sync, a CMS rebuild, or any modification to ChemEngine's
+chemistry algorithms.
+
+- **Architecture.** Student → web chat UI → backend `POST /api/v1/learning/tutor`
+  (session-gated, user identity from the Chemora session) → AIService (provider
+  abstraction + controlled RAG retrieval) → provider completion ↔
+  `ChemEngineAPI.execute_tool()` server-side for deterministic chemistry. The LLM
+  *never* becomes the chemistry authority: formula normalization, element lookup,
+  electron configuration, and molecular properties come from ChemEngine tools.
+- **In scope:**
+  - `AIProvider` interface + OpenAI / Anthropic / mock implementations, configured
+    from settings (provider secret server-side only; never exposed to the client).
+  - Backend `AIService`: retrieve only relevant lesson content (controlled boundary
+    — no dumping the full DB into prompts), invoke the provider, and call ChemEngine
+    tools server-side; stream answers.
+  - Authenticated `POST /api/v1/learning/tutor` endpoint.
+  - Frontend chat tutor in the web client (no chemistry computation in TS).
+  - Answer keys and draft-only content never leave the backend (reuse the preview/audit
+    validation boundary so a tutor request can never leak keys for questions the
+    student has not yet seen).
+  - Cost/abuse controls: per-request token limits, timeouts, tool-result caching,
+    graceful error/fallback handling, usage logging.
+- **Out of scope:** quizzes/exams platform, mobile app, offline sync, CMS authoring
+  rebuild, new ChemEngine algorithms, client-side provider keys.
+
+**Acceptance criteria** (before M29 is marked complete):
+- Provider abstraction with ≥1 real + 1 mock provider, all swappable without backend edits.
+- Deterministic chemistry (formula/element/config/properties) always resolved via
+  `ChemEngineAPI.execute_tool()` server-side; a test proves a wrong model answer on
+  chemistry is corrected by the engine.
+- `POST /api/v1/learning/tutor` returns 401 unauthenticated, 403 for non-students
+  where applicable, and never returns answer keys or draft content.
+- Cost controls enforced (max tokens, timeout, error/fallback on provider failure).
+- Web + backend tests for the provider boundary, authz, privacy, and a regression
+  test that ChemEngine remains the authority.
 
 ---
 
@@ -1935,7 +1984,7 @@ experience without regressing the M26/M27 database/CMS architecture.
 | **Backend Tests** | 164 / 164 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience) |
 | **Web Tests** | 62 / 62 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | M29 — (to be scoped) |
+| **Next Milestone** | M29 — AI Chemistry Tutor (scoped) |
 
 ### Phase Summary Table
 
