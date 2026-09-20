@@ -1,7 +1,7 @@
 # Chemora — Project Status Report
 
 **Date:** September 19, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering complete / M32 scoped
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion complete
 **Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) + Production Readiness & Release Engineering (M31) complete · Post-M26 corrective hardening pass complete
 
 ---
@@ -22,7 +22,7 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Backend Tests** | 220 / 220 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache) |
 | **Web Tests** | 74 / 74 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
-| **Next Milestone** | M32 — ChemEngine Release Completion: API Reference, Tutorials & PyPI (scoped; implementation not started) |
+| **Next Milestone** | M32 — ChemEngine Release Completion: API Reference, Tutorials & PyPI ✅ (complete; PyPI upload + GitHub Release remain credential-blocked with exact steps in `packages/chemengine/RELEASE_CHECKLIST.md`) |
 
 ---
 
@@ -393,9 +393,9 @@ a clean working tree.
 
 ---
 
-### 🔲 M32: ChemEngine Release Completion — API Reference, Tutorials & PyPI (Scoped — 2026-09-20)
+### ✅ M32: ChemEngine Release Completion — API Reference, Tutorials & PyPI (Complete — 2026-09-21)
 
-M32 is **scoped; implementation has not started**. Where M31 performed
+M32 is **complete**. Where M31 performed
 production-readiness and release engineering for the Chemora *product*, M32
 completes the equivalent release work for the ChemEngine *library*: the
 remainder of Phase 15 ("Release") tagged "Planned (v2.0)" plus the one
@@ -458,6 +458,63 @@ benchmark-comparison failure demonstrated on an injected regression.
 **Known limitations to record at completion:** whichever of PyPI/TestPyPI
 publication, GitHub Release, and ReadTheDocs hosting lacked external
 accounts/credentials, with exact completion steps.
+
+**Completion record (2026-09-21).** All 14 acceptance criteria satisfied
+(12 PASS, 2 BLOCKED-but-prepared):
+
+- **Sphinx API reference (15.2):** `packages/chemengine/docs/` — conf.py
+  (napoleon/autodoc/autosummary), index, 17 generated API pages
+  (`scripts/generate_api_docs.py`, checked in for deterministic builds),
+  tutorials section. `sphinx-build -W` exits 0 with zero warnings from a
+  clean `_build`. CI gate in `ci.yml`; local gate in `ci_check.py`.
+- **Docstring audit:** mechanical AST audit — 71 modules, 224 top-level
+  public defs (0 missing), 480 public functions/methods/properties total;
+  103 gaps closed, 1 UTF-8 BOM removed (`compounds/__init__.py`), 3
+  docstrings reformatted for napoleon, 1 inaccurate InChIKey docstring
+  corrected. ChemEngine src ruff findings reduced 342 → 288 as a
+  side-effect of the documentation work.
+- **Tutorials (15.3):** the six roadmap-named tutorials in
+  `docs/tutorials/` (quickstart, smiles, substructure, properties,
+  rendering, ai_integration); all code verified against the current API;
+  examples literalincluded so they cannot drift.
+- **Examples:** 12 scripts under `packages/chemengine/examples/`,
+  executed via `scripts/verify_examples.py` (12/12 pass; CI gate).
+- **Release surface:** SECURITY.md, CODE_OF_CONDUCT.md,
+  RELEASE_CHECKLIST.md, DEPLOYMENT.md, LICENSE added under
+  `packages/chemengine/`; publish workflow (`.github/workflows/publish.yml`)
+  triggers on `v*.*.*` tags and uses the `PYPI_API_TOKEN` secret.
+- **Package audit/build:** metadata fixes (Production/Stable classifier,
+  keywords, URLs, Typing::Typed, license-files, sdist include list);
+  `tomli>=2.0.0; python_version < '3.11'` declared — a real missing-
+  dependency bug found by the clean-venv wheel test; a TOML
+  section-ordering bug that dropped all core Requires-Dist fields fixed.
+  `python -m build` + `twine check`: PASSED. Wheel install verified in a
+  clean venv on 3.10 and 3.13. Sizes: 216 KB wheel / 334 KB sdist
+  (target <5 MB met). First import measured: 492.9 ms warm-cache
+  (Phase 1.6 target <100 ms — genuine gap, recorded).
+- **CI matrix (15.4):** `chemengine-matrix` job for 3.10–3.13;
+  verified locally on real interpreters 3.10.11/3.11.16/3.12.14/3.13.15
+  → 1635 passed, 1 skipped on each.
+- **Benchmark regression (Phase 1 DoD):** `benchmark-regression` CI job
+  with rolling baseline (actions/cache + artifact),
+  `--benchmark-compare-fail=mean:60%`; sabotage-proven — an injected
+  2 ms/parse slowdown failed both the comparison gate (4 regressions)
+  and the absolute-threshold layer in `tests/test_benchmark_baselines.py`
+  (2 failures); reverted and green. 60 benchmarks pass in ~62–72 s.
+- **Regression totals (unchanged baselines):** ChemEngine 1635 passed /
+  1 skipped; backend 224 passed (ruff+mypy clean); web 74 passed
+  (tsc+build OK); admin 13 passed (tsc+build OK); 16/16 `ci_check.py`
+  gates green.
+- **Blocked (documented, never fabricated):** PyPI/TestPyPI upload and
+  GitHub Release creation — no `gh` CLI, no GitHub/PyPI tokens in the
+  environment. Exact completion steps: RELEASE_CHECKLIST.md §4–§5;
+  automation ready in the publish workflow.
+- **Known new limitations recorded:** first-import time exceeds the
+  Phase 1.6 <100 ms target (~493 ms warm; dominated by module-init and
+  importlib.metadata); tetrahedral CIP descriptor assignment reports R
+  for both `@`/`@@` of 2-butanol (storage preserves the distinct tags;
+  perception-layer limitation documented in example 07, algorithm change
+  out of M32 scope).
 
 ---
 

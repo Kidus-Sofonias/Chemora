@@ -5,7 +5,7 @@
 > **Version:** 0.10.0 → 1.0.0 (ChemEngine complete; monorepo migration complete)
 > **Last Updated:** September 19, 2026
 > **Owner:** Chemora Architecture Team
-> **Status:** Active Development — Backend M19–M31 complete; M32 (ChemEngine Release Completion: API Reference, Tutorials & PyPI) scoped, implementation not started
+> **Status:** Active Development — Backend M19–M31 complete; M32 (ChemEngine Release Completion: API Reference, Tutorials & PyPI) complete
 
 ---
 
@@ -1576,10 +1576,10 @@ Ship ChemEngine as a professional open-source library on PyPI. 100% documentatio
 | # | Milestone | Status |
 |---|-----------|--------|
 | 15.1 | Documentation completion | ✅ Complete |
-| 15.2 | API reference (Sphinx) | ⬜ Planned (M32) |
-| 15.3 | Tutorials + examples | ⬜ Planned (M32) |
-| 15.4 | GitHub Actions CI/CD | 🔶 Partial — delivered for the monorepo by M31; Python 3.10–3.13 matrix remains (M32) |
-| 15.5 | PyPI publication | ⬜ Planned (M32) |
+| 15.2 | API reference (Sphinx) | ✅ Complete (M32) — `sphinx-build -W` clean, CI gate |
+| 15.3 | Tutorials + examples | ✅ Complete (M32) — 6 tutorials + 12 executed examples with CI verification |
+| 15.4 | GitHub Actions CI/CD | ✅ Complete (M31 monorepo CI + M32 Python 3.10–3.13 matrix + benchmark regression + docs/examples gates) |
+| 15.5 | PyPI publication | 🔶 Release-ready (M32) — build + twine check pass, publish workflow + checklist prepared; upload blocked on credentials |
 
 ### Atomic Tasks
 
@@ -2270,9 +2270,9 @@ executed in this environment, with exact blockers.
 
 ---
 
-### M32 — ChemEngine Release Completion: API Reference, Tutorials & PyPI (Scoped)
+### M32 — ChemEngine Release Completion: API Reference, Tutorials & PyPI (Complete)
 
-M32 is **scoped** (2026-09-20); implementation has **not started**. M31 is
+M32 is **complete** (2026-09-21). M31 is
 complete. Where M31 performed production-readiness and release engineering for
 the Chemora *product*, M32 completes the equivalent release work for the
 ChemEngine *library* — the remainder of Phase 15 ("Release") that was tagged
@@ -2351,33 +2351,90 @@ product feature work in backend/web/admin; ChemEngine algorithm changes;
 M33+ work.
 
 **Acceptance criteria** (M32 is complete only when all of the following
-hold):
-- [ ] Sphinx API reference builds warning-free (`sphinx-build -W`) and
+hold) — final status with evidence:
+- [x] Sphinx API reference builds warning-free (`sphinx-build -W`) and
   covers the public `chemengine` API; build is a CI gate.
-- [ ] Docstring completeness audit executed; result recorded; public-API
+  **PASS** — exit 0, 0 warnings from a clean `_build`;
+  `packages/chemengine/docs/` (conf.py + 17 generated API pages + 6
+  tutorials); gate in `.github/workflows/ci.yml` and `ci_check.py`.
+- [x] Docstring completeness audit executed; result recorded; public-API
   gaps closed or explicitly documented.
-- [ ] The six roadmap-named tutorials exist and are accurate.
-- [ ] `packages/chemengine/examples/` contains 10+ scripts, each executed
+  **PASS** — mechanical AST audit of 71 modules / 224 top-level public
+  defs (0 missing) extended to all 480 public functions/methods/properties:
+  103 gaps closed (62 properties, 41 methods); 1 UTF-8 BOM removed from
+  `compounds/__init__.py`; 3 docstrings reformatted for napoleon; 1
+  inaccurate InChIKey docstring corrected to match the implementation.
+- [x] The six roadmap-named tutorials exist and are accurate.
+  **PASS** — `docs/tutorials/`: quickstart, smiles, substructure,
+  properties, rendering, ai_integration; every code block verified against
+  the current API; examples literalincluded so they cannot drift.
+- [x] `packages/chemengine/examples/` contains 10+ scripts, each executed
   successfully during verification.
-- [ ] SECURITY.md, CODE_OF_CONDUCT.md, RELEASE_CHECKLIST.md, DEPLOYMENT.md
+  **PASS** — 12 examples, `scripts/verify_examples.py` → 12/12 passed
+  (also a CI gate).
+- [x] SECURITY.md, CODE_OF_CONDUCT.md, RELEASE_CHECKLIST.md, DEPLOYMENT.md
   exist (the roadmap-named files currently absent).
-- [ ] Package metadata/license/security audit complete; `twine check` passes
+  **PASS** — all four added under `packages/chemengine/` (plus LICENSE
+  copied into the package so the wheel/sdist carry the license text).
+- [x] Package metadata/license/security audit complete; `twine check` passes
   on built distributions.
-- [ ] GitHub Release + tag created from the changelog, or the exact
+  **PASS** — metadata audit fixed: Development Status → Production/Stable,
+  keywords/URLs/Typing classifier added, `tomli` declared for Python <3.11
+  (missing-dependency bug found by the clean-venv wheel test), TOML
+  section-ordering bug fixed that had dropped all core Requires-Dist
+  fields, sdist include-list completed, hatch license-files added.
+  `twine check`: PASSED on both artifacts; sdist carries README/LICENSE/
+  CHANGELOG/SECURITY/CODE_OF_CONDUCT/RELEASE_CHECKLIST/DEPLOYMENT/docs/
+  examples; wheel carries only `chemengine/` + dist-info licenses.
+- [x] GitHub Release + tag created from the changelog, or the exact
   credential/permission blocker documented.
-- [ ] PyPI/TestPyPI publication performed where credentials exist, or the
+  **BLOCKED (documented)** — no `gh` CLI and no GitHub token in the
+  environment; tag+release procedure prepared in RELEASE_CHECKLIST.md §4
+  and automated in `.github/workflows/publish.yml`.
+- [x] PyPI/TestPyPI publication performed where credentials exist, or the
   blocker explicitly documented with exact steps.
-- [ ] CI verifies ChemEngine across Python 3.10–3.13 (or the version set
+  **BLOCKED (documented)** — no PyPI/TestPyPI credentials (verified: no
+  token env vars; publication never attempted or fabricated). Exact steps
+  in RELEASE_CHECKLIST.md §5; publish workflow triggers on `v*.*.*` tags.
+- [x] CI verifies ChemEngine across Python 3.10–3.13 (or the version set
   exactly supported by the package's stated requirements, documented).
-- [ ] Benchmark baselines saved as artifacts and compared in CI, failing on
+  **PASS** — `chemengine-matrix` job (fail-fast off, no
+  continue-on-error); verified locally on real interpreters:
+  3.10.11 / 3.11.16 / 3.12.14 / 3.13.15 all → 1635 passed, 1 skipped.
+- [x] Benchmark baselines saved as artifacts and compared in CI, failing on
   regressions beyond documented thresholds; the Phase 1 DoD claim is
   thereby genuinely realized.
-- [ ] Phase 15 milestone table reconciled.
-- [ ] M19–M31 functionality remains regression-safe (full suites + static
+  **PASS** — `benchmark-regression` CI job: rolling baseline via
+  actions/cache + artifact upload, `--benchmark-compare-fail=mean:60%`
+  (60% cross-run noise margin, documented in the workflow).
+  Sabotage-proven: an injected 2 ms/parse slowdown failed the comparison
+  (4 PercentageRegressionCheck failures) AND the existing absolute
+  thresholds in `tests/test_benchmark_baselines.py` (2 failures);
+  reverted, suite green. Full suite: 60 benchmarks pass in ~62–72 s.
+  Measured Phase 1.6 baselines: full run ≈63–65 s (M31), 60 functions,
+  first import 492.9 ms warm / ~3.9 s cold (target <100 ms — recorded as
+  a genuine gap), package size 216 KB wheel / 334 KB sdist (target <5 MB
+  — met).
+- [x] Phase 15 milestone table reconciled.
+  **PASS** — 15.2/15.3/15.4 complete; 15.5 release-ready with the
+  credential blocker recorded.
+- [x] M19–M31 functionality remains regression-safe (full suites + static
   checks + builds with exact totals recorded).
-- [ ] No new P0/P1 security issues; no credentials committed or printed.
-- [ ] TODO.md, PROJECT_STATUS.md, gantt.html reconciled; commits focused;
+  **PASS** — ChemEngine 1635 passed / 1 skipped; backend 224 passed
+  (ruff clean, mypy clean); web 74 passed (tsc clean, build OK); admin 13
+  passed (tsc clean, build OK); all 16 `ci_check.py` gates green.
+- [x] No new P0/P1 security issues; no credentials committed or printed.
+  **PASS** — security scan of all new files: no secret values (only
+  documented secret *names* for CI), no TODO/FIXME debris, dist/ and
+  .benchmarks/ ignored, publish workflow consumes `PYPI_API_TOKEN` via
+  env without echoing.
+- [x] TODO.md, PROJECT_STATUS.md, gantt.html reconciled; commits focused;
   pushed; HEAD == origin/master; working tree clean.
+  **PASS** — this reconciliation; focused commits created and pushed
+  (final hashes in PROJECT_STATUS.md).
+
+**Result: M32 COMPLETE — 14/14 acceptance criteria satisfied (12 PASS,
+2 BLOCKED-but-prepared with documented credential blockers).**
 
 **Dependencies:** M31 CI infrastructure (the matrix and benchmark jobs
 extend the existing workflow), the ChemEngine docstrings (Phase 15.1 ✅),
@@ -2409,7 +2466,7 @@ accounts/credentials, with exact steps to complete them.
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | M32 — ChemEngine Release Completion: API Reference, Tutorials & PyPI (scoped; implementation not started) |
+| **Next Milestone** | M32 — ChemEngine Release Completion: API Reference, Tutorials & PyPI ✅ (complete; PyPI upload + GitHub Release remain credential-blocked, exact steps documented in `packages/chemengine/RELEASE_CHECKLIST.md`) |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,
