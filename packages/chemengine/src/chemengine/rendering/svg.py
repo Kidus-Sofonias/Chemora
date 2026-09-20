@@ -6,16 +6,24 @@ Renders molecular structures as SVG with:
 - Wedge/dash bonds for stereochemistry
 - Aromatic bond circles
 - Configurable bond length, atom colors, font sizes
+- Named themes (default/dark/cpk/mono/accessibility) — see
+  :mod:`chemengine.rendering.themes`
+- Substructure highlighting (matched atoms/bonds drawn on a translucent
+  underlay below the bonds; see :class:`SubstructureHighlight`)
+
+Rendering is deterministic: identical inputs produce byte-identical SVG.
 """
 
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from typing import Any
 
 from chemengine.core.enums import BondOrder
 from chemengine.core.geometry import Coordinate2D
 from chemengine.core.graph import MolecularGraph
+from chemengine.rendering.themes import RenderTheme, get_theme
 
 # ── Constants ──
 
@@ -24,6 +32,60 @@ DEFAULT_ATOM_RADIUS: float = 15.0
 DEFAULT_FONT_SIZE: float = 12.0
 DEFAULT_PADDING: float = 30.0
 WEDGE_WIDTH: float = 6.0
+DEFAULT_HIGHLIGHT_COLOR: str = "rgba(255, 213, 0, 0.45)"
+
+
+@dataclass(frozen=True)
+class SubstructureHighlight:
+    """Atom/bond indices to emphasize in a rendering (M33 highlighting).
+
+    Indices refer to the *target* graph being rendered. Build instances
+    with :meth:`from_matches`; construct directly for custom cases.
+    Both fields are frozensets, so instances are immutable and hashable.
+    """
+
+    atoms: frozenset[int] = frozenset()
+    bonds: frozenset[int] = frozenset()
+
+    @classmethod
+    def from_matches(
+        cls,
+        graph: MolecularGraph,
+        matches: list[dict[int, int]],
+        query: MolecularGraph | None = None,
+    ) -> SubstructureHighlight:
+        """Collect matched atom/bond indices from subgraph matches.
+
+        Args:
+            graph: The target graph the matches map into.
+            matches: Mappings ``{query_atom: target_atom}`` as returned by
+                :func:`chemengine.detection.substructure.find_subgraph_matches`.
+                Multiple matches are merged deterministically (union over
+                sorted match order).
+            query: The query graph the mappings came from. When given,
+                matched *bonds* are also highlighted (each query bond maps
+                to a target bond, validated against ``graph``); when None,
+                only atoms are highlighted.
+
+        Returns:
+            A :class:`SubstructureHighlight` covering the matched atoms
+            (and, when ``query`` is provided, the matched bonds).
+        """
+        atoms: set[int] = set()
+        for mapping in matches:
+            atoms.update(mapping.values())
+        bonds: set[int] = set()
+        if query is not None:
+            for mapping in matches:
+                for q_bond in query.bonds:
+                    t1 = mapping.get(q_bond.atom1)
+                    t2 = mapping.get(q_bond.atom2)
+                    if t1 is None or t2 is None:
+                        continue
+                    bond_index = graph.get_bond_index(t1, t2)
+                    if bond_index is not None:
+                        bonds.add(bond_index)
+        return cls(atoms=frozenset(atoms), bonds=frozenset(bonds))
 
 # Element colors (CPK-like)
 ELEMENT_COLORS: dict[int, str] = {
@@ -64,9 +126,11 @@ def _should_show_label(atom_index: int, graph: MolecularGraph) -> bool:
     return True
 
 
-def _get_color(atomic_number: int) -> str:
-    """Get SVG color for an element."""
-    return ELEMENT_COLORS.get(atomic_number, "#333333")
+def _get_color(atomic_number: int, theme: RenderTheme | None = None) -> str:
+    """Get SVG color for an element (default theme when none given)."""
+    if theme is None:
+        theme = get_theme("default")
+    return theme.color_for(atomic_number)
 
 
 def _coord_to_svg(coord: Coordinate2D, offset_x: float, offset_y: float,
@@ -198,11 +262,12 @@ def _render_atom_label(
     x: float, y: float, label: str, color: str,
     font_size: float = DEFAULT_FONT_SIZE,
     charge: int = 0,
+    background: str = "white",
 ) -> str:
     """Render an atom label with optional charge annotation."""
     svg = ""
     # Background circle to clear bond lines
-    svg += f'<circle cx="{x:.2f}" cy="{y:.2f}" r="{DEFAULT_ATOM_RADIUS:.2f}" fill="white" stroke="none"/>\n'
+    svg += f'<circle cx="{x:.2f}" cy="{y:.2f}" r="{DEFAULT_ATOM_RADIUS:.2f}" fill="{background}" stroke="none"/>\n'
     # Element symbol
     svg += (
         f'<text x="{x:.2f}" y="{y + font_size * 0.35:.2f}" '
@@ -230,6 +295,9 @@ def render_svg(
     show_hydrogens: bool = False,
     padding: float = DEFAULT_PADDING,
     title: str | None = None,
+    theme: str | RenderTheme = "default",
+    highlight: SubstructureHighlight | None = None,
+    highlight_color: str | None = None,
 ) -> str:
     """Render a molecular graph as an SVG string.
 
@@ -240,18 +308,35 @@ def render_svg(
         show_hydrogens: Whether to render hydrogen atoms explicitly.
         padding: Padding around the molecule in SVG units.
         title: Optional title to add above the molecule.
+        theme: Theme name (see :mod:`chemengine.rendering.themes`) or an
+            explicit :class:`~chemengine.rendering.themes.RenderTheme`.
+        highlight: Optional :class:`SubstructureHighlight` to emphasize
+            matched atoms/bonds (drawn as a translucent underlay).
+        highlight_color: Override the highlight color (any CSS color).
 
     Returns:
         Complete SVG string.
+
+    Raises:
+        KeyError: Unknown theme name.
+        IndexError: A highlight index is out of range for ``graph``.
     """
     from chemengine.coordinates.layout_2d import generate_2d_coordinates
 
     if graph.num_atoms == 0:
         return _empty_svg()
 
-    # Generate or use provided coordinates
+    resolved_theme = theme if isinstance(theme, RenderTheme) else get_theme(theme)
+    hl_color = highlight_color or DEFAULT_HIGHLIGHT_COLOR
+    if highlight is not None:
+        _validate_highlight(highlight, graph)
+
+    # Deterministic layout: seed from the graph's stable hash so the same
+    # molecule renders identically in every process/run (M33 requirement).
     if coordinates is None:
-        coordinates = generate_2d_coordinates(graph)
+        coordinates = generate_2d_coordinates(
+            graph, seed=int(graph.graph_hash[:16], 16)
+        )
 
     if len(coordinates) != graph.num_atoms:
         raise ValueError(
@@ -291,17 +376,25 @@ def render_svg(
 
     # Start SVG
     svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{svg_width:.1f}" height="{svg_height:.1f}" viewBox="0 0 {svg_width:.1f} {svg_height:.1f}">\n'
-    svg += '<rect width="100%" height="100%" fill="white"/>\n'
+    svg += f'<rect width="100%" height="100%" fill="{resolved_theme.background}"/>\n'
 
     # Title
     if title:
-        svg += f'<text x="{svg_width / 2:.1f}" y="{padding * 0.6:.1f}" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#333" text-anchor="middle">{_escape_xml(title)}</text>\n'
+        svg += f'<text x="{svg_width / 2:.1f}" y="{padding * 0.6:.1f}" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="{resolved_theme.title_color}" text-anchor="middle">{_escape_xml(title)}</text>\n'
+
+    # Highlight underlay (below bonds)
+    if highlight is not None and (highlight.atoms or highlight.bonds):
+        svg += _render_highlight_underlay(
+            graph, coordinates, offset_x, offset_y, scale,
+            highlight, hl_color,
+        )
 
     # Render bonds
     for bond in graph.bonds:
         x1, y1 = _coord_to_svg(coordinates[bond.atom1], offset_x, offset_y, scale)
         x2, y2 = _coord_to_svg(coordinates[bond.atom2], offset_x, offset_y, scale)
-        color = "#333333"
+        color = resolved_theme.bond_color
+        width = resolved_theme.bond_width
 
         # Check for stereochemistry on the atom (wedge/dash)
         atom1_stereo = graph.atoms[bond.atom1].stereochemistry
@@ -309,17 +402,17 @@ def render_svg(
         is_dash = atom1_stereo.value in ("@@", "S") if atom1_stereo else False
 
         if bond.is_aromatic:
-            svg += _render_aromatic_bond(x1, y1, x2, y2, color)
+            svg += _render_aromatic_bond(x1, y1, x2, y2, color, width)
         elif bond.order == BondOrder.TRIPLE:
-            svg += _render_triple_bond(x1, y1, x2, y2, color)
+            svg += _render_triple_bond(x1, y1, x2, y2, color, width)
         elif bond.order == BondOrder.DOUBLE:
-            svg += _render_double_bond(x1, y1, x2, y2, color)
+            svg += _render_double_bond(x1, y1, x2, y2, color, width)
         elif is_wedge:
             svg += _render_wedge_bond(x1, y1, x2, y2, color)
         elif is_dash:
-            svg += _render_dashed_bond(x1, y1, x2, y2, color)
+            svg += _render_dashed_bond(x1, y1, x2, y2, color, width)
         else:
-            svg += _render_single_bond(x1, y1, x2, y2, color)
+            svg += _render_single_bond(x1, y1, x2, y2, color, width)
 
     # Render atom labels
     for i, coord in enumerate(coordinates):
@@ -334,9 +427,10 @@ def render_svg(
             continue
 
         x, y = _coord_to_svg(coord, offset_x, offset_y, scale)
-        color = _get_color(z)
+        color = _get_color(z, resolved_theme)
         label = atom.symbol
-        svg += _render_atom_label(x, y, label, color, DEFAULT_FONT_SIZE, atom.formal_charge)
+        svg += _render_atom_label(x, y, label, color, DEFAULT_FONT_SIZE,
+                                  atom.formal_charge, resolved_theme.label_background)
 
     svg += "</svg>"
     return svg
@@ -357,6 +451,42 @@ def render_svg_to_file(
     svg = render_svg(graph, **options)
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(svg)
+
+
+def _validate_highlight(highlight: SubstructureHighlight, graph: MolecularGraph) -> None:
+    """Raise IndexError if any highlight index is out of range."""
+    n_atoms = graph.num_atoms
+    for idx in sorted(highlight.atoms):
+        if idx < 0 or idx >= n_atoms:
+            raise IndexError(f"Highlight atom index {idx} out of range (0..{n_atoms - 1})")
+    for idx in sorted(highlight.bonds):
+        if idx < 0 or idx >= graph.num_bonds:
+            raise IndexError(f"Highlight bond index {idx} out of range (0..{graph.num_bonds - 1})")
+
+
+def _render_highlight_underlay(
+    graph: MolecularGraph,
+    coordinates: tuple[Coordinate2D, ...],
+    offset_x: float,
+    offset_y: float,
+    scale: float,
+    highlight: SubstructureHighlight,
+    color: str,
+) -> str:
+    """Draw translucent circles/lines under the matched atoms and bonds."""
+    svg = ""
+    for idx in sorted(highlight.bonds):
+        bond = graph.bonds[idx]
+        x1, y1 = _coord_to_svg(coordinates[bond.atom1], offset_x, offset_y, scale)
+        x2, y2 = _coord_to_svg(coordinates[bond.atom2], offset_x, offset_y, scale)
+        svg += (
+            f'<line x1="{x1:.2f}" y1="{y1:.2f}" x2="{x2:.2f}" y2="{y2:.2f}" '
+            f'stroke="{color}" stroke-width="{DEFAULT_ATOM_RADIUS * 1.4:.2f}" stroke-linecap="round"/>\n'
+        )
+    for idx in sorted(highlight.atoms):
+        x, y = _coord_to_svg(coordinates[idx], offset_x, offset_y, scale)
+        svg += f'<circle cx="{x:.2f}" cy="{y:.2f}" r="{DEFAULT_ATOM_RADIUS:.2f}" fill="{color}" stroke="none"/>\n'
+    return svg
 
 
 def _empty_svg() -> str:

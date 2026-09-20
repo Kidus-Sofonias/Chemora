@@ -24,8 +24,12 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import Any
 
-from chemengine.core.datasets import get_global_dataset_registry
 from chemengine.core.enums import ElementSymbol
+
+# NOTE (M33 Phase 15.6): ``chemengine.core.datasets`` is imported lazily
+# inside :func:`_load_elements_from_registry` — a module-level import made
+# ``import chemengine`` pull in the whole dataset-registry machinery (and
+# its TOML parser) before any element is actually queried.
 
 logger = logging.getLogger(__name__)
 
@@ -174,10 +178,13 @@ class Element:
             KeyError: If the identifier does not match any element.
         """
         if isinstance(identifier, ElementSymbol):
+            _ensure_elements_loaded()
             return _ELEMENTS_BY_SYMBOL[identifier.value]
         if isinstance(identifier, int):
+            _ensure_elements_loaded()
             return _ELEMENTS_BY_Z[identifier]
         if isinstance(identifier, str):
+            _ensure_elements_loaded()
             return _ELEMENTS_BY_SYMBOL[identifier]
         raise KeyError(f"Invalid element identifier: {identifier}")
 
@@ -190,6 +197,7 @@ class Element:
         """
         if z < 1 or z > 118:
             raise ValueError(f"Invalid atomic number: {z}")
+        _ensure_elements_loaded()
         return _ELEMENTS_BY_Z[z]
 
     @classmethod
@@ -199,6 +207,7 @@ class Element:
         Raises:
             KeyError: If the symbol is unknown.
         """
+        _ensure_elements_loaded()
         return _ELEMENTS_BY_SYMBOL[symbol]
 
     @classmethod
@@ -209,6 +218,7 @@ class Element:
             KeyError: If the name is unknown.
         """
         key = name.lower()
+        _ensure_elements_loaded()
         if key not in _ELEMENTS_BY_NAME:
             raise KeyError(f"Element not found: '{name}'")
         return _ELEMENTS_BY_NAME[key]
@@ -216,6 +226,7 @@ class Element:
     @classmethod
     def all_elements(cls) -> tuple[Element, ...]:
         """Return all 118 elements ordered by atomic number."""
+        _ensure_elements_loaded()
         return tuple(_ELEMENTS_BY_Z.values())
 
     @classmethod
@@ -264,6 +275,7 @@ class ElementQuery:
     def execute(self) -> list[Element]:
         """Run the accumulated filters and return the matching elements
         ordered by atomic number (all elements when no filters were added)."""
+        _ensure_elements_loaded()
         if not self._filters:
             return list(_ELEMENTS_BY_Z.values())
         return [el for el in _ELEMENTS_BY_Z.values() if all(f(el) for f in self._filters)]
@@ -327,6 +339,8 @@ class ElementQuery:
 
 def _load_elements_from_registry() -> dict[int, dict[str, Any]]:
     try:
+        from chemengine.core.datasets import get_global_dataset_registry
+
         registry = get_global_dataset_registry()
         ds = registry.get("elements")
         raw = ds.data
@@ -405,7 +419,25 @@ def _build_elements() -> tuple[dict[int, Element], dict[str, Element], dict[str,
     return by_z, by_symbol, by_name
 
 
-_ELEMENTS_BY_Z: dict[int, Element]
-_ELEMENTS_BY_SYMBOL: dict[str, Element]
-_ELEMENTS_BY_NAME: dict[str, Element]
-_ELEMENTS_BY_Z, _ELEMENTS_BY_SYMBOL, _ELEMENTS_BY_NAME = _build_elements()
+_ELEMENTS_BY_Z: dict[int, Element] = {}
+_ELEMENTS_BY_SYMBOL: dict[str, Element] = {}
+_ELEMENTS_BY_NAME: dict[str, Element] = {}
+_ELEMENTS_LOADED = False
+
+
+def _ensure_elements_loaded() -> None:
+    """Build the element lookup tables on first use (M33 Phase 15.6).
+
+    Element data was previously constructed at *module import time*, which
+    dominated ``import chemengine`` (dataset file I/O + registry parsing,
+    ~230 ms of the ~490 ms first import). Deferring to first *element*
+    access moves that cost out of the import path entirely.
+    """
+    global _ELEMENTS_LOADED
+    if _ELEMENTS_LOADED:
+        return
+    by_z, by_symbol, by_name = _build_elements()
+    _ELEMENTS_BY_Z.update(by_z)
+    _ELEMENTS_BY_SYMBOL.update(by_symbol)
+    _ELEMENTS_BY_NAME.update(by_name)
+    _ELEMENTS_LOADED = True

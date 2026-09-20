@@ -32,11 +32,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-# tomllib was introduced in Python 3.11. Provide a backport for Python 3.10.
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[no-redef]
+# NOTE (M33 Phase 15.6): ``tomllib``/``tomli`` is imported lazily inside
+# :meth:`DatasetRegistry.load` — a module-level import pulled the TOML
+# parser into ``import chemengine`` even when no dataset is ever loaded.
 
 logger = logging.getLogger(__name__)
 
@@ -222,7 +220,13 @@ class DatasetRegistry:
             if ext == ".json":
                 data = json.load(f)
             elif ext == ".toml":
-                data = tomllib.load(f)
+                # Lazy import (M33 Phase 15.6): keep the TOML parser out of
+                # the import path; tomllib is stdlib on Python >= 3.11.
+                if sys.version_info >= (3, 11):
+                    import tomllib as _tomllib
+                else:
+                    import tomli as _tomllib  # type: ignore[no-redef]
+                data = _tomllib.load(f)
             else:
                 raise ValueError(f"Unsupported dataset format: {ext}")
 

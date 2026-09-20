@@ -262,6 +262,152 @@ class TestHelpers:
         color = _get_color(999)
         assert color == "#333333"
 
+    # ── M33: Themes ──
+
+    def test_default_theme_output_unchanged(self):
+        """Default theme renders byte-identical to the historical output."""
+        graph = _make_benzene()
+        assert render_svg(graph, theme="default") == render_svg(graph)
+
+    def test_dark_theme_colors(self):
+        graph = _make_benzene()
+        svg = render_svg(graph, theme="dark")
+        assert 'fill="#1E1E1E"' in svg  # background
+        assert '#E6E6E6' in svg          # bonds/labels
+        assert 'fill="white"' not in svg
+
+    def test_cpk_theme_labels_carbon(self):
+        """CPK theme colors every atom label including carbon."""
+        graph = _make_methane()
+        svg = render_svg(graph, theme="cpk", show_hydrogens=True)
+        assert "#333333" in svg  # carbon label color present
+
+    def test_mono_theme_has_no_element_colors(self):
+        graph = _make_benzene()
+        svg = render_svg(graph, theme="mono", show_hydrogens=True)
+        assert "#FF0D0D" not in svg  # no oxygen red
+        assert "#3050F8" not in svg  # no nitrogen blue
+        assert "#000000" in svg
+
+    def test_accessibility_theme_contrast(self):
+        graph = _make_ethanol()  # contains oxygen
+        svg = render_svg(graph, theme="accessibility")
+        assert 'fill="#FAFAFA"' in svg
+        assert "#B3001B" in svg  # dark-red oxygen label
+
+    def test_unknown_theme_raises(self):
+        graph = _make_benzene()
+        with pytest.raises(KeyError, match="Unknown render theme"):
+            render_svg(graph, theme="neon")
+
+    def test_theme_object_accepted(self):
+        from chemengine.rendering.themes import get_theme
+        graph = _make_benzene()
+        svg = render_svg(graph, theme=get_theme("dark"))
+        assert 'fill="#1E1E1E"' in svg
+
+    def test_rendering_deterministic_across_themes(self):
+        """Identical inputs give byte-identical output (per theme)."""
+        graph = _make_benzene()
+        for name in ("default", "dark", "cpk", "mono", "accessibility"):
+            assert render_svg(graph, theme=name) == render_svg(graph, theme=name)
+
+    # ── M33: Substructure highlighting ──
+
+    def _highlight_benzene(self):
+        """Highlight the benzene ring in aspirin (verified in example 03)."""
+        from chemengine.core.enums import BondOrder
+        from chemengine.detection.substructure import find_subgraph_matches
+        from chemengine.parsing.smiles import parse_smiles
+        from chemengine.rendering.svg import SubstructureHighlight
+        target = parse_smiles("CC(=O)Oc1ccccc1C(=O)O")  # aspirin
+        builder = MolecularGraphBuilder()
+        for _ in range(6):
+            builder.add_atom(atomic_number=6, is_aromatic=True)
+        for i in range(6):
+            builder.add_bond(i, (i + 1) % 6, BondOrder.AROMATIC)
+        query = builder.build()
+        matches = find_subgraph_matches(target, query)
+        return target, matches, SubstructureHighlight.from_matches(
+            target, matches, query=query
+        )
+
+    def test_highlight_single_match(self):
+        target, matches, hl = self._highlight_benzene()
+        assert len(matches) == 1
+        assert len(hl.atoms) == 6 and len(hl.bonds) == 6
+        svg = render_svg(target, highlight=hl)
+        assert "rgba(255, 213, 0, 0.45)" in svg
+
+    def test_highlight_multiple_matches_merged(self):
+        """Two disjoint matching substructures union into one highlight."""
+        from chemengine.core.enums import BondOrder
+        from chemengine.detection.substructure import find_subgraph_matches
+        from chemengine.parsing.smiles import parse_smiles
+        from chemengine.rendering.svg import SubstructureHighlight
+        # Biphenyl: two benzene rings joined by a single bond
+        target = parse_smiles("c1ccc(-c2ccccc2)cc1")
+        qbuilder = MolecularGraphBuilder()
+        for _ in range(6):
+            qbuilder.add_atom(atomic_number=6, is_aromatic=True)
+        for i in range(6):
+            qbuilder.add_bond(i, (i + 1) % 6, BondOrder.AROMATIC)
+        query = qbuilder.build()
+        matches = find_subgraph_matches(target, query)
+        assert len(matches) == 2  # each phenyl ring
+        hl = SubstructureHighlight.from_matches(target, matches, query=query)
+        assert len(hl.atoms) == 12
+        svg = render_svg(target, highlight=hl)
+        assert svg.count("rgba(255, 213, 0, 0.45)") >= 12
+
+    def test_highlight_no_match(self):
+        """Empty matches produce no highlight underlay at all."""
+        from chemengine.detection.substructure import find_subgraph_matches
+        from chemengine.parsing.smiles import parse_smiles
+        from chemengine.rendering.svg import SubstructureHighlight
+        target = parse_smiles("c1ccccc1")  # benzene
+        builder = MolecularGraphBuilder()
+        builder.add_atom(atomic_number=7)  # single N query — benzene has none
+        query = builder.build()
+        matches = find_subgraph_matches(target, query)
+        assert matches == []
+        hl = SubstructureHighlight.from_matches(target, matches, query=query)
+        assert hl.atoms == frozenset() and hl.bonds == frozenset()
+        svg = render_svg(target, highlight=hl)
+        assert "rgba(255, 213, 0, 0.45)" not in svg
+
+    def test_highlight_overlapping_matches(self):
+        """Overlapping matches (fused rings) merge without double-count issues."""
+        from chemengine.core.enums import BondOrder
+        from chemengine.detection.substructure import find_subgraph_matches
+        from chemengine.rendering.svg import SubstructureHighlight
+        # Naphthalene SMILES parsed (10 carbons, fused rings)
+        from chemengine.parsing.smiles import parse_smiles
+        target = parse_smiles("c1ccc2ccccc2c1")
+        qbuilder = MolecularGraphBuilder()
+        for _ in range(6):
+            qbuilder.add_atom(atomic_number=6, is_aromatic=True)
+        for i in range(6):
+            qbuilder.add_bond(i, (i + 1) % 6, BondOrder.AROMATIC)
+        query = qbuilder.build()
+        matches = find_subgraph_matches(target, query)
+        assert len(matches) >= 2  # two overlapping rings
+        hl = SubstructureHighlight.from_matches(target, matches, query=query)
+        assert len(hl.atoms) == 10  # union covers the whole skeleton
+        render_svg(target, highlight=hl)  # must not raise
+
+    def test_highlight_invalid_query(self):
+        """Out-of-range highlight indices raise IndexError."""
+        from chemengine.rendering.svg import SubstructureHighlight
+        target = _make_benzene()  # builder graph: valid indices 0..
+        hl = SubstructureHighlight(atoms=frozenset({99}))
+        with pytest.raises(IndexError, match="out of range"):
+            render_svg(target, highlight=hl)
+
+    def test_highlight_deterministic(self):
+        target, _, hl = self._highlight_benzene()
+        assert render_svg(target, highlight=hl) == render_svg(target, highlight=hl)
+
     def test_escape_xml(self):
         assert _escape_xml("<tag>") == "&lt;tag&gt;"
         assert _escape_xml("a & b") == "a &amp; b"

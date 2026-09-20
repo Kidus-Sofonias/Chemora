@@ -26,8 +26,15 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from importlib.metadata import EntryPoint, entry_points
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from importlib.metadata import EntryPoint
+
+# NOTE (M33 Phase 15.6): ``importlib.metadata`` is deliberately imported
+# *inside* :meth:`PluginManager.discover` — importing it eagerly cost
+# ~150 ms at ``import chemengine`` (it pulls in zipfile/email machinery)
+# although discovery itself runs only when plugin loading is requested.
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +130,8 @@ class PluginManager:
             List of discovered EntryPoint objects.
         """
         try:
+            from importlib.metadata import entry_points
+
             eps = entry_points(group="chemengine.plugins")
             self._entry_points = list(eps)
             logger.info(f"Discovered {len(self._entry_points)} plugin(s)")

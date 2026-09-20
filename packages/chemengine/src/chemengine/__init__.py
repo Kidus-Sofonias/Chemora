@@ -13,31 +13,54 @@ Architecture overview:
     - stereochemistry/ : R/S, E/Z, cis/trans assignment
     - properties/   : Molecular property computation
     - coordinates/  : 2D and 3D coordinate generation
-    - rendering/    : SVG molecular depiction
-    - reactions/    : Reaction models, validation, and templates
+    - rendering/    : SVG/PNG molecular depiction and themes
+    - reactions/    : Reaction models, mapping, validation, and templates
     - validation/   : Graph sanitization and validity rules
     - io/           : Serialization and format conversion
-    - nomenclature/ : IUPAC naming (graph → name)
+    - nomenclature/ : IUPAC naming (graph -> name), common names, tautomers
     - datasets/     : Reference data (elements, isotopes, forcefield params)
     - utils/        : Logging, benchmarking, caching
+
+Public API is loaded lazily (PEP 562 ``__getattr__``) so that
+``import chemengine`` stays lightweight (M33 Phase 15.6: first import
+<100 ms measured as a plain ``import chemengine`` in a fresh process);
+the chemistry machinery loads on first attribute access instead. All
+names below are resolvable exactly as before::
+
+    from chemengine import ChemEngineAPI, MolecularGraph
 """
 
-from chemengine.core.atoms import Atom
-from chemengine.core.bonds import Bond, BondOrder
-from chemengine.core.enums import BondStereo, ChiralTag, ElementSymbol
-from chemengine.core.graph import MolecularGraph, MolecularGraphBuilder
-from chemengine.core.tool_interface import ChemEngineAPI
+from __future__ import annotations
 
-__all__ = [
-    "ChemEngineAPI",
-    "MolecularGraph",
-    "MolecularGraphBuilder",
-    "Atom",
-    "Bond",
-    "BondOrder",
-    "ElementSymbol",
-    "ChiralTag",
-    "BondStereo",
-]
+from typing import Any
 
-__version__ = "1.0.0"
+_LAZY_EXPORTS: dict[str, str] = {
+    "ChemEngineAPI": "chemengine.core.tool_interface",
+    "MolecularGraph": "chemengine.core.graph",
+    "MolecularGraphBuilder": "chemengine.core.graph",
+    "Atom": "chemengine.core.atoms",
+    "Bond": "chemengine.core.bonds",
+    "BondOrder": "chemengine.core.bonds",
+    "ElementSymbol": "chemengine.core.enums",
+    "ChiralTag": "chemengine.core.enums",
+    "BondStereo": "chemengine.core.enums",
+}
+
+__all__ = sorted(_LAZY_EXPORTS)
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve lazily-loaded public API names (PEP 562)."""
+    module_path = _LAZY_EXPORTS.get(name)
+    if module_path is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    import importlib
+
+    module = importlib.import_module(module_path)
+    attr = getattr(module, name)
+    globals()[name] = attr  # cache for subsequent accesses
+    return attr
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(_LAZY_EXPORTS))
