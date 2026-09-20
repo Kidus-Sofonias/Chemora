@@ -1,7 +1,7 @@
 # Chemora — Project Status Report
 
 **Date:** September 19, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M30 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering complete
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering complete / M32 scoped
 **Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) + Production Readiness & Release Engineering (M31) complete · Post-M26 corrective hardening pass complete
 
 ---
@@ -22,7 +22,7 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Backend Tests** | 220 / 220 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache) |
 | **Web Tests** | 74 / 74 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
-| **Next Milestone** | None scoped (M32 not yet defined) |
+| **Next Milestone** | M32 — ChemEngine Release Completion: API Reference, Tutorials & PyPI (scoped; implementation not started) |
 
 ---
 
@@ -390,6 +390,74 @@ a clean working tree.
   + 44 mypy errors in ChemEngine src are a pre-existing baseline that CI now
   prevents from growing (fixing them is out of M31 scope); coverage sits at
   80% against the 90%/95% Phase 1 DoD aspiration.
+
+---
+
+### 🔲 M32: ChemEngine Release Completion — API Reference, Tutorials & PyPI (Scoped — 2026-09-20)
+
+M32 is **scoped; implementation has not started**. Where M31 performed
+production-readiness and release engineering for the Chemora *product*, M32
+completes the equivalent release work for the ChemEngine *library*: the
+remainder of Phase 15 ("Release") tagged "Planned (v2.0)" plus the one
+Phase 1 DoD delta M31 proved unrealized. The roadmap's Phase 15 purpose is
+the objective: "Ship ChemEngine as a professional open-source library on
+PyPI. 100% documentation coverage, tutorials, CI/CD, semantic versioning,
+and a trusted release."
+
+**Why this is next (repository evidence):** after M31 the only explicitly
+enumerated, milestone-shaped remaining work is Phase 15.2 (Sphinx API
+reference ⬜), 15.3 (tutorials + examples ⬜), 15.5 (PyPI publication ⬜),
+the 15.4 matrix delta (CI exists via M31 but runs Python 3.12 only), and
+Phase 1 DoD's "benchmark regression tests (compare against baselines in
+CI)" — marked done but proven unrealized by M31 (no saved baselines; CI
+asserts collectability only). Rejected alternatives: v2.0 chemistry domains
+are an explicitly unordered Future Roadmap (no selection signal); the mobile
+milestone has one scopeless sentence; v3.0 is longer-term; M30/M31 deferred
+items are already dispositioned.
+
+**In scope:** Sphinx project in `packages/chemengine/docs/` (conf.py, index,
+autodoc/napoleon over the existing Google-style docstrings) with a
+warning-free docs build as a CI gate; docstring completeness audit for the
+public API; the six roadmap-named tutorials (quickstart, SMILES,
+substructure, properties, rendering, AI/tool integration); 10+ runnable
+scripts in `packages/chemengine/examples/`; SECURITY.md, CODE_OF_CONDUCT.md,
+RELEASE_CHECKLIST.md, DEPLOYMENT.md (roadmap-named, currently absent);
+metadata/license/security audit with `twine check`; changelog-anchored
+GitHub Release + tag; PyPI/TestPyPI publication where credentials exist,
+else documented blocker with exact steps; CI Python 3.10–3.13 matrix within
+the existing workflow; benchmark-baseline regression comparison in CI
+(saved baselines, documented thresholds, demonstrable failure on injected
+regression); Phase 15 table reconciliation.
+
+**Out of scope:** new chemistry domains (they remain the separately labeled
+Future Roadmap v2.0/v3.0); the remaining v2.0 feature rows (atropisomers,
+PNG output, substructure highlighting, themes, preferred IUPAC, name
+parser, tautomer, atom-atom mapping); the mobile milestone; distributed
+rate limiting; model-generated conversation titles; product feature work in
+backend/web/admin; ChemEngine algorithm changes; M33+ work.
+
+**Acceptance criteria:** Sphinx API reference builds warning-free and is a
+CI gate; docstring audit recorded with public-API gaps closed or
+documented; six tutorials exist and are accurate; 10+ examples executed
+successfully; the four roadmap-named community/release files exist;
+`twine check` passes on built distributions; GitHub Release + tag created
+or blocker documented; PyPI/TestPyPI published where credentials exist or
+blocker documented with exact steps; CI verifies Python 3.10–3.13 (or the
+documented supported set); benchmark baselines saved and compared in CI,
+failing on documented-threshold regressions; Phase 15 table reconciled;
+M19–M31 regression-safe with exact totals; no new P0/P1 security issues;
+no credentials committed or printed; TODO/PROJECT_STATUS/gantt
+reconciled; focused commits pushed with HEAD == origin/master and a clean
+tree.
+
+**Dependencies:** M31 CI infrastructure; Phase 15.1 docstrings (✅);
+existing CHANGELOG.md and CONTRIBUTING.md; the M31-verified benchmark
+suite. **Testing requirements:** `sphinx-build -W`, example execution,
+`twine check`, full regression with exact totals, ruff/mypy/tsc/builds,
+benchmark-comparison failure demonstrated on an injected regression.
+**Known limitations to record at completion:** whichever of PyPI/TestPyPI
+publication, GitHub Release, and ReadTheDocs hosting lacked external
+accounts/credentials, with exact completion steps.
 
 ---
 

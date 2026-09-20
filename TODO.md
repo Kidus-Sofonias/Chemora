@@ -5,7 +5,7 @@
 > **Version:** 0.10.0 → 1.0.0 (ChemEngine complete; monorepo migration complete)
 > **Last Updated:** September 19, 2026
 > **Owner:** Chemora Architecture Team
-> **Status:** Active Development — Backend M19–M30 complete; M31 (Production Readiness & Release Engineering) complete
+> **Status:** Active Development — Backend M19–M31 complete; M32 (ChemEngine Release Completion: API Reference, Tutorials & PyPI) scoped, implementation not started
 
 ---
 
@@ -1576,10 +1576,10 @@ Ship ChemEngine as a professional open-source library on PyPI. 100% documentatio
 | # | Milestone | Status |
 |---|-----------|--------|
 | 15.1 | Documentation completion | ✅ Complete |
-| 15.2 | API reference (Sphinx) | ⬜ Planned (v2.0) |
-| 15.3 | Tutorials + examples | ⬜ Planned (v2.0) |
-| 15.4 | GitHub Actions CI/CD | ⬜ Planned (v2.0) |
-| 15.5 | PyPI publication | ⬜ Planned (v2.0) |
+| 15.2 | API reference (Sphinx) | ⬜ Planned (M32) |
+| 15.3 | Tutorials + examples | ⬜ Planned (M32) |
+| 15.4 | GitHub Actions CI/CD | 🔶 Partial — delivered for the monorepo by M31; Python 3.10–3.13 matrix remains (M32) |
+| 15.5 | PyPI publication | ⬜ Planned (M32) |
 
 ### Atomic Tasks
 
@@ -2270,6 +2270,130 @@ executed in this environment, with exact blockers.
 
 ---
 
+### M32 — ChemEngine Release Completion: API Reference, Tutorials & PyPI (Scoped)
+
+M32 is **scoped** (2026-09-20); implementation has **not started**. M31 is
+complete. Where M31 performed production-readiness and release engineering for
+the Chemora *product*, M32 completes the equivalent release work for the
+ChemEngine *library* — the remainder of Phase 15 ("Release") that was tagged
+"Planned (v2.0)" plus the one Phase 1 DoD delta M31 proved unrealized. The
+roadmap's own Phase 15 purpose statement is the objective: "Ship ChemEngine as
+a professional open-source library on PyPI. 100% documentation coverage,
+tutorials, CI/CD, semantic versioning, and a trusted release."
+
+**Why this is M32 (repository evidence).** After M31 the roadmap's remaining
+explicitly enumerated, milestone-shaped work is exactly: Phase 15.2 API
+reference (Sphinx) ⬜, Phase 15.3 tutorials + examples ⬜, Phase 15.5 PyPI
+publication ⬜, the Phase 15.4 CI delta (Python 3.10–3.13 matrix — CI now
+exists via M31 but runs 3.12 only), and Phase 1 DoD's "benchmark regression
+tests (compare against baselines in CI)" whose checkbox is marked done but
+which M31 proved is not actually implemented (no saved baseline artifacts; CI
+asserts collectability only). Alternative candidates were rejected on
+evidence: the v2.0 chemistry domains (organometallics, polymers,
+biomolecules, mechanisms, GNN, WebAssembly, crystallography, NMR) are an
+explicitly **unordered** Future Roadmap with no documented ordering or
+selection signal; the mobile milestone is referenced once with no scope
+("a future mobile milestone will define the compatibility path"); v3.0 items
+are longer-term; and M30/M31 deferred items were already dispositioned
+(rate limiting — not required for the deployment target; titles — UX;
+live provider smoke — credential-blocked).
+
+**Objectives.** (1) Generate and publish a Sphinx API reference from the
+codebase's Google-style docstrings. (2) Write the roadmap-named tutorials and
+a runnable `examples/` directory. (3) Complete the package/community release
+surface: metadata audit, security/license audit, SECURITY.md,
+CODE_OF_CONDUCT.md, RELEASE_CHECKLIST.md, DEPLOYMENT.md, changelog-anchored
+GitHub Release, and PyPI publication where credentials allow. (4) Close the
+two proven CI deltas: Python version matrix and benchmark-baseline regression
+comparison. (5) Reconcile the Phase 15 milestone table with reality.
+
+**In scope:**
+- **Sphinx API reference (Phase 15.2):** `docs/` Sphinx project (conf.py,
+  index, autodoc/napoleon from the existing Google-style docstrings),
+  generated API reference for all public `chemengine` modules, docs build
+  treated as a CI gate (`sphinx-build -W`), ReadTheDocs-ready configuration
+  (publishing to an external host is attempted only if account access
+  exists; otherwise the exact blocker is documented).
+- **Docstring completeness audit:** verify the Phase 15.1 "100% documentation
+  coverage" claim mechanically for public API surface; document and fix any
+  gaps found in public modules (no private-refactor rewrites).
+- **Tutorials + examples (Phase 15.3):** the roadmap-named tutorials
+  (quickstart, SMILES, substructure, properties, rendering, AI/tool
+  integration) and 10+ runnable scripts in `packages/chemengine/examples/`,
+  each executed as part of verification.
+- **Package release surface (Phase 15.5):** metadata/license/security audit
+  of `packages/chemengine/pyproject.toml`; `SECURITY.md`,
+  `CODE_OF_CONDUCT.md`, `RELEASE_CHECKLIST.md`, `DEPLOYMENT.md` (the four
+  files the roadmap names that do not exist); changelog review; GitHub
+  Release + tag for the current version; PyPI publication readiness
+  (twine check on built artifacts). Actual PyPI/TestPyPI publication is
+  attempted only if credentials exist in the environment; otherwise it is
+  documented as blocked with exact steps — never fabricated.
+- **CI deltas (Phase 15.4 remainder + Phase 1 DoD):** Python 3.10–3.13
+  verification matrix for ChemEngine (within the existing workflow — no
+  weakening of existing gates), and a benchmark-baseline regression job:
+  save pytest-benchmark baseline artifacts, compare in CI, fail on
+  documented-threshold regressions (measurement noise handled explicitly;
+  absolute timing thresholds are recorded, not invented).
+- **Documentation reconciliation:** Phase 15 milestone table rows
+  (15.2/15.3/15.5 → M32; 15.4 → partially delivered via M31 with the matrix
+  delta noted), TODO.md, PROJECT_STATUS.md, gantt.html at completion.
+
+**Out of scope:** new ChemEngine chemistry domains (organometallics,
+polymers, biomolecules, reaction mechanisms, GNN, WebAssembly,
+crystallography, NMR, drug discovery, retrosynthesis, docking, quantum,
+chemical database engine) — they remain the separately labeled Future
+Roadmap v2.0/v3.0; the remaining v2.0 feature rows (atropisomers, PNG
+output, substructure highlighting, themes, preferred IUPAC, name parser,
+tautomer, atom-atom mapping); the mobile milestone (insufficient documented
+scope); distributed rate limiting; model-generated conversation titles;
+product feature work in backend/web/admin; ChemEngine algorithm changes;
+M33+ work.
+
+**Acceptance criteria** (M32 is complete only when all of the following
+hold):
+- [ ] Sphinx API reference builds warning-free (`sphinx-build -W`) and
+  covers the public `chemengine` API; build is a CI gate.
+- [ ] Docstring completeness audit executed; result recorded; public-API
+  gaps closed or explicitly documented.
+- [ ] The six roadmap-named tutorials exist and are accurate.
+- [ ] `packages/chemengine/examples/` contains 10+ scripts, each executed
+  successfully during verification.
+- [ ] SECURITY.md, CODE_OF_CONDUCT.md, RELEASE_CHECKLIST.md, DEPLOYMENT.md
+  exist (the roadmap-named files currently absent).
+- [ ] Package metadata/license/security audit complete; `twine check` passes
+  on built distributions.
+- [ ] GitHub Release + tag created from the changelog, or the exact
+  credential/permission blocker documented.
+- [ ] PyPI/TestPyPI publication performed where credentials exist, or the
+  blocker explicitly documented with exact steps.
+- [ ] CI verifies ChemEngine across Python 3.10–3.13 (or the version set
+  exactly supported by the package's stated requirements, documented).
+- [ ] Benchmark baselines saved as artifacts and compared in CI, failing on
+  regressions beyond documented thresholds; the Phase 1 DoD claim is
+  thereby genuinely realized.
+- [ ] Phase 15 milestone table reconciled.
+- [ ] M19–M31 functionality remains regression-safe (full suites + static
+  checks + builds with exact totals recorded).
+- [ ] No new P0/P1 security issues; no credentials committed or printed.
+- [ ] TODO.md, PROJECT_STATUS.md, gantt.html reconciled; commits focused;
+  pushed; HEAD == origin/master; working tree clean.
+
+**Dependencies:** M31 CI infrastructure (the matrix and benchmark jobs
+extend the existing workflow), the ChemEngine docstrings (Phase 15.1 ✅),
+`CHANGELOG.md` and `CONTRIBUTING.md` (already exist), the M31-verified
+benchmark suite (60 collectable functions). **Testing requirements:**
+`sphinx-build -W`, example-script execution, `twine check`, full regression
+(ChemEngine, backend, web, admin) with exact totals, ruff/mypy/tsc/builds,
+benchmark comparison job demonstrably failing on an injected regression.
+**Security requirements:** no credentials in repo/logs/CI, license and
+metadata audit, no fabricated publication claims. **Known limitations to
+record at completion:** whichever of PyPI/TestPyPI publication, GitHub
+Release, and ReadTheDocs hosting could not be executed for lack of external
+accounts/credentials, with exact steps to complete them.
+
+---
+
 ## Roadmap Summary
 
 ### Overall Progress
@@ -2285,7 +2409,7 @@ executed in this environment, with exact blockers.
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | None scoped (M32 not yet defined) |
+| **Next Milestone** | M32 — ChemEngine Release Completion: API Reference, Tutorials & PyPI (scoped; implementation not started) |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,

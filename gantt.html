@@ -2234,13 +2234,16 @@ const phases = [
     ver: '0.6',     start: 140, dur: 6,  risk: 'medium',  status: 'complete', weight: 5 },
   { id: 31, name: 'Production Readiness & Release Engineering (M31)', desc: 'Take the completed Chemora system through a production-readiness and release-engineering pass — deployment verification, real CI, reproducible release validation, secrets hygiene, critical browser E2E where feasible, accurate coverage/benchmark baselines, and production diagnostics — without adding new chemistry features',
     tasks: ['Production database verification: full Alembic chain (001 → latest) against real PostgreSQL — fresh apply, upgrade path, schema agreement, constraints/indexes, tutor conversation persistence, rollback assessment, failure behavior; SQLite never substitutes; document the blocker if no instance is available', 'Real AI provider smoke verification only where valid credentials exist: real init, authenticated request, normal response, tool-call and streaming paths, failure/timeout handling, observable usage; never print/commit/expose keys, never fabricate a live test', 'CI/CD pipeline reflecting the actual monorepo structure: backend pytest/ruff/mypy, web tests/tsc/build, admin tests/tsc/build, ChemEngine tests + static checks; fails on broken required checks; no weakened checks', 'Release/build verification: reproducible web + admin production builds, backend startup/import path, migration chain, environment configuration, required env vars, no committed secrets, .env ignored, .env.example complete; document the minimum run environment', 'Browser E2E where technically feasible: auth shell, explorer load, learning navigation, tutor conversation create/stream/persist/reload/delete, logout boundary — or the exact blocker documented with compensating tests', 'Coverage + benchmark baselines: measure the documented Phase 1.6 benchmark baseline, Phase 1 DoD coverage boxes, and backend/web coverage where applicable — accurately, never inventing or weakening targets', 'Release documentation: API reference, developer setup, CI/CD docs, release procedure, env var documentation, deployment prerequisites, migration procedure, testing commands', 'Observability/diagnostics: structured logging, request/error identification, provider/database failure diagnostics, startup validation, health/readiness checks — never logging keys, credentials, private conversation content, or answer keys', 'M30 deferred disposition: live provider smoke in; browser E2E where feasible; distributed rate limiting only if the deployment architecture requires it; model-generated titles excluded (UX, not release engineering)'],
-    ver: '0.7',     start: 146, dur: 6,  risk: 'medium',  status: 'complete', weight: 5 }
+    ver: '0.7',     start: 146, dur: 6,  risk: 'medium',  status: 'complete', weight: 5 },
+  { id: 32, name: 'ChemEngine Release Completion: API Reference, Tutorials & PyPI (M32)', desc: 'Complete Phase 15 for the ChemEngine library — Sphinx API reference from the existing docstrings, the roadmap-named tutorials and runnable examples, the community/release file set, metadata/license/security audit with twine check, GitHub Release and PyPI where credentials allow, the CI Python matrix, and benchmark-baseline regression comparison in CI — without new chemistry features',
+    tasks: ['Sphinx API reference: docs/ project (conf.py, index, autodoc/napoleon) over the existing Google-style docstrings; warning-free build as a CI gate; ReadTheDocs-ready config or documented hosting blocker', 'Docstring completeness audit across the public API surface; record the result; close or document public-API gaps', 'Tutorials: quickstart, SMILES, substructure, properties, rendering, AI/tool integration — the six named in the roadmap Phase 15.3 task list', 'Examples: 10+ runnable scripts in packages/chemengine/examples/, each executed during verification', 'Release surface: SECURITY.md, CODE_OF_CONDUCT.md, RELEASE_CHECKLIST.md, DEPLOYMENT.md (roadmap-named, absent); metadata/license/security audit; twine check on built artifacts; changelog-anchored GitHub Release + tag; PyPI/TestPyPI publication where credentials exist, else documented blocker with exact steps', 'CI deltas: Python 3.10–3.13 matrix for ChemEngine within the existing workflow (no weakened gates); benchmark baselines saved as artifacts and compared in CI, failing on documented-threshold regressions with the failure demonstrated on an injected regression', 'Reconcile Phase 15 milestone table (15.2/15.3/15.5 → M32; 15.4 partial via M31) and keep TODO.md, PROJECT_STATUS.md, gantt.html synchronized; full regression with exact totals'],
+    ver: '0.8',     start: 152, dur: 6,  risk: 'low',     status: 'planned', weight: 5 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 152;
+const TOTAL_WEEKS = 158;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;
@@ -2789,7 +2792,8 @@ function buildMilestoneDots() {
     { label: 'M28 Learning', week: 132 },
     { label: 'M29 AI Tutor', week: 140 },
     { label: 'M30 Conversations', week: 146 },
-    { label: 'M31 Production', week: 152 }
+    { label: 'M31 Production', week: 152 },
+    { label: 'M32 Release', week: 158 }
   ];
 
   // Create a progress line
