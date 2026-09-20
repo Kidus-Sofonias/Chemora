@@ -78,14 +78,17 @@ class ValidationResult:
 
     @property
     def num_errors(self) -> int:
+        """Number of validation errors."""
         return len(self.errors)
 
     @property
     def num_warnings(self) -> int:
+        """Number of validation warnings."""
         return len(self.warnings)
 
     @property
     def num_info(self) -> int:
+        """Number of informational findings."""
         return len(self.info)
 
     def to_dict(self) -> dict[str, Any]:
@@ -149,6 +152,7 @@ class ValidationReport:
 
     @property
     def is_valid(self) -> bool:
+        """Whether the report contains no errors."""
         return self.result.is_valid
 
     def to_dict(self) -> dict[str, Any]:

@@ -1,4 +1,4 @@
-﻿"""compounds ΓÇö Dynamic compound registry with no database.
+"""compounds ΓÇö Dynamic compound registry with no database.
 
 The core philosophy: compounds are NEVER stored as static records.
 Every compound is parsed from a SMILES/formula/name ΓåÆ MolecularGraph,
@@ -104,48 +104,70 @@ class Compound:
 
     @property
     def formula(self) -> str:
+        """Hill-system molecular formula (e.g., ``'C2H6O'``)."""
         return self.graph.molecular_formula
 
     @property
     def exact_mass(self) -> float:
+        """Exact monoisotopic mass in daltons."""
         return self.graph.exact_mass
 
     @property
     def molecular_weight(self) -> float:
+        """Average molecular weight in daltons."""
         return self.graph.molecular_weight
 
     @property
     def num_atoms(self) -> int:
+        """Total atom count, including hydrogens."""
         return self.graph.num_atoms
 
     @property
     def num_heavy_atoms(self) -> int:
+        """Non-hydrogen (heavy) atom count."""
         return self.graph.num_heavy_atoms
 
     @property
     def iupac_name(self) -> str:
+        """Generated IUPAC-style name for the compound."""
         from chemengine.nomenclature.iupac import generate_iupac_name
         return generate_iupac_name(self.graph)
 
     @property
     def inchi(self) -> str:
+        """InChI string for the compound."""
         from chemengine.parsing.inchi_serializer import serialize_inchi
         return serialize_inchi(self.graph)
 
     @property
     def inchikey(self) -> str:
+        """InChIKey hash for the compound."""
         from chemengine.parsing.inchi_serializer import generate_inchi_key
         return generate_inchi_key(self.graph)
 
     @property
     def formula_dict(self) -> dict[str, int]:
+        """Element-count mapping (e.g., ``{'C': 2, 'H': 6, 'O': 1}``)."""
         return self.graph.formula_dict
 
     def functional_groups(self) -> list[dict[str, Any]]:
+        """Detect functional groups present in the compound.
+
+        Returns:
+            List of detected groups with names, atom indices, categories,
+            and SMARTS patterns (see :meth:`ChemEngineAPI.detect_functional_groups`).
+        """
         from chemengine.detection.functional_groups import detect_functional_groups_dict
         return detect_functional_groups_dict(self.graph)
 
     def properties(self) -> dict[str, Any]:
+        """Compute the standard descriptor panel for this compound.
+
+        Returns:
+            Dict with ``exact_mass``, ``molecular_weight``, ``tpsa``,
+            ``logp``, ``hba``, ``hbd``, ``rotatable_bonds``, and
+            ``fraction_csp3``.
+        """
         from chemengine.properties.descriptors import (
             compute_fraction_csp3,
             compute_hba,
@@ -166,6 +188,11 @@ class Compound:
         }
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the compound to a JSON-compatible dict.
+
+        Returns:
+            Dict with the SMILES, core identifiers, and metadata.
+        """
         return {
             "smiles": self.smiles,
             "formula": self.formula,

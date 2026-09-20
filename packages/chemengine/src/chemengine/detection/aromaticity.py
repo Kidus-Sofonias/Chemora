@@ -62,10 +62,12 @@ class AromaticityResult:
 
     @property
     def is_aromatic(self) -> bool:
+        """Whether the ring satisfies the Hückel aromaticity criteria."""
         return self.result == AromaticityType.AROMATIC
 
     @property
     def is_anti_aromatic(self) -> bool:
+        """Whether the ring is antiaromatic (conjugated, 4n pi electrons)."""
         return self.result == AromaticityType.ANTI_AROMATIC
 
 

@@ -515,14 +515,15 @@ def parse_smiles(smiles: str, *, validate: bool = True) -> MolecularGraph:
 
     This is the main entry point for SMILES parsing. It handles standard
     OpenSMILES syntax including:
-        - Basic and aromatic atoms
-        - Bracketed atoms with isotopes, charges, hydrogens, stereochemistry
-        - All bond types (single, double, triple, quadruple, aromatic, directional)
-        - Nested branches (parentheses)
-        - Ring closures (digit and %digit)
-        - Tetrahedral stereochemistry (@, @@)
-        - Dot disconnections (salts, mixtures)
-        - Wildcard atoms (*)
+
+- Basic and aromatic atoms
+- Bracketed atoms with isotopes, charges, hydrogens, stereochemistry
+- All bond types (single, double, triple, quadruple, aromatic, directional)
+- Nested branches (parentheses)
+- Ring closures (digit and %digit)
+- Tetrahedral stereochemistry (@, @@)
+- Dot disconnections (salts, mixtures)
+- Wildcard atoms (*)
 
     Args:
         smiles: The SMILES string (e.g., 'CCO', 'c1ccccc1', 'CC(=O)O').
@@ -1253,9 +1254,12 @@ class SmilesParser(Parser):
     """Parser for SMILES strings implementing the Parser protocol."""
 
     def parse(self, text: str, /, **options: Any) -> MolecularGraph:
+        """Parse a SMILES string into a molecular graph (main entry point
+        for OpenSMILES syntax, including stereo and charged species)."""
         return parse_smiles(text)
 
     def serialize(self, graph: MolecularGraph, /, **options: Any) -> str:
+        """Serialize a molecular graph to its canonical SMILES string."""
         return serialize_smiles(graph)
 
 

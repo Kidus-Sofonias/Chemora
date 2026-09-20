@@ -48,20 +48,25 @@ class Ring:
 
     @property
     def size(self) -> int:
+        """Number of atoms in the ring."""
         return len(self.atom_indices)
 
     @property
     def is_three_membered(self) -> bool:
+        """Whether this is a three-membered ring."""
         return self.size == 3
 
     @property
     def is_four_membered(self) -> bool:
+        """Whether this is a four-membered ring."""
         return self.size == 4
 
     @property
     def is_five_membered(self) -> bool:
+        """Whether this is a five-membered ring."""
         return self.size == 5
 
     @property
     def is_six_membered(self) -> bool:
+        """Whether this is a six-membered ring."""
         return self.size == 6

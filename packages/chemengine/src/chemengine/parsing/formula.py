@@ -49,18 +49,23 @@ class _FormulaScanner:
         self.formula = formula
 
     def peek(self) -> str:
+        """Return the current character without consuming it ('' at end)."""
         if self.i < len(self.s):
             return self.s[self.i]
         return ""
 
     def error(self, message: str) -> FormulaParseError:
+        """Build a :class:`FormulaParseError` annotated with the current
+        position and formula."""
         return FormulaParseError(message, pos=self.i, formula=self.formula)
 
     def skip_whitespace(self) -> None:
+        """Advance past any whitespace at the current position."""
         while self.i < len(self.s) and self.s[self.i].isspace():
             self.i += 1
 
     def at_end(self) -> bool:
+        """Whether the scanner has consumed the whole formula."""
         return self.i >= len(self.s)
 
 
@@ -402,9 +407,17 @@ class FormulaParser(Parser):
     """Parser for molecular formulas."""
 
     def parse(self, text: str, /, **options: Any) -> MolecularGraph:
+        """Build a molecular graph from a Hill-system formula (e.g.,
+        ``'C2H6O'``); charged formulas are also accepted.
+
+        Args:
+            text: The molecular formula.
+            **options: May include ``name`` to label the resulting graph.
+        """
         return formula_to_graph(text, options.get("name"))
 
     def serialize(self, graph: MolecularGraph, /, **options: Any) -> str:
+        """Return the Hill-system molecular formula of the graph."""
         return graph.molecular_formula
 
 

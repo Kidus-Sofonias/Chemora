@@ -116,10 +116,12 @@ class OrbitalOccupancy:
 
     @property
     def is_full(self) -> bool:
+        """Whether the orbital holds its maximum electron capacity."""
         return self.electrons >= self.capacity
 
     @property
     def is_empty(self) -> bool:
+        """Whether the orbital holds no electrons."""
         return self.electrons == 0
 
     def __repr__(self) -> str:
@@ -141,6 +143,8 @@ class ElectronShell:
 
     @property
     def subshell_notation(self) -> str:
+        """Aufbau notation string (e.g., ``'1s2 2s2 2p4'``) for occupied
+        subshells only."""
         return " ".join(repr(o) for o in self.orbitals if o.electrons > 0)
 
 

@@ -367,9 +367,11 @@ class InChIParser(Parser):
     """Parser for InChI strings."""
 
     def parse(self, text: str, /, **options: Any) -> MolecularGraph:
+        """Parse a full InChI string into a molecular graph."""
         return parse_inchi(text)
 
     def serialize(self, graph: MolecularGraph, /, **options: Any) -> str:
+        """Serialize a molecular graph to its InChI string."""
         from chemengine.parsing.inchi_serializer import serialize_inchi
         return serialize_inchi(graph)
 

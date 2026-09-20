@@ -2,10 +2,11 @@
 
 All reference data is stored in versioned JSON/TOML files rather than in code.
 This enables:
-    - Data updates without code changes
-    - Versioned datasets for reproducibility
-    - Plugin-contributed datasets
-    - Hot-reloading during development
+
+- Data updates without code changes
+- Versioned datasets for reproducibility
+- Plugin-contributed datasets
+- Hot-reloading during development
 
 Available datasets:
     - elements.json: Atomic properties (mass, radius, electronegativity, valence)

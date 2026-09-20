@@ -400,21 +400,24 @@ def _topology_layer(graph: MolecularGraph) -> str:
 def generate_inchi_key(graph: MolecularGraph) -> str:
     """Generate an InChIKey from a MolecularGraph.
 
-    InChIKey is a fixed-length (27 characters) hash of the InChI string.
-    Format: XXXXXXXXXXXXXX-YNNNNN-XXXXX
-    - First 14 chars: connectivity hash
+    Returns a 27-character, InChIKey-style identifier of the form
+    ``XXXXXXXXXXXXXX-YXXXXXXXXX-A``:
+    - First 14 chars: hash of the InChI string
     - Hyphen
-    - 6 chars: formula + stereo hash
+    - 10 chars: continuation of the hash
     - Hyphen
-    - 5 chars: proton/deuterium/isotope hash (last char is version)
+    - ``A`` (standard InChI version flag)
 
-    Uses SHA-256 truncated to produce the key.
+    The hash is SHA-256 of the InChI string, truncated to the two blocks —
+    it is deterministic for a given structure but is **not** the standard
+    InChIKey algorithm, so values are not interchangeable with hashes
+    produced by the official InChI software.
 
     Args:
         graph: The MolecularGraph.
 
     Returns:
-        27-character InChIKey string.
+        27-character InChIKey-style string.
     """
     inchi = serialize_inchi(graph)
 

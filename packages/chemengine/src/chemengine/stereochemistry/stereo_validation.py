@@ -91,10 +91,12 @@ class StereoValidationResult:
 
     @property
     def error_count(self) -> int:
+        """Number of stereo issues with ERROR severity."""
         return sum(1 for i in self.issues if i.severity == StereoSeverity.ERROR)
 
     @property
     def warning_count(self) -> int:
+        """Number of stereo issues with WARNING severity."""
         return sum(1 for i in self.issues if i.severity == StereoSeverity.WARNING)
 
     def __repr__(self) -> str:

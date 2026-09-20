@@ -111,14 +111,17 @@ class Molecule:
 
     @property
     def num_atoms(self) -> int:
+        """Total atom count, including hydrogens."""
         return self.graph.num_atoms
 
     @property
     def num_bonds(self) -> int:
+        """Total bond count."""
         return self.graph.num_bonds
 
     @property
     def name(self) -> str | None:
+        """Optional molecule name assigned at build time."""
         return self.graph.name
 
     @classmethod

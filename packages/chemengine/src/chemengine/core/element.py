@@ -73,10 +73,12 @@ class Element:
 
     @property
     def van_der_waals_radius(self) -> float:
+        """Van der Waals radius in angstroms."""
         return self.vdw_radius
 
     @property
     def common_valences(self) -> tuple[int, ...]:
+        """Common oxidation states for this element."""
         return self.oxidation_states
 
     @property
@@ -88,56 +90,70 @@ class Element:
 
     @property
     def max_valence(self) -> int:
+        """Largest absolute oxidation state (maximum bonding valence)."""
         if not self.oxidation_states:
             return 0
         return max(abs(v) for v in self.oxidation_states)
 
     @property
     def element_symbol(self) -> ElementSymbol:
+        """The symbol as a typed ``ElementSymbol`` enum member."""
         return ElementSymbol(self.symbol)
 
     @property
     def is_metal(self) -> bool:
+        """Whether the element is a metal (alkali, alkaline earth, transition,
+        post-transition, lanthanide, or actinide)."""
         return self.category in ("alkali_metal", "alkaline_earth", "transition_metal", "post_transition_metal", "lanthanide", "actinide")
 
     @property
     def is_nonmetal(self) -> bool:
+        """Whether the element is classified as a nonmetal."""
         return self.category == "nonmetal"
 
     @property
     def is_metalloid(self) -> bool:
+        """Whether the element is classified as a metalloid."""
         return self.category == "metalloid"
 
     @property
     def is_halogen(self) -> bool:
+        """Whether the element is in group 17 (halogens)."""
         return self.group == 17
 
     @property
     def is_noble_gas(self) -> bool:
+        """Whether the element is in group 18 (noble gases)."""
         return self.group == 18
 
     @property
     def is_transition_metal(self) -> bool:
+        """Whether the element is in a d-block group (3–12)."""
         return 3 <= self.group <= 12
 
     @property
     def is_lanthanide(self) -> bool:
+        """Whether the element is a lanthanide (Z 57–71)."""
         return 57 <= self.atomic_number <= 71
 
     @property
     def is_actinide(self) -> bool:
+        """Whether the element is an actinide (Z 89–103)."""
         return 89 <= self.atomic_number <= 103
 
     @property
     def is_radioactive(self) -> bool:
+        """Whether the element has no stable isotopes (all abundances unknown)."""
         return all(iso.natural_abundance is None for iso in self.isotopes)
 
     @property
     def has_stable_isotopes(self) -> bool:
+        """Whether the element has at least one stable isotope."""
         return any(iso.natural_abundance is not None for iso in self.isotopes)
 
     @property
     def most_abundant_isotope(self) -> IsotopeInfo | None:
+        """The stable isotope with the highest natural abundance, if any."""
         stable = [iso for iso in self.isotopes if iso.natural_abundance is not None]
         if not stable:
             return None
@@ -145,6 +161,18 @@ class Element:
 
     @classmethod
     def get(cls, identifier: str | int | ElementSymbol) -> Element:
+        """Look up an element by symbol, atomic number, or ``ElementSymbol``.
+
+        Args:
+            identifier: Element symbol (``'C'``), atomic number (``6``), or
+                ``ElementSymbol`` member.
+
+        Returns:
+            The matching Element.
+
+        Raises:
+            KeyError: If the identifier does not match any element.
+        """
         if isinstance(identifier, ElementSymbol):
             return _ELEMENTS_BY_SYMBOL[identifier.value]
         if isinstance(identifier, int):
@@ -155,16 +183,31 @@ class Element:
 
     @classmethod
     def from_z(cls, z: int) -> Element:
+        """Look up an element by atomic number (1–118).
+
+        Raises:
+            ValueError: If ``z`` is outside the supported range.
+        """
         if z < 1 or z > 118:
             raise ValueError(f"Invalid atomic number: {z}")
         return _ELEMENTS_BY_Z[z]
 
     @classmethod
     def from_symbol(cls, symbol: str) -> Element:
+        """Look up an element by its one- or two-letter symbol.
+
+        Raises:
+            KeyError: If the symbol is unknown.
+        """
         return _ELEMENTS_BY_SYMBOL[symbol]
 
     @classmethod
     def from_name(cls, name: str) -> Element:
+        """Look up an element by its English name (case-insensitive).
+
+        Raises:
+            KeyError: If the name is unknown.
+        """
         key = name.lower()
         if key not in _ELEMENTS_BY_NAME:
             raise KeyError(f"Element not found: '{name}'")
@@ -172,10 +215,20 @@ class Element:
 
     @classmethod
     def all_elements(cls) -> tuple[Element, ...]:
+        """Return all 118 elements ordered by atomic number."""
         return tuple(_ELEMENTS_BY_Z.values())
 
     @classmethod
     def filter(cls, **filters: Any) -> ElementQuery:
+        """Start an element query with equality filters.
+
+        Args:
+            **filters: Field/value pairs (e.g., ``group=1``, ``block='s'``
+                or predicate flags like ``is_metal=True``).
+
+        Returns:
+            An ``ElementQuery`` ready for further chaining and execution.
+        """
         query = ElementQuery()
         for key, value in filters.items():
             query = query.filter(**{key: value})
@@ -192,6 +245,16 @@ class ElementQuery:
         self._filters: list[Callable[[Element], bool]] = []
 
     def filter(self, **kwargs: Any) -> ElementQuery:
+        """Add equality/range filters to the query (chainable).
+
+        Supported keys include ``period``, ``group``, ``block``,
+        ``category``, ``phase_at_stp``, the ``is_*`` flags, ``z``,
+        ``symbol``, and ``name``; range keys are suffixed with ``_min``/
+        ``_max`` (e.g., ``atomic_number_min=57``).
+
+        Returns:
+            The same query with the new predicates applied.
+        """
         for key, value in kwargs.items():
             predicate = self._make_predicate(key, value)
             if predicate is not None:
@@ -199,6 +262,8 @@ class ElementQuery:
         return self
 
     def execute(self) -> list[Element]:
+        """Run the accumulated filters and return the matching elements
+        ordered by atomic number (all elements when no filters were added)."""
         if not self._filters:
             return list(_ELEMENTS_BY_Z.values())
         return [el for el in _ELEMENTS_BY_Z.values() if all(f(el) for f in self._filters)]

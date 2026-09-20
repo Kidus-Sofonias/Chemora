@@ -21,7 +21,8 @@ def add_implicit_hydrogens(graph: MolecularGraph) -> MolecularGraph:
     """Compute and set implicit hydrogen counts for all atoms.
 
     For each atom where implicit_hydrogens is None, auto-compute the
-    appropriate count based on valence rules:
+    appropriate count based on valence rules::
+
         implicit_H = max_valence - (bond_order_sum + formal_charge)
 
     Args:

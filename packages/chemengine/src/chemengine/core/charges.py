@@ -23,18 +23,22 @@ class Charge:
 
     @property
     def is_positive(self) -> bool:
+        """Whether the formal charge is positive."""
         return self.value > 0
 
     @property
     def is_negative(self) -> bool:
+        """Whether the formal charge is negative."""
         return self.value < 0
 
     @property
     def is_neutral(self) -> bool:
+        """Whether the formal charge is zero."""
         return self.value == 0
 
     @property
     def sign(self) -> int:
+        """Sign of the charge as ``1``, ``-1``, or ``0``."""
         if self.value > 0:
             return 1
         if self.value < 0:
@@ -89,12 +93,15 @@ class ChargeDistribution:
 
     @property
     def is_neutral(self) -> bool:
+        """Whether the total formal charge across all atoms is zero."""
         return self.total_charge == 0
 
     @property
     def is_radical_species(self) -> bool:
+        """Whether any atom carries unpaired (radical) electrons."""
         return self.total_radical_electrons > 0
 
     @property
     def num_charged_atoms(self) -> int:
+        """Number of atoms carrying a nonzero formal charge."""
         return sum(1 for c in self.formal_charges if c.value != 0)

@@ -41,6 +41,8 @@ class ValenceRule:
     description = "Check atom bond counts against maximum valence limits"
 
     def validate(self, graph: MolecularGraph) -> Iterator[ValidationError]:
+        """Yield validation errors for violations of this rule (see the
+        class docstring and ``description`` for the rule's purpose)."""
         n = graph.num_atoms
         for i in range(n):
             atom = graph.atoms[i]
@@ -148,6 +150,8 @@ class HypervalentRule:
     _HYPERVALENT_ELEMENTS: set[int] = {15, 16, 17, 35, 53}  # P, S, Cl, Br, I
 
     def validate(self, graph: MolecularGraph) -> Iterator[ValidationError]:
+        """Yield validation errors for violations of this rule (see the
+        class docstring and ``description`` for the rule's purpose)."""
         n = graph.num_atoms
         for i in range(n):
             atom = graph.atoms[i]
@@ -214,6 +218,8 @@ class ChargeRule:
     }
 
     def validate(self, graph: MolecularGraph) -> Iterator[ValidationError]:
+        """Yield validation errors for violations of this rule (see the
+        class docstring and ``description`` for the rule's purpose)."""
         n = graph.num_atoms
         for i in range(n):
             atom = graph.atoms[i]
@@ -258,6 +264,8 @@ class TotalChargeRule:
     description = "Check overall molecular charge consistency"
 
     def validate(self, graph: MolecularGraph) -> Iterator[ValidationError]:
+        """Yield validation errors for violations of this rule (see the
+        class docstring and ``description`` for the rule's purpose)."""
         total_charge = sum(atom.formal_charge for atom in graph.atoms)
 
         # Emit info for non-neutral molecules
@@ -298,6 +306,8 @@ class IsotopeRule:
     description = "Check isotope mass numbers against known isotopes"
 
     def validate(self, graph: MolecularGraph) -> Iterator[ValidationError]:
+        """Yield validation errors for violations of this rule (see the
+        class docstring and ``description`` for the rule's purpose)."""
         n = graph.num_atoms
         for i in range(n):
             atom = graph.atoms[i]
@@ -344,6 +354,8 @@ class GraphStructureRule:
     description = "Check basic graph structural integrity"
 
     def validate(self, graph: MolecularGraph) -> Iterator[ValidationError]:
+        """Yield validation errors for violations of this rule (see the
+        class docstring and ``description`` for the rule's purpose)."""
         n = graph.num_atoms
         seen_pairs: set[tuple[int, int]] = set()
 
@@ -420,6 +432,8 @@ class RadicalRule:
     description = "Check for unpaired electrons"
 
     def validate(self, graph: MolecularGraph) -> Iterator[ValidationError]:
+        """Yield validation errors for violations of this rule (see the
+        class docstring and ``description`` for the rule's purpose)."""
         n = graph.num_atoms
         for i in range(n):
             atom = graph.atoms[i]
@@ -457,6 +471,8 @@ class ValenceSaturationRule:
     _MAIN_GROUP_ELEMENTS: set[int] = {5, 6, 7, 8, 9, 14, 15, 16, 17, 35, 53}
 
     def validate(self, graph: MolecularGraph) -> Iterator[ValidationError]:
+        """Yield validation errors for violations of this rule (see the
+        class docstring and ``description`` for the rule's purpose)."""
         n = graph.num_atoms
         for i in range(n):
             atom = graph.atoms[i]
@@ -508,6 +524,8 @@ class AromaticityRule:
     description = "Check aromatic consistency"
 
     def validate(self, graph: MolecularGraph) -> Iterator[ValidationError]:
+        """Yield validation errors for violations of this rule (see the
+        class docstring and ``description`` for the rule's purpose)."""
         n = graph.num_atoms
 
         # Collect aromatic atoms from bond data

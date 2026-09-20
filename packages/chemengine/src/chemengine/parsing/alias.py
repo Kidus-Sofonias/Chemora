@@ -190,12 +190,22 @@ class AliasParser(Parser):
     """Parser that resolves common chemical names to molecular graphs."""
 
     def parse(self, text: str, /, **options: Any) -> MolecularGraph:
+        """Resolve a common chemical name (e.g., ``'aspirin'``) to a graph.
+
+        Raises:
+            ValueError: If the name is not a known alias.
+        """
         graph = resolve_alias_to_graph(text)
         if graph is None:
             raise ValueError(f"Unknown chemical name: '{text}'")
         return graph
 
     def serialize(self, graph: MolecularGraph, /, **options: Any) -> str:
+        """Not supported: name resolution is one-way.
+
+        Raises:
+            NotImplementedError: Always — alias parsing has no serializer.
+        """
         raise NotImplementedError("AliasParser does not support serialization")
 
 

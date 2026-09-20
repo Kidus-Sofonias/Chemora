@@ -30,6 +30,7 @@ def get_cip_priority(graph: MolecularGraph, center: int,
     """Rank substituents around a stereocenter by CIP priority (highest = first).
 
     Priority rules (applied in order):
+
     1. Higher atomic number = higher priority
     2. Higher isotope mass = higher priority (if atomic numbers equal)
     3. Pi-bond connectivity: multiple bonds count as additional attachments

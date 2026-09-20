@@ -12,22 +12,45 @@ requires-python = ">=3.10"
 authors = [
     { name = "Kidus Sofonias", email = "kidus.sofonias@example.com" },
 ]
+keywords = [
+    "chemistry",
+    "cheminformatics",
+    "smiles",
+    "molecular-graph",
+    "molecule",
+    "stereochemistry",
+]
 
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 
 dependencies = [
     "structlog>=24.1.0",
+    "tomli>=2.0.0; python_version < '3.11'",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Kidus-Sofonias/Chemora"
+Documentation = "https://github.com/Kidus-Sofonias/Chemora/tree/master/packages/chemengine/docs"
+Changelog = "https://github.com/Kidus-Sofonias/Chemora/blob/master/packages/chemengine/CHANGELOG.md"
+Issues = "https://github.com/Kidus-Sofonias/Chemora/issues"
+
+[project.license-files]
+globs = ["LICENSE"]
 
 [project.optional-dependencies]
 dev = [
@@ -50,6 +73,24 @@ all = ["chemengine[dev,viz,ml]"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/chemengine"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/chemengine",
+    "tests",
+    "docs",
+    "examples",
+    "benchmarks",
+    "scripts",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "RELEASE_CHECKLIST.md",
+    "DEPLOYMENT.md",
+]
+exclude = ["docs/_build"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

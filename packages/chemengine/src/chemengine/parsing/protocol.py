@@ -14,9 +14,30 @@ class Parser(TypingProtocol):
     """Protocol for chemical identifier parsers."""
 
     def parse(self, text: str, /, **options: Any) -> MolecularGraph:
+        """Parse a chemical identifier string into a molecular graph.
+
+        Args:
+            text: The identifier (SMILES, InChI, formula, ...).
+            **options: Format-specific parsing options.
+
+        Returns:
+            The parsed MolecularGraph.
+
+        Raises:
+            ValueError: If the identifier is invalid for this format.
+        """
         ...
 
     def serialize(self, graph: MolecularGraph, /, **options: Any) -> str:
+        """Serialize a molecular graph to this parser's identifier format.
+
+        Args:
+            graph: The molecular graph to serialize.
+            **options: Format-specific serialization options.
+
+        Returns:
+            The identifier string.
+        """
         ...
 
 

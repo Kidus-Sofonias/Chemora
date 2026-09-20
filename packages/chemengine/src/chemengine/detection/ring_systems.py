@@ -64,30 +64,37 @@ class RingSystem:
 
     @property
     def num_rings(self) -> int:
+        """Number of rings in this ring system."""
         return len(self.rings)
 
     @property
     def num_atoms(self) -> int:
+        """Number of atoms belonging to this ring system."""
         return len(self.atom_indices)
 
     @property
     def is_fused(self) -> bool:
+        """Whether the rings share a bond (fused system)."""
         return self.system_type == RingSystemType.FUSED
 
     @property
     def is_spiro(self) -> bool:
+        """Whether the rings share exactly one atom (spiro system)."""
         return self.system_type == RingSystemType.SPIRO
 
     @property
     def is_bridged(self) -> bool:
+        """Whether the rings are bridged (share atoms without sharing bonds)."""
         return self.system_type == RingSystemType.BRIDGED
 
     @property
     def is_isolated(self) -> bool:
+        """Whether this is a single isolated ring."""
         return self.system_type == RingSystemType.ISOLATED
 
     @property
     def is_complex(self) -> bool:
+        """Whether the ring system combines several topology classes."""
         return self.system_type == RingSystemType.COMPLEX
 
     @property

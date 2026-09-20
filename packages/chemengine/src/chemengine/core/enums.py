@@ -270,18 +270,22 @@ class BondOrder(IntEnum):
 
     @property
     def is_single(self) -> bool:
+        """Whether this is a single bond."""
         return self == BondOrder.SINGLE
 
     @property
     def is_double(self) -> bool:
+        """Whether this is a double bond."""
         return self == BondOrder.DOUBLE
 
     @property
     def is_triple(self) -> bool:
+        """Whether this is a triple bond."""
         return self == BondOrder.TRIPLE
 
     @property
     def is_aromatic(self) -> bool:
+        """Whether this is an aromatic bond."""
         return self == BondOrder.AROMATIC
 
     @property
