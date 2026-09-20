@@ -39,6 +39,17 @@ dev = [
     "ruff>=0.2.0",
     "aiosqlite>=0.20.0",
 ]
+# Real provider SDKs are optional at runtime (lazy imports inside the
+# provider). The selected provider's SDK must be installed in production.
+providers = [
+    "openai>=1.40.0",
+    "anthropic>=0.40.0",
+]
+# Browser E2E verification (backend/scripts/e2e_verify.py, M31). Requires a
+# Chromium binary on the machine: `python -m playwright install chromium`.
+e2e = [
+    "playwright>=1.40.0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
