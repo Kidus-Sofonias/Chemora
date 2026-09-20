@@ -1,7 +1,7 @@
 # Chemora — Project Status Report
 
 **Date:** September 19, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion complete
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion complete / M33 scoped
 **Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) + Production Readiness & Release Engineering (M31) complete · Post-M26 corrective hardening pass complete
 
 ---
@@ -22,7 +22,7 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Backend Tests** | 220 / 220 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache) |
 | **Web Tests** | 74 / 74 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
-| **Next Milestone** | M32 — ChemEngine Release Completion: API Reference, Tutorials & PyPI ✅ (complete; PyPI upload + GitHub Release remain credential-blocked with exact steps in `packages/chemengine/RELEASE_CHECKLIST.md`) |
+| **Next Milestone** | M33 — ChemEngine v2.0 Feature Completion: Rendering, Nomenclature & Reaction Mapping (scoped; implementation not started) |
 
 ---
 
@@ -515,6 +515,51 @@ accounts/credentials, with exact completion steps.
   for both `@`/`@@` of 2-butanol (storage preserves the distinct tags;
   perception-layer limitation documented in example 07, algorithm change
   out of M32 scope).
+
+---
+
+### 🔲 M33: ChemEngine v2.0 Feature Completion — Rendering, Nomenclature & Reaction Mapping (Scoped — 2026-09-21)
+
+M33 is **scoped; implementation has not started**. M32 closed the
+ChemEngine *release* surface; M33 closes the remaining **itemized**
+Phase 10–12 feature rows — all tagged "Planned (v2.0)" in the roadmap —
+as one coherent milestone: rendering (10.2 PNG output, 10.3 substructure
+highlighting, 10.5 dark mode + themes), nomenclature (11.3 preferred IUPAC
++ common names, 11.4 IUPAC name parser, 11.5 tautomer handling), and
+reactions (12.2 atom-atom mapping via the existing MCS engine, 12.5 the
+mechanism *architecture* placeholder the completed Phase 12 explicitly
+anticipated). It also picks up the one open measured Phase 15 performance
+target M32 recorded (first import 492.9 ms vs the <100 ms target).
+
+**Why this is next (repository evidence):** after M32 the remaining
+explicitly itemized feature work in the roadmap is exactly the rows above,
+each with named atomic tasks and benchmarks. Discovery verified the other
+remaining "Planned" markers (Phases 1/6/7) were stale — atropisomer
+placeholders, ambiguous/conflict stereo validation, isomer filtering, and
+property-based tests are already implemented — and reconciled them. The
+Future Roadmap v2.0 *domains* (organometallics, polymers, biomolecules,
+full mechanism engine, GNN, WebAssembly, crystallography, NMR) remain an
+explicitly unordered future list and are NOT part of M33; v3.0 stays
+longer-term; the M32 credential-blocked GitHub Release/PyPI upload remain
+documented blockers, not M33 work.
+
+**Out of scope:** all Future Roadmap v2.0 domains; v3.0 items; mobile;
+M32's external release blockers; AI tutor redesign; backend/web/admin
+product feature work; M34+ work.
+
+**Acceptance criteria (summary — full list in TODO.md M33 section):** PNG
+output via the roadmap-named optional dependency with HiDPI and graceful
+degradation; deterministic substructure highlighting exposed on the
+tool surface; dark/CPK/monochrome/accessibility themes; preferred IUPAC
+names + a tested common-names dictionary; `parsing/iupac/` tokenizer+parser
+round-tripping the supported grammar with documented coverage; keto-enol
+and amide-imidic tautomer detection + canonicalization; `ReactionGraph`
+with MCS-based atom-atom mapping validated on a 50+ reaction reference set
+meeting the Phase 12 benchmark targets; the mechanism architecture
+placeholder (not an engine); first import <100 ms with the benchmark gate
+green; Phase 10/11/12 tables reconciled; full regression with exact
+totals; no new P0/P1 security issues; docs synchronized; focused commits
+pushed with HEAD == origin/master and a clean tree.
 
 ---
 

@@ -362,9 +362,9 @@ Make the current engine completely reliable. Eliminate all technical debt, achie
 | 1.1 | Technical debt elimination | ✅ Complete |
 | 1.2 | API consistency pass | ✅ Complete |
 | 1.3 | Infrastructure test coverage | ✅ Complete |
-| 1.4 | Property-based testing integration | 🔜 Next |
+| 1.4 | Property-based testing integration | ✅ Complete — 24 `@given` tests in `tests/test_property_based.py` (verified M33 discovery) |
 | 1.5 | Documentation synchronization | ✅ Complete |
-| 1.6 | Benchmark baseline establishment | ⬜ Planned |
+| 1.6 | Benchmark baseline establishment | ✅ Complete — 60-function baseline established + CI regression gate (M31/M32); first-import <100 ms target recorded as open (492.9 ms measured, M33) |
 | 1.7 | Parser regression test suite | ✅ Complete |
 
 ### Atomic Tasks
@@ -966,8 +966,8 @@ Industrial-quality stereochemistry engine: CIP priority rules, tetrahedral R/S, 
 - [x] Implement tetrahedral center perception + R/S assignment
 - [x] Implement double bond stereochemistry perception + E/Z assignment
 - [x] Implement cis/trans assignment
-- [ ] Atropisomer placeholder data structures (v2.0)
-- [ ] Stereo validation: ambiguous/conflicting detection (v2.0)
+- [x] Atropisomer placeholder data structures (v2.0) — `Atropisomer` dataclass + `detect_atropisomer_candidates()` exist in `stereochemistry/stereo_validation.py` (verified M33 discovery)
+- [x] Stereo validation: ambiguous/conflicting detection (v2.0) — `StereoIssueType.AMBIGUOUS`/`CONFLICT` + validation implemented (verified M33 discovery)
 - [x] Stereo perception pipeline: auto-detect → assign
 - [x] Register all stereo algorithms in `AlgorithmRegistry`
 - [x] Create `stereochemistry/cip.py`, `tetrahedral.py`, `double_bond.py`, `perception.py`
@@ -1027,8 +1027,8 @@ Constitutional and stereoisomer enumeration with duplicate elimination via canon
 - [x] Implement heteroatom placement enumeration
 - [x] Implement stereoisomer enumeration (2^n centers)
 - [x] Implement duplicate elimination via canonical graph hashing
-- [ ] Implement isomer filtering (by formula, mass, substructure) — v2.0
-- [ ] Implement lazy iteration for large counts — v2.0
+- [x] Implement isomer filtering (by formula, mass, substructure) — `generation/filtering.py` (`IsomerFilter`) implemented + tested (verified M33 discovery)
+- [x] Implement lazy iteration for large counts — generator-based iteration in `generation/filtering.py` (verified M33 discovery)
 - [x] Register all generation algorithms in `AlgorithmRegistry`
 - [x] Create `generation/constitutional.py`, `stereoisomers.py`
 
@@ -2451,6 +2451,136 @@ accounts/credentials, with exact steps to complete them.
 
 ---
 
+### M33 — ChemEngine v2.0 Feature Completion: Rendering, Nomenclature & Reaction Mapping (Scoped)
+
+M33 is **scoped** (2026-09-21); implementation has **not started**. M32 is
+complete. M33 closes the remaining **itemized** Phase 10–12 rows (all
+tagged "Planned (v2.0)") as one coherent "finish the v2.0 feature list"
+milestone, and picks up the one open measured Phase 15 performance target
+(first import <100 ms) that M32 recorded. The unordered Future Roadmap
+v2.0 *domains* (organometallics, polymers, biomolecules, a full mechanism
+engine, GNN, WebAssembly, crystallography, NMR) are **not** part of M33 —
+they remain separately labeled future work with no documented ordering.
+
+**Why this is M33 (repository evidence).** After M32 the roadmap's
+remaining explicitly itemized feature work is exactly: 10.2 PNG output,
+10.3 substructure highlighting, 10.5 dark mode + themes (Phase 10
+Rendering); 11.3 preferred IUPAC + common names, 11.4 IUPAC name parser,
+11.5 tautomer handling (Phase 11 Nomenclature); 12.2 atom-atom mapping and
+12.5 mechanism *architecture* (Phase 12 Reactions — the placeholder
+architecture the completed Phase 12 explicitly anticipated). All carry
+named atomic tasks and benchmarks in the roadmap. Discovery also verified
+the remaining "Planned" markers in Phases 1/6/7 were stale (atropisomer
+placeholders, ambiguous/conflict stereo validation, isomer filtering,
+property-based tests, benchmark baselines are all already implemented)
+and reconciled them. The M32-measured first-import gap (492.9 ms vs the
+Phase 15.6 target <100 ms) is a bounded, measurable engineering task and
+is included here rather than left as orphan technical debt; the M32
+external release blockers (GitHub Release, PyPI upload) stay blocked on
+credentials and are **not** re-scoped into M33.
+
+**Objective.** Complete every remaining itemized v2.0 feature row of
+Phases 10–12, meet the recorded first-import performance target, and
+reconcile the roadmap — without opening any new chemistry domain.
+
+**In scope:**
+- **Phase 10.2 — PNG output (via SVG):** SVG → PNG conversion using the
+  roadmap-named optional dependency (`cairosvg`, new `render` extra),
+  HiDPI scale factors (2x, 4x) per the Phase 10 atomic task list, graceful
+  degradation when the extra is not installed.
+- **Phase 10.3 — Substructure highlighting:** colored atom/bond
+  highlighting driven by `detection.substructure` matches, exposed on
+  `render()` and as tool options; deterministic colors.
+- **Phase 10.5 — Dark mode + themes:** the roadmap-named themes (dark
+  mode, CPK coloring, monochrome, accessibility) as renderer theme
+  objects; deterministic output per theme.
+- **Phase 11.3 — Preferred IUPAC + common names:** PIN generation for the
+  naming subsystem's existing coverage and a common/trivial-name
+  dictionary (roadmap names 1000+; deliver a curated, tested set with the
+  count recorded honestly).
+- **Phase 11.4 — IUPAC name parser:** `parsing/iupac/{tokenizer,parser}.py`
+  per the roadmap's named file layout, round-tripping the generator's
+  output on its supported grammar subset (coverage documented).
+- **Phase 11.5 — Tautomer handling:** keto-enol and amide-imidic detection
+  and canonical tautomer selection per the roadmap task list.
+- **Phase 12.2 — Atom-atom mapping:** mapping via the existing MCS engine
+  (`detection.substructure.maximum_common_substructure`), `ReactionGraph`
+  dataclass with reactants/agents/products/mapping, validation (atom and
+  charge conservation), Phase 12 benchmarks (mapping <10 ms on small
+  molecules; graph construction <100 µs; balancing/validation <5 ms).
+- **Phase 12.5 — Mechanism architecture:** the placeholder
+  step-by-step mechanism architecture (module + data model + docs) that
+  Phase 12 anticipated — **not** a working mechanism engine.
+- **Performance (Phase 15.6 recorded gap):** reduce first import to
+  <100 ms (measured warm-cache fresh process, the M32 methodology) via
+  lazy loading / deferred plugin discovery; benchmark regression gate and
+  all existing tests must stay green.
+- **Documentation reconciliation:** Phase 10/11/12 milestone tables,
+  TODO.md, PROJECT_STATUS.md, gantt.html, CHANGELOG entry, Sphinx API
+  pages regenerated, tutorials/examples updated where the new APIs belong.
+
+**Out of scope:** the Future Roadmap v2.0 domains (organometallics,
+polymers, biomolecules, full mechanism engine, GNN, WebAssembly,
+crystallography, NMR); v3.0 items (drug discovery, retrosynthesis,
+docking, quantum, chemical database, collaborative platform); mobile;
+M32's credential-blocked GitHub Release/PyPI upload (remain documented
+blockers, not M33 work); AI tutor redesign; backend/web/admin product
+feature work; new ChemEngine chemistry domains beyond the rows above;
+M34+ work.
+
+**Acceptance criteria** (M33 is complete only when all of the following
+hold):
+- [ ] `render(graph, fmt="png")` (or an equivalent documented API) produces
+  a valid PNG when the `render` extra is installed, supports 2x/4x scale,
+  and raises a stable, documented error when the extra is absent.
+- [ ] `render()` accepts a substructure query/match and emits highlighted
+  atoms/bonds deterministically (same input → same output); tool surface
+  exposes the option.
+- [ ] Renderer themes exist: dark, CPK, monochrome, accessibility; each
+  produces deterministic SVG; theme selection is documented.
+- [ ] Preferred IUPAC names generated for the naming subsystem's supported
+  classes; a common-names dictionary ships with its count and test
+  coverage; 11.3 table row updated.
+- [ ] `parsing/iupac/` tokenizer+parser parse the generator's supported
+  grammar subset with round-trip tests; unsupported grammar rejected with
+  structured errors; documented coverage statement.
+- [ ] Tautomer detection (keto-enol, amide-imidic) + canonical tautomer
+  selection implemented with property/unit tests.
+- [ ] `ReactionGraph` with mapping exists; atom-atom mapping produced via
+  MCS for standard reactions; a reference reaction set (roadmap: 50+)
+  maps correctly; conservation validation detects unbalanced/mis-mapped
+  reactions; Phase 12 benchmark targets met in the benchmark suite.
+- [ ] Mechanism *architecture* placeholder module + data model + docs exist
+  (explicitly not a runnable mechanism engine).
+- [ ] First import <100 ms (M32 measurement methodology); benchmark
+  regression gate green; full test suite green.
+- [ ] Phase 10/11/12 tables reconciled; CHANGELOG entry added; Sphinx
+  pages regenerated warning-free; tutorials/examples cover the new APIs.
+- [ ] M1–M32 regression-safe: full suites + static checks + builds with
+  exact totals recorded; matrix and benchmark-regression CI jobs green.
+- [ ] No new P0/P1 security issues; no credentials committed or printed.
+- [ ] TODO.md, PROJECT_STATUS.md, gantt.html reconciled; focused commits;
+  pushed; HEAD == origin/master; working tree clean.
+
+**Dependencies:** M32 release surface (Sphinx, examples, CI gates, twine
+build); existing MCS engine (`detection/substructure.py`); existing
+`Reaction`/`ReactionBuilder`/template model; existing renderer SVG engine
+and layout; existing nomenclature generator; the M32 CI matrix and
+benchmark-regression jobs (extend, do not weaken). **Testing
+requirements:** unit tests per feature; property-based round-trips for
+name parsing (extend `tests/test_property_based.py`); mapping correctness
+on a 50+ reaction reference set; benchmark additions for mapping/graph
+construction wired into the existing benchmark-regression gate;
+import-time benchmark asserting the <100 ms target; PNG/theme/highlight
+determinism tests; graceful-degradation tests for optional deps; full
+regression (ChemEngine, backend, web, admin) with exact totals;
+ruff/mypy/tsc/builds. **Known limitations to record at completion:**
+parser grammar coverage honestly documented; common-name dictionary count
+recorded; cairosvg optional-extra status on all matrix Pythons verified;
+whatever cannot be verified is documented, never fabricated.
+
+---
+
 ## Roadmap Summary
 
 ### Overall Progress
@@ -2466,7 +2596,7 @@ accounts/credentials, with exact steps to complete them.
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | M32 — ChemEngine Release Completion: API Reference, Tutorials & PyPI ✅ (complete; PyPI upload + GitHub Release remain credential-blocked, exact steps documented in `packages/chemengine/RELEASE_CHECKLIST.md`) |
+| **Next Milestone** | M33 — ChemEngine v2.0 Feature Completion: Rendering, Nomenclature & Reaction Mapping (scoped; implementation not started) |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,

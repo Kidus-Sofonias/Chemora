@@ -2237,13 +2237,16 @@ const phases = [
     ver: '0.7',     start: 146, dur: 6,  risk: 'medium',  status: 'complete', weight: 5 },
   { id: 32, name: 'ChemEngine Release Completion: API Reference, Tutorials & PyPI (M32)', desc: 'Complete Phase 15 for the ChemEngine library — Sphinx API reference from the existing docstrings, the roadmap-named tutorials and runnable examples, the community/release file set, metadata/license/security audit with twine check, GitHub Release and PyPI where credentials allow, the CI Python matrix, and benchmark-baseline regression comparison in CI — without new chemistry features',
     tasks: ['Sphinx API reference: docs/ project (conf.py, index, autodoc/napoleon) over the existing Google-style docstrings; warning-free build as a CI gate; ReadTheDocs-ready config or documented hosting blocker', 'Docstring completeness audit across the public API surface; record the result; close or document public-API gaps', 'Tutorials: quickstart, SMILES, substructure, properties, rendering, AI/tool integration — the six named in the roadmap Phase 15.3 task list', 'Examples: 10+ runnable scripts in packages/chemengine/examples/, each executed during verification', 'Release surface: SECURITY.md, CODE_OF_CONDUCT.md, RELEASE_CHECKLIST.md, DEPLOYMENT.md (roadmap-named, absent); metadata/license/security audit; twine check on built artifacts; changelog-anchored GitHub Release + tag; PyPI/TestPyPI publication where credentials exist, else documented blocker with exact steps', 'CI deltas: Python 3.10–3.13 matrix for ChemEngine within the existing workflow (no weakened gates); benchmark baselines saved as artifacts and compared in CI, failing on documented-threshold regressions with the failure demonstrated on an injected regression', 'Reconcile Phase 15 milestone table (15.2/15.3/15.5 → M32; 15.4 partial via M31) and keep TODO.md, PROJECT_STATUS.md, gantt.html synchronized; full regression with exact totals'],
-    ver: '0.8',     start: 152, dur: 6,  risk: 'low',     status: 'complete', weight: 5 }
+    ver: '0.8',     start: 152, dur: 6,  risk: 'low',     status: 'complete', weight: 5 },
+  { id: 33, name: 'ChemEngine v2.0 Feature Completion: Rendering, Nomenclature & Reaction Mapping (M33)', desc: 'Close the remaining itemized Phase 10-12 v2.0 rows — PNG output, substructure highlighting, themes, preferred IUPAC + common names, IUPAC name parser, tautomer handling, atom-atom mapping via the existing MCS engine, and the mechanism architecture placeholder — plus the recorded first-import <100 ms performance target, without opening new chemistry domains',
+    tasks: ['Rendering 10.2/10.3/10.5: PNG output via the roadmap-named optional dependency with 2x/4x HiDPI and graceful degradation; deterministic substructure highlighting exposed on render() and the tool surface; dark/CPK/monochrome/accessibility themes', 'Nomenclature 11.3/11.4/11.5: preferred IUPAC names for supported classes; tested common/trivial-name dictionary with recorded count; parsing/iupac/{tokenizer,parser}.py round-tripping the supported grammar with documented coverage; keto-enol and amide-imidic tautomer detection + canonicalization', 'Reactions 12.2/12.5: ReactionGraph dataclass with mapping; atom-atom mapping via maximum_common_substructure validated on a 50+ reaction reference set; atom/charge conservation validation; Phase 12 benchmark targets; mechanism architecture placeholder module + docs (not an engine)', 'Performance: first import <100 ms (M32 measurement methodology) via lazy loading / deferred plugin discovery; benchmark gate stays green', 'Reconcile Phase 10/11/12 tables, CHANGELOG, Sphinx pages, tutorials/examples; keep TODO.md, PROJECT_STATUS.md, gantt.html synchronized; full regression with exact totals'],
+    ver: '0.9',     start: 158, dur: 8,  risk: 'medium',  status: 'planned', weight: 6 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 158;
+const TOTAL_WEEKS = 166;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;
@@ -2793,7 +2796,8 @@ function buildMilestoneDots() {
     { label: 'M29 AI Tutor', week: 140 },
     { label: 'M30 Conversations', week: 146 },
     { label: 'M31 Production', week: 152 },
-    { label: 'M32 Release', week: 158 }
+    { label: 'M32 Release', week: 158 },
+    { label: 'M33 v2.0 Features', week: 166 }
   ];
 
   // Create a progress line
