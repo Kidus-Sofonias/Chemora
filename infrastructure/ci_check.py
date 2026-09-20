@@ -20,6 +20,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import shutil
 import subprocess
@@ -55,6 +56,8 @@ def validate_workflow() -> None:
 
     required_commands = {
         "chemengine tests": ("chemengine", "python -m pytest tests"),
+        "chemengine docs": ("chemengine", "sphinx -W -b html"),
+        "chemengine examples": ("chemengine", "verify_examples.py"),
         "backend ruff": ("backend", "ruff check app scripts"),
         "backend mypy": ("backend", "mypy app"),
         "backend tests": ("backend", "pytest tests"),
@@ -65,6 +68,18 @@ def validate_workflow() -> None:
         "admin tsc": ("admin", "tsc --noEmit"),
         "admin build": ("admin", "npm run build"),
     }
+    # M32: the compatibility matrix must cover exactly the supported set.
+    text_matrix = json.dumps(jobs.get("chemengine-matrix", {}).get("strategy", {}))
+    for version in ("3.10", "3.11", "3.12", "3.13"):
+        check(f"matrix includes Python {version}", f"\"{version}\"" in text_matrix)
+    # M32: the benchmark-regression job must actually gate on comparison.
+    br = " ".join(
+        str(step.get("run", ""))
+        for step in jobs.get("benchmark-regression", {}).get("steps", [])
+        if isinstance(step, dict)
+    )
+    check("benchmark job compares against baseline", "--benchmark-compare" in br)
+    check("benchmark job fails on regression", "--benchmark-compare-fail" in br)
     for label, (job, needle) in required_commands.items():
         steps = jobs.get(job, {}).get("steps", [])
         found = any(
@@ -145,6 +160,42 @@ def run_gates() -> None:
         code == 0 and bool(collected) and int(collected.group(1)) >= 60,
         f"{collected.group(1) if collected else '?'} collected",
     )
+
+    # M32 gates: docs (warnings-as-errors) and executable examples.
+    code, out = _run([python, "-m", "sphinx", "-W", "-b", "html", "docs", str(ce / "docs" / "_build" / "html")], cwd=ce)
+    gate("chemengine: sphinx -W docs build", code == 0, out.strip().splitlines()[-1] if out.strip() else "")
+
+    code, out = _run([python, "scripts/verify_examples.py"], cwd=ce)
+    summary = next((l for l in out.splitlines() if "examples passed" in l), "")
+    gate("chemengine: examples all execute", code == 0, summary.strip())
+
+    # M32 benchmark-regression local run: establishes a fresh baseline and
+    # asserts the calibration ratio (machine-equivalent measurement, no
+    # comparison; CI compares against the rolling cached baseline).
+    benchdir = ce / ".benchmarks"
+    code, out = _run(
+        [
+            python, "-m", "pytest", "benchmarks", "-o", "python_files=benchmark_*.py",
+            "--benchmark-only", "--benchmark-save=local_baseline",
+            "--benchmark-min-rounds=2", "--benchmark-columns=mean", "--benchmark-sort=name",
+        ],
+        cwd=ce,
+    )
+    gate("chemengine: benchmark suite runs (baseline saved)", code == 0,
+         out.strip().splitlines()[-1] if out.strip() else "")
+    # pytest-benchmark nests saves under a platform directory
+    # (e.g. .benchmarks/Windows-CPython-3.10-64bit/0001_local_baseline.json).
+    baseline_files = sorted(benchdir.glob("*/0001_local_baseline.json")) if benchdir.exists() else []
+    baseline_file = baseline_files[-1] if baseline_files else None
+    if baseline_file is not None:
+        data = json.loads(baseline_file.read_text(encoding="utf-8"))
+        gate(
+            "chemengine: benchmark baseline artifact valid",
+            len(data.get("benchmarks", [])) >= 60,
+            f"{len(data.get('benchmarks', []))} benchmarks saved",
+        )
+    else:
+        gate("chemengine: benchmark baseline artifact valid", False, "baseline json missing")
 
     # --- Backend ------------------------------------------------------------
     be = ROOT / "backend"

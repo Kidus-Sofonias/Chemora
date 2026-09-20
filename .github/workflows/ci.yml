@@ -74,6 +74,107 @@ jobs:
             exit 1
           fi
 
+      # ─────────────────────────────────────────────────────────────────
+      # M32 additions: Sphinx API reference + examples (Phase 15.2/15.3).
+      # sphinx-build -W: any documentation warning fails the build.
+      # verify_examples.py: every examples/*.py must execute successfully.
+      # ─────────────────────────────────────────────────────────────────
+      - name: Docs build (warnings are errors)
+        working-directory: packages/chemengine
+        run: python -m sphinx -W -b html docs docs/_build/html
+
+      - name: Examples (all must execute)
+        working-directory: packages/chemengine
+        run: python scripts/verify_examples.py
+
+  # ─────────────────────────────────────────────────────────────────────
+  # ChemEngine Python compatibility matrix (M32 / Phase 15.4 delta).
+  # The full suite must pass on every supported interpreter; a dependency
+  # conflict on any version fails the job (no continue-on-error, no skips).
+  # ─────────────────────────────────────────────────────────────────────
+  chemengine-matrix:
+    name: ChemEngine on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "${{ matrix.python-version }}"
+          cache: pip
+
+      - name: Install ChemEngine with dev tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "packages/chemengine[dev]"
+
+      - name: Run ChemEngine test suite
+        working-directory: packages/chemengine
+        run: python -m pytest tests -q
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Benchmark regression (M32 / Phase 1 DoD realized).
+  # Methodology: a rolling baseline. The most recent saved baseline for
+  # this branch (previous commit's run, restored via actions/cache) is
+  # compared against this run with --benchmark-compare-fail=mean:60%.
+  # 60% absorbs cross-run runner noise (same runner generation, CPU jitter
+  # is typically well under 20%) while catching real algorithmic
+  # regressions, which show up as multi-factor slowdowns. The first run on
+  # a branch (cold cache) establishes the baseline without comparison —
+  # documented and expected, not a skipped gate.
+  # ─────────────────────────────────────────────────────────────────────
+  benchmark-regression:
+    name: Benchmark regression vs rolling baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ChemEngine with dev tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "packages/chemengine[dev]"
+
+      - name: Restore rolling benchmark baseline
+        uses: actions/cache@v4
+        with:
+          path: packages/chemengine/.benchmarks
+          key: chemengine-bench-${{ github.ref_name }}
+          restore-keys: chemengine-bench-
+
+      - name: Compare against baseline (fail on >60% mean regression) and save new baseline
+        working-directory: packages/chemengine
+        run: |
+          BASELINE=$(ls .benchmarks/000?_baseline.json 2>/dev/null | sort | tail -1)
+          if [ -n "${BASELINE}" ]; then
+            echo "Comparing against saved baseline: ${BASELINE}"
+            python -m pytest benchmarks -o python_files="benchmark_*.py" \
+              --benchmark-only \
+              --benchmark-compare="$(basename "${BASELINE}")" \
+              --benchmark-compare-fail=mean:60% \
+              --benchmark-save=baseline
+          else
+            echo "No saved baseline yet (first run for this branch) — establishing baseline."
+            python -m pytest benchmarks -o python_files="benchmark_*.py" \
+              --benchmark-only \
+              --benchmark-save=baseline
+          fi
+
+      - name: Upload baseline artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-baseline-${{ github.sha }}
+          path: packages/chemengine/.benchmarks
+          retention-days: 90
+
   # ─────────────────────────────────────────────────────────────────────
   # Backend — FastAPI service. pytest, ruff, mypy all currently pass and
   # are required gates. Tests run on SQLite exactly as the test suite

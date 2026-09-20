@@ -50,6 +50,7 @@ docs/_build/
 
 # Benchmark data
 *.benchmark
+.benchmarks/
 
 # Browser verification runtime artifacts
 .browser-verify/
