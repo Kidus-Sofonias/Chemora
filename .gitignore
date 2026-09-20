@@ -15,6 +15,13 @@ htmlcov/
 .coverage.*
 *.cover
 
+# Coverage tooling output (vitest)
+coverage/
+
+# Browser E2E runtime artifacts (M31 harness: unique DB per run, debug shots)
+e2e_chemora_*.db
+e2e_debug*.png
+
 # Type checking
 .mypy_cache/
 .dmypy.json
