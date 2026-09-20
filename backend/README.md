@@ -158,7 +158,8 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-Health check: `GET /health` → `{"status": "healthy", ...}`.
+Health check: `GET /health` → `{"status": "healthy", ...}`. Readiness:
+`GET /health/ready` → `{"status": "ready" | "not-ready", "checks": {"database": "ok" | "schema-missing" | "unavailable", "ai_provider": "...", "ai_provider_configured": true|false}}` — 503 when the database is degraded.
 
 > **Local vs production differences:**
 > - Locally `COOKIE_SECURE=false` and CORS allows `localhost` origins so the
@@ -243,7 +244,8 @@ All under `/api/v1`.
 | `POST` | `/admin/lessons/{slug}/publish` | ✅ admin | Publish a lesson (validates first). |
 | `POST` | `/admin/lessons/{slug}/unpublish` | ✅ admin | Return a published lesson to draft. |
 | `DELETE` | `/admin/lessons/{slug}` | ✅ admin | Delete a lesson and its content. Refuses with 409 if student progress exists; `?force=true` overrides. |
-| `GET` | `/health` | — | Health check. |
+| `GET` | `/health` | — | Liveness check (static, always reports the process as healthy). |
+| `GET` | `/health/ready` | — | Readiness probe (M31): verifies database connectivity + schema presence through the same session dependency routes use, and reports AI provider configuration state as booleans. Returns 200 ready / 503 not-ready; never returns URLs, credentials, or exception text. |
 
 ### `POST /chemistry/explore` (M22 — Chemistry Explorer)
 

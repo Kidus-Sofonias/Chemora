@@ -5,7 +5,7 @@
 > **Version:** 0.10.0 → 1.0.0 (ChemEngine complete; monorepo migration complete)
 > **Last Updated:** September 19, 2026
 > **Owner:** Chemora Architecture Team
-> **Status:** Active Development — Backend M19–M30 complete; M31 (Production Readiness & Release Engineering) scoped, implementation not started
+> **Status:** Active Development — Backend M19–M30 complete; M31 (Production Readiness & Release Engineering) complete
 
 ---
 
@@ -2075,9 +2075,9 @@ E2E depends on tooling availability.
 
 ---
 
-### M31 — Production Readiness & Release Engineering (Scoped)
+### M31 — Production Readiness & Release Engineering (✅ Complete)
 
-M31 is **scoped** (2026-09-19); implementation has **not started**. M30 is
+M31 was **scoped** (2026-09-19) and is now **complete** (2026-09-20). M30 is
 complete. M31 is deliberately **not** a chemistry-feature milestone: it takes
 the existing Chemora system through a production-readiness and
 release-engineering pass so the application can be deployed, tested,
@@ -2173,35 +2173,88 @@ ChemEngine v2.0/v3.0 future roadmap remains separately labeled as a
 longer-term roadmap and is NOT relabeled as M31.
 
 **Acceptance criteria** (M31 is complete only when all of the following
-hold):
-- [ ] Production PostgreSQL migration path is verified, or an explicit
-  environment blocker is documented.
-- [ ] Real AI provider smoke verification is performed where credentials are
-  available, or the lack of credentials is explicitly documented.
-- [ ] CI automatically executes the project's required backend, ChemEngine,
-  web, and admin checks.
-- [ ] CI correctly fails on broken required checks.
-- [ ] Production builds are reproducible.
-- [ ] Environment/secrets configuration is documented and safe.
-- [ ] Critical browser E2E coverage exists if the environment supports
+hold — all satisfied; see `infrastructure/RELEASE.md`, `infrastructure/ci_check.py`,
+`.github/workflows/ci.yml`, `backend/scripts/pg_verify.py`,
+`backend/scripts/ai_provider_verify.py`, `backend/scripts/release_verify.py`,
+`backend/scripts/e2e_verify.py`, and `backend/app/main.py` `/health/ready`):
+- [x] Production PostgreSQL migration path is verified, or an explicit
+  environment blocker is documented. — **VERIFIED LIVE:** real PostgreSQL 18.6
+  (portable binary, temp dir, no system install); 33/33 checks pass including
+  full chain `upgrade head` from base, schema introspection, tutor
+  conversation/message persistence with ownership, cross-user isolation over
+  real HTTP, downgrade-to-base + re-upgrade cycles.
+- [x] Real AI provider smoke verification is performed where credentials are
+  available, or the lack of credentials is explicitly documented. — **BLOCKED,
+  DOCUMENTED:** no API key exists in the environment. Compensating offline
+  verification (`ai_provider_verify.py`): 17/17 pass — factory selection, mock
+  provider, missing-SDK fallback, real HTTP error mapping through the
+  installed optional SDKs (timeout/refusal → stable categories), key-never-
+  logged asserted. Live smoke command documented in `infrastructure/RELEASE.md` §7.
+- [x] CI automatically executes the project's required backend, ChemEngine,
+  web, and admin checks. — `.github/workflows/ci.yml`: 12 blocking gates
+  (ChemEngine tests + ruff baseline + benchmark smoke; backend ruff/mypy/pytest;
+  web vitest/tsc/build; admin vitest/tsc/build). Validated locally by
+  `infrastructure/ci_check.py` (12/12 pass).
+- [x] CI correctly fails on broken required checks. — Proven by sabotage test:
+  a syntax error injected into `backend/app/main.py` made ruff exit 1 and mypy
+  exit 2; gates exit 0 again after restore. The workflow contains no `|| true`,
+  no `continue-on-error` on required steps, and `--no-fix` everywhere (CI can
+  never mutate files) — all asserted by `ci_check.py` invariants.
+- [x] Production builds are reproducible. — `release_verify.py` 18/18: clean
+  `dist/` builds for web + admin with expected artifacts, backend wheel builds,
+  app imports with production settings, migration chain resolves, npm/pip
+  installs resolve from committed lockfiles/configs.
+- [x] Environment/secrets configuration is documented and safe. — `.env`
+  git-ignored (verified), `.env.example` placeholders only and completed with
+  the M30 `AI_TOOL_CACHE_*` variables, production mode refuses missing
+  `SESSION_SECRET` and forces `COOKIE_SECURE`, no secrets in git history of M31
+  changes, `infrastructure/RELEASE.md` §9 documents every required variable.
+- [x] Critical browser E2E coverage exists if the environment supports
   reliable browser automation; otherwise the exact blocker and compensating
-  tests are documented.
-- [ ] Existing documented coverage/benchmark targets are measured accurately.
-- [ ] Existing API/developer/release documentation is updated where required.
-- [ ] Production-critical diagnostics/health checks are adequate without
-  exposing sensitive information.
-- [ ] M29 and M30 functionality remains regression-safe.
-- [ ] No new P0/P1 security issues are introduced.
-- [ ] Full regression passes.
-- [ ] Static checks pass.
-- [ ] Builds pass.
-- [ ] TODO.md is reconciled.
-- [ ] PROJECT_STATUS.md is reconciled.
-- [ ] gantt.html is updated.
-- [ ] M31 commits are focused.
-- [ ] Changes are pushed.
-- [ ] HEAD == origin/master.
-- [ ] Working tree is clean.
+  tests are documented. — **EXECUTED:** real Chromium 147 (Playwright) driving
+  the real production bundle against the real backend: 10/10 flows pass
+  (auth gate, login, learning catalog, Chemistry Explorer on real ChemEngine,
+  tutor streaming, persistence across reload, conversation switching,
+  deletion, logout, clean console). Also fixed the missing favicon the run
+  uncovered.
+- [x] Existing documented coverage/benchmark targets are measured accurately.
+  — ChemEngine **80%** overall (`pytest --cov`, matches the documented ~80%),
+  backend **80%** on `app/` (220 tests under coverage), web **88.97%** lines
+  (74 tests under coverage), admin **62.35%** lines (13 tests under coverage).
+  Phase 1.6 benchmark baseline **established**: 60 benchmark functions pass
+  (~63s), including the SMILES/formula/alias parsing benchmarks the roadmap
+  named but that did not exist before M31 (`benchmarks/benchmark_parsing.py`).
+  The Phase 1 DoD aspiration of 95% infra / 90% overall coverage is NOT met
+  (80%) — the exact gap is recorded rather than hidden.
+- [x] Existing API/developer/release documentation is updated where required.
+  — `infrastructure/RELEASE.md` (new runbook: setup, CI gates, PostgreSQL
+  procedure, provider verification, E2E, env checklist, release procedure),
+  `infrastructure/README.md` (was a stale placeholder), `backend/.env.example`,
+  `backend/pyproject.toml` (`providers` + `e2e` extras).
+- [x] Production-critical diagnostics/health checks are adequate without
+  exposing sensitive information. — `GET /health/ready` added: DB connectivity
+  + schema presence through the same session dependency routes use, AI
+  provider configuration state as booleans, 503 on degradation; never returns
+  URLs, credentials, or exception text (enforced by `backend/tests/test_health.py`).
+- [x] M29 and M30 functionality remains regression-safe. — ChemEngine 1635
+  passed / 1 skipped; backend 224 passed (220 + 4 new health tests); web 74;
+  admin 13; all tsc/builds pass.
+- [x] No new P0/P1 security issues are introduced. — Security sweep of all M31
+  files: no secrets/keys/URLs printed or committed, no `.env` tracked, no
+  TODO/FIXME debris, E2E seams are script-local test fakes (mirroring
+  `tests/conftest.py`), CI cannot leak or mutate (no secrets used, `--no-fix`).
+- [x] Full regression passes.
+- [x] Static checks pass. (backend ruff + mypy clean; ChemEngine's 342 ruff
+  findings + 44 mypy errors are a documented pre-existing baseline that CI
+  now prevents from growing — fixing them is ChemEngine work outside M31.)
+- [x] Builds pass.
+- [x] TODO.md is reconciled.
+- [x] PROJECT_STATUS.md is reconciled.
+- [x] gantt.html is updated.
+- [x] M31 commits are focused.
+- [x] Changes are pushed.
+- [x] HEAD == origin/master.
+- [x] Working tree is clean.
 
 **Dependencies:** M30 (conversations/streaming/cache must remain intact),
 M29 (provider abstraction and its security boundaries), the Alembic chain
@@ -2229,10 +2282,23 @@ executed in this environment, with exact blockers.
 | **Passing Tests** | 1635 / 1636 (1 skipped) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
-| **Backend Tests** | 220 / 220 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache) |
+| **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | M31 — Production Readiness & Release Engineering (scoped; implementation not started) |
+| **Next Milestone** | None scoped (M32 not yet defined) |
+
+**M31 completion record (2026-09-20).** Production PostgreSQL path verified
+live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,
+tutor persistence, isolation, auth boundaries). Live AI provider smoke blocked
+by missing credentials — documented, with 17/17 offline seam verification.
+CI added (12 blocking gates, failure propagation proven). Reproducible
+release validation scripted (18/18). Real-browser E2E executed (10/10 flows,
+Chromium 147). Coverage measured: ChemEngine 80%, backend 80%, web 88.97%
+lines, admin 62.35% lines. Phase 1.6 benchmark baseline established: 60
+benchmarks pass (~63s) including the previously missing parsing benchmarks.
+`GET /health/ready` added with secret-safe diagnostics. Test totals after
+M31: ChemEngine 1635 passed / 1 skipped; backend **224** (220 + 4 health);
+web 74; admin 13.
 
 ### Phase Summary Table
 
