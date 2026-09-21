@@ -240,19 +240,16 @@ def _tokenize(smiles: str) -> list[Token]:
 
 
 def _is_valid_element(symbol: str) -> bool:
-    """Check if a string is a valid element symbol or wildcard."""
-    if symbol == "*":
-        return True
-    if symbol in _ORGANIC_ELEMENTS:
-        return True
-    if symbol in _AROMATIC_SYMBOLS:
-        return True
-    # Check for valid element symbol
-    if len(symbol) == 1 and symbol.isalpha():
-        return True  # Valid single-letter (even if not standard SMILES organic)
-    if len(symbol) == 2 and symbol in _TWO_LETTER_ELEMENTS:
-        return True
-    return False
+    """Check if a string is a valid *bare* (unbracketed) atom symbol.
+
+    Per OpenSMILES, atoms written without brackets are restricted to the
+    organic subset (B, C, N, O, P, S, F, Cl, Br, I and the lowercase
+    aromatic symbols) plus the wildcard ``*``. All other elements —
+    including hydrogen — must be bracketed (``[H]``, ``[Na+]``). Accepting
+    arbitrary single letters here would misparse structural formulas such
+    as ``CH3CH3`` as carbon chains.
+    """
+    return symbol in _ORGANIC_ELEMENTS
 
 
 # ── Bracket Atom Parser ──

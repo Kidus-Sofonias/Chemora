@@ -64,6 +64,16 @@ def auto_detect_format(text: str) -> str | None:
     if has_digits and not has_smiles_chars:
         formula_pat = re.compile(r'^[A-Z][a-z]?\d*(?:[A-Z][a-z]?\d*)*(?:\.[A-Z][a-z]?\d*)*$')
         if formula_pat.match(text):
+            # Hydrogen never appears as a bare atom in SMILES (it must be
+            # bracketed, '[H]'), so any 'H' means structural formula
+            # ('C2H5OH', 'CH3CH3'). Otherwise, a molecular formula aggregates
+            # each element once: a repeated element symbol means the digits
+            # are SMILES ring-closure labels ('C1CCCCC1').
+            if "H" in text:
+                return "formula"
+            symbols = re.findall(r"[A-Z][a-z]?", text)
+            if len(symbols) != len(set(symbols)):
+                return "smiles"
             return "formula"
         # Has digits but not a formula -> likely SMILES (e.g., "c1ccccc1")
         return "smiles"

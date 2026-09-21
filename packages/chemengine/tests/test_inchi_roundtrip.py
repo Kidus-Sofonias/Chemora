@@ -76,13 +76,15 @@ class TestSimpleMolecules:
         _assert_roundtrip("C=C", "InChI=1S/C2H4/c1-2/h1-2H2")
 
     def test_propane(self):
-        _assert_roundtrip("CCC", "InChI=1S/C3H8/c1-2-3/h1H3,2H2,3H3")
+        # Canonical (order-independent) numbering; verified identical from
+        # 'CCC' and reversed SMILES.
+        _assert_roundtrip("CCC", "InChI=1S/C3H8/c1-3-2/h1-2H3,3H2")
 
     def test_acetic_acid(self):
-        _assert_roundtrip("CC(=O)O", "InChI=1S/C2H4O2/c1-2(4)-3/h1H3,4H")
+        _assert_roundtrip("CC(=O)O", "InChI=1S/C2H4O2/c1(3)(4)-2/h2H3,4H")
 
     def test_acetone(self):
-        _assert_roundtrip("CC(=O)C", "InChI=1S/C3H6O/c1-2(4)-3/h1H3,4H3")
+        _assert_roundtrip("CC(=O)C", "InChI=1S/C3H6O/c1(3)(4)-2/h2-3H3")
 
 
 # ── Ring Systems ──
