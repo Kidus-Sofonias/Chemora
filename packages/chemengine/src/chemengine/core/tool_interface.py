@@ -379,29 +379,33 @@ class ChemEngineAPI:
         )
         return _detect_fg(graph)
 
-    def render(self, graph: MolecularGraph, fmt: str = "svg", **options: Any) -> str:
+    def render(self, graph: MolecularGraph, fmt: str = "svg", **options: Any) -> Any:
         """Render a molecular graph to a visual format.
 
         Args:
             graph: The molecular graph.
-            fmt: Output format ('svg').
-            **options: Rendering options (bond_length, atom_labels, etc.).
+            fmt: Output format (``'svg'`` or ``'png'``).
+            **options: Rendering options forwarded to the renderer:
+                ``theme`` (str or RenderTheme), ``highlight``
+                (SubstructureHighlight), ``highlight_color``, ``title``,
+                ``show_hydrogens``, ``bond_length``, ``padding``; for PNG
+                additionally ``scale``/``output_width``/``output_height``.
 
         Returns:
-            The rendered string (SVG markup).
+            SVG markup (str) for ``fmt='svg'``; PNG bytes for
+            ``fmt='png'``.
 
         Raises:
             ValueError: Unknown render format.
+            PNGUnavailableError: ``fmt='png'`` but cairosvg/cairo is
+                unavailable (see :mod:`chemengine.rendering.png`).
         """
         if fmt == "svg":
             from chemengine.rendering.svg import render_svg as _render_svg
-            return _render_svg(
-                graph,
-                bond_length=options.get("bond_length", 40.0),
-                show_hydrogens=options.get("show_hydrogens", False),
-                padding=options.get("padding", 30.0),
-                title=options.get("title"),
-            )
+            return _render_svg(graph, **options)
+        if fmt == "png":
+            from chemengine.rendering.png import render_png as _render_png
+            return _render_png(graph, coordinates=None, **options)
         raise ValueError(f"Unsupported render format: {fmt}")
 
     # ── Plugin Management ──
@@ -950,6 +954,8 @@ class ChemEngineAPI:
             graph,
             bond_length=params.get("bond_length", 40.0),
             show_hydrogens=params.get("show_hydrogens", False),
+            theme=params.get("theme", "default"),
+            highlight=params.get("highlight"),
         )
         return {"svg": svg}
 
