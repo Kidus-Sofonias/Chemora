@@ -45,6 +45,8 @@ class TautomerType:
 
     KETO_ENOL = "keto-enol"
     AMIDE_IMIDIC = "amide-imidic"
+    ENOL_KETO = "enol-keto"
+    IMIDIC_AMIDE = "imidic-amide"
 
 
 @dataclass(frozen=True)
@@ -80,6 +82,72 @@ def _is_carbonyl_carbon(graph: MolecularGraph, idx: int) -> int | None:
     return None
 
 
+def _is_enol_site(graph: MolecularGraph, idx: int) -> tuple[int, int] | None:
+    """Return ``(alpha_carbon, hydroxyl_oxygen)`` for an enol carbon, else None.
+
+    An enol carbon bears a hydroxyl and is double-bonded to another carbon:
+    it is the recognisable partner of a keto site. This direction matters
+    because it is what makes :func:`canonical_tautomer` tautomer-invariant --
+    without it an enol and its keto form canonicalized to two different
+    graphs, so the "canonical" form depended on which tautomer was supplied.
+    """
+    if graph.atoms[idx].atomic_number != 6:
+        return None
+    oxygen: int | None = None
+    for n in graph.get_neighbors(idx):
+        bond = graph.get_bond(idx, n)
+        if bond is None or bond.is_aromatic or bond.order != BondOrder.SINGLE:
+            continue
+        if graph.atoms[n].atomic_number == 8 and _has_h(graph, n):
+            oxygen = n
+            break
+    if oxygen is None:
+        return None
+    for n in graph.get_neighbors(idx):
+        bond = graph.get_bond(idx, n)
+        if bond is None or bond.is_aromatic or bond.order != BondOrder.DOUBLE:
+            continue
+        # No hydrogen requirement on the partner: the enol of an internal
+        # ketone carries no H on the double-bonded carbon (that H moved to
+        # the oxygen when the keto form was de-protiated), and the shift
+        # below adds one back anyway.
+        if graph.atoms[n].atomic_number == 6:
+            return (n, oxygen)
+    return None
+
+
+def _is_imidic_site(graph: MolecularGraph, idx: int) -> tuple[int, int] | None:
+    """Return ``(nitrogen, hydroxyl_oxygen)`` for an imidic carbon, else None.
+
+    An imidic-acid carbon (``C(-OH)=N-H``) is the partner of an amide
+    carbonyl (``C=O``, ``N-H``). Without this direction the amide/imidic pair
+    had the same asymmetry as keto/enol: canonical_tautomer(amide) returned
+    the amide while canonical_tautomer(imidic acid) returned the imidic acid.
+    """
+    if graph.atoms[idx].atomic_number != 6 or graph.atoms[idx].is_aromatic:
+        return None
+    oxygen: int | None = None
+    for n in graph.get_neighbors(idx):
+        bond = graph.get_bond(idx, n)
+        if bond is None or bond.is_aromatic or bond.order != BondOrder.SINGLE:
+            continue
+        if graph.atoms[n].atomic_number == 8 and _has_h(graph, n):
+            oxygen = n
+            break
+    if oxygen is None:
+        return None
+    for n in graph.get_neighbors(idx):
+        bond = graph.get_bond(idx, n)
+        if bond is None or bond.is_aromatic or bond.order != BondOrder.DOUBLE:
+            continue
+        # The nitrogen need not carry a hydrogen: N-substituted imidic acids
+        # (C(-OH)=N-CH3) tautomerize to the corresponding N-substituted amide
+        # by moving the hydroxyl hydrogen to the nitrogen.
+        if graph.atoms[n].atomic_number == 7:
+            return (n, oxygen)
+    return None
+
+
 def _has_h(graph: MolecularGraph, idx: int) -> bool:
     atom = graph.atoms[idx]
     if getattr(atom, "implicit_hydrogens", 0):
@@ -103,7 +171,10 @@ def detect_tautomers(graph: MolecularGraph) -> list[TautomerSite]:
         graph: The molecular graph (never mutated).
 
     Returns:
-        Sites in ascending first-atom-index order; empty when none.
+        Deterministic sites: carbonyl-directed sites first (keto-enol and
+        amide-imidic, ascending carbon index), then partner-directed sites
+        (enol-keto and imidic-amide, ascending carbon index). Empty when
+        none.
     """
     sites: list[TautomerSite] = []
     for idx, atom in enumerate(graph.atoms):
@@ -130,6 +201,28 @@ def detect_tautomers(graph: MolecularGraph) -> list[TautomerSite]:
                 atoms=(alpha[0], idx, oxygen),
                 h_source=alpha[0],
             ))
+    for idx, atom in enumerate(graph.atoms):
+        if atom.atomic_number != 6 or atom.is_aromatic:
+            continue
+        if _is_carbonyl_carbon(graph, idx) is not None:
+            continue  # the keto direction already covers this carbon
+        enol = _is_enol_site(graph, idx)
+        if enol is not None:
+            alpha_c, oxygen = enol
+            sites.append(TautomerSite(
+                TautomerType.ENOL_KETO,
+                atoms=(alpha_c, idx, oxygen),
+                h_source=oxygen,
+            ))
+            continue
+        imidic = _is_imidic_site(graph, idx)
+        if imidic is not None:
+            n_atom, oxygen = imidic
+            sites.append(TautomerSite(
+                TautomerType.IMIDIC_AMIDE,
+                atoms=(n_atom, idx, oxygen),
+                h_source=oxygen,
+            ))
     return sites
 
 
@@ -143,6 +236,27 @@ def _remove_h(builder: MolecularGraphBuilder, graph: MolecularGraph, idx: int) -
                     break
             builder._atoms = [
                 a for i, a in enumerate(builder._atoms) if i != n
+            ]
+            # Removing the atom shifts every index above ``n`` down by one,
+            # so the remaining bonds must be re-indexed to match. Filtering
+            # only ``_atoms`` left bonds pointing at shifted indices: one
+            # hydrogen ended up bonded to two heavy atoms, which both gave it
+            # an impossible valence of two and invented a phantom three-member
+            # ring -- corrupting every tautomer partner graph built here and,
+            # through ring perception, the InChI/InChIKey of those partners.
+            builder._bonds = [
+                type(bond)(
+                    atom1=bond.atom1 if bond.atom1 < n else bond.atom1 - 1,
+                    atom2=bond.atom2 if bond.atom2 < n else bond.atom2 - 1,
+                    order=bond.order,
+                    bond_type=bond.bond_type,
+                    stereochemistry=bond.stereochemistry,
+                    topology=bond.topology,
+                    is_aromatic=bond.is_aromatic,
+                    length=bond.length,
+                    properties=bond.properties,
+                )
+                for bond in builder._bonds
             ]
             return
 
@@ -219,7 +333,21 @@ def enumerate_tautomers(
         if site.h_source is None:
             continue
         a, c, o = site.atoms
-        if site.tautomer_type == TautomerType.KETO_ENOL:
+        if site.tautomer_type == TautomerType.ENOL_KETO:
+            # enol C-OH becomes C=O; the alpha C=C becomes a C-C single bond.
+            g = _shift_h(
+                graph, site,
+                src=o, dst=a,
+                to_double=(c, o), to_single=(a, c),
+            )
+        elif site.tautomer_type == TautomerType.IMIDIC_AMIDE:
+            # imidic C-OH / C=N-H becomes amide C=O / C-N(H).
+            g = _shift_h(
+                graph, site,
+                src=o, dst=a,
+                to_double=(c, o), to_single=(c, a),
+            )
+        elif site.tautomer_type == TautomerType.KETO_ENOL:
             # keto C=O becomes C–O(H); alpha C–H becomes alpha C=C(O).
             g = _shift_h(
                 graph, site,
@@ -237,27 +365,51 @@ def enumerate_tautomers(
     return forms
 
 
-def canonical_tautomer(graph: MolecularGraph) -> MolecularGraph:
+def canonical_tautomer(
+    graph: MolecularGraph,
+    max_forms: int = MAX_TAUTOMER_FORMS,
+) -> MolecularGraph:
     """Select the canonical representative of a molecule's tautomer set.
 
-    Deterministic choice: the input graph is returned unchanged unless a
-    recognised partner's canonical SMILES is lexicographically smaller —
-    the stable, reproducible tie-break used across the engine. Unrelated
-    structures (no recognised sites) pass through untouched.
+    The representative is chosen from the *closure* of the tautomer graph,
+    bounded by ``max_forms``: the input plus every partner reachable by
+    repeatedly enumerating partners. A single enumeration step is not enough
+    when a molecule has several tautomeric sites -- canonicalizing the keto
+    form of an unsymmetrical ketone reaches all of its enols, while
+    canonicalizing one enol would otherwise only reach the keto form, so the
+    two calls returned different representatives for the same compound. With
+    the closure the choice depends only on the tautomer set, not on which
+    member was supplied.
+
+    Deterministic choice: the lexicographically smallest canonical SMILES
+    wins -- the stable, reproducible tie-break used across the engine.
+    Structures with no recognised sites pass through untouched.
 
     Args:
         graph: The molecular graph (never mutated).
+        max_forms: Upper bound on distinct forms considered.
 
     Returns:
         The canonical representative graph.
     """
     from chemengine.parsing.canonical import canonical_smiles
 
+    cap = max(1, min(max_forms, MAX_TAUTOMER_FORMS))
     best = graph
     best_key = canonical_smiles(graph)
-    for form in enumerate_tautomers(graph):
-        key = canonical_smiles(form.graph)
-        if key < best_key:
-            best = form.graph
-            best_key = key
+    seen: set[str] = {best_key}
+    frontier: list[MolecularGraph] = [graph]
+    while frontier and len(seen) <= cap:
+        nxt: list[MolecularGraph] = []
+        for member in frontier:
+            for form in enumerate_tautomers(member, max_forms=cap):
+                key = canonical_smiles(form.graph)
+                if key in seen:
+                    continue
+                seen.add(key)
+                if key < best_key:
+                    best = form.graph
+                    best_key = key
+                nxt.append(form.graph)
+        frontier = nxt
     return best

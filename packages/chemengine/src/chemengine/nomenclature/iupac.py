@@ -102,7 +102,12 @@ def _is_nitro_nitrogen(graph: Any, idx: int) -> bool:
         )
     return False
 
-# Heterocycle names by (ring size, {element: count}) — unsubstituted only.
+# Heterocycle names by (ring size, {element: count}) — unsubstituted and
+# fully aromatic only. The caller checks aromaticity: a saturated ring of the
+# same composition is a different compound (piperidine is not pyridine), and
+# naming one after the other is a chemically wrong answer.
+# The 6-membered O-heterocycle (pyran) is deliberately absent — this engine
+# has no neutral representation that is correct for it.
 HETEROCYCLE_NAMES: dict[tuple[int, frozenset[tuple[int, int]]], str] = {
     (5, frozenset({(7, 1)})): "pyrrole",
     (5, frozenset({(8, 1)})): "furan",
@@ -110,7 +115,6 @@ HETEROCYCLE_NAMES: dict[tuple[int, frozenset[tuple[int, int]]], str] = {
     (5, frozenset({(7, 2)})): "imidazole",
     (6, frozenset({(7, 1)})): "pyridine",
     (6, frozenset({(7, 2)})): "pyrimidine",
-    (6, frozenset({(8, 1)})): "pyran",
 }
 
 # ── Functional Group Priority (highest = 1) ──
@@ -746,6 +750,13 @@ def _name_ring(graph: MolecularGraph, rings: list[list[int]]) -> str:
 
     # ── Heterocycle (unsubstituted common names) ──
     if ring_atom_types != {6}:
+        # Guard the composition lookup with aromaticity. Without it a
+        # saturated ring of the same composition matched the aromatic name
+        # (piperidine was returned as "pyridine").
+        if not ring_bonds or not all(b.is_aromatic for b in ring_bonds):
+            raise UnsupportedNamingError(
+                "saturated heterocycles are outside naming coverage"
+            )
         if substituents or other_rings or outside_atoms:
             raise UnsupportedNamingError("substituted heterocycles are outside naming coverage")
         het_counts: dict[int, int] = {}
@@ -838,7 +849,13 @@ def _name_hydrocarbon(graph: MolecularGraph, groups: dict[str, list[int]]) -> st
     """Name an acyclic hydrocarbon (alkane, alkene, alkyne) with locants."""
     chains = _all_carbon_chains(graph)
     if not chains:
-        return "unknown"
+        # Never invent a placeholder. The public contract of
+        # generate_iupac_name is to raise for molecules outside coverage;
+        # this previously returned the literal string "unknown", which a
+        # caller could store or display as if it were a chemical name.
+        raise UnsupportedNamingError(
+            "no carbon skeleton recognised: molecule is outside naming coverage"
+        )
     n_doubles = len(set(groups.get("alkene", [])))
     n_triples = len(set(groups.get("alkyne", [])))
     chain = _choose_hydrocarbon_chain(graph, chains, n_doubles, n_triples)
@@ -1081,6 +1098,18 @@ def _ald_locs(graph: MolecularGraph, chain: list[int], ald: set[int]) -> tuple[i
 def _name_ketone(graph: MolecularGraph, groups: dict[str, list[int]]) -> str:
     """Name a ketone: ``propan-2-one``, ``pentane-2,4-dione``."""
     carbonyl = set(groups["carbonyl"])
+    # A ketone's carbonyl carbon is flanked by two carbons. A carbonyl with
+    # no carbon neighbour (CO2) or with one (acyl halide, anhydride) is not a
+    # ketone: naming CO2 produced "methan-1-one", which re-parses as
+    # formaldehyde -- a different molecule.
+    for _c in carbonyl:
+        _n_carbon = sum(
+            1 for _n in graph.get_neighbors(_c) if graph.atoms[_n].atomic_number == 6
+        )
+        if _n_carbon != 2:
+            raise UnsupportedNamingError(
+                "carbonyl carbon without two carbon neighbours is outside naming coverage"
+            )
     chains = _chains_containing(graph, carbonyl)
     if not chains:
         raise UnsupportedNamingError("ketone outside the main chain is outside naming coverage")

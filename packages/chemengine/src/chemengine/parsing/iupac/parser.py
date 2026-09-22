@@ -13,7 +13,8 @@ aldehydes (incl. dial), ketones, carboxylic acids, esters, amides
 (with N-substituents), nitriles, amines (primary/secondary with
 N-substituents), cycloalkanes with simple substituents,
 benzene-family names (``benzene``/``phenol`` with locanted prefixes),
-and the seven common heterocycles. Anything else raises
+and the six aromatic heterocycles (pyrrole, furan, thiophene, imidazole,
+pyridine, pyrimidine). Anything else raises
 :class:`NameParseError` with the offending position.
 """
 
@@ -40,13 +41,20 @@ _ALL_SUBS: set[str] = set(_SUB_LENGTHS) | set(_PREFIX_SUBS)
 
 _HETEROCYCLES: dict[str, tuple[int, list[tuple[int, int]], bool]] = {
     # name -> (ring size, [(z, has_implicit_H)], aromatic)
+    #
+    # Every entry is an aromatic heterocycle; the second element of each
+    # template atom is the hydrogen count that atom carries in that ring.
+    # The 6-membered O-heterocycle (pyran) is deliberately absent: this
+    # engine has no correct representation for it (a neutral aromatic
+    # 6-ring with one O is not a valid structure, and the saturated
+    # tetrahydropyran ring is a different compound), so the name is
+    # rejected instead of being mis-parsed as a saturated ring.
     "pyridine": (6, [(6, 1)] * 5 + [(7, 0)], True),
     "pyrimidine": (6, [(6, 1)] * 4 + [(7, 0)] * 2, True),
     "pyrrole": (5, [(6, 1)] * 4 + [(7, 1)], True),
     "imidazole": (5, [(6, 1)] * 3 + [(7, 1), (7, 0)], True),
     "furan": (5, [(6, 1)] * 4 + [(8, 0)], True),
     "thiophene": (5, [(6, 1)] * 4 + [(16, 0)], True),
-    "pyran": (6, [(6, 1)] * 5 + [(8, 0)], False),
 }
 
 _DEFAULT_VALENCE: dict[int, int] = {6: 4, 7: 3, 8: 2, 9: 1, 16: 2, 17: 1, 35: 1, 53: 1}
@@ -815,10 +823,24 @@ class NameParser:
 
     def _add_heterocycle(self, builder: MolecularGraphBuilder, name: str) -> None:
         size, template, aromatic = _HETEROCYCLES[name]
-        atoms = [builder.add_atom(z) for z, _h in template]
+        # The aromatic flag belongs on the ring *atoms* as well as on their
+        # bonds: serializers decide aromatic notation from the atom flag, so
+        # omitting it wrote pyridine as the saturated `C1CCCCN1` -- a
+        # different compound (piperidine).
+        atoms = [builder.add_atom(z, is_aromatic=aromatic) for z, _h in template]
         order = BondOrder.AROMATIC if aromatic else BondOrder.SINGLE
         for i in range(size):
             builder.add_bond(atoms[i], atoms[(i + 1) % size], order)
+        # The template hydrogen count is authoritative for ring atoms. The
+        # valence heuristic in _add_hydrogens over-counts an aromatic atom
+        # carrying two ring bonds (1.5 + 1.5 = 3.0), which silently dropped
+        # the pyrrole-type N-H from pyrrole (C4H5N -> C4H4N) and imidazole.
+        # Adding them here also stops _add_hydrogens from adding more, since
+        # it counts explicit neighbours in its `used` budget.
+        for (_z, n_h), atom in zip(template, atoms):
+            for _ in range(n_h):
+                h = builder.add_atom(1)
+                builder.add_bond(atom, h, BondOrder.SINGLE)
 
     def _add_hydrogens(self, builder: MolecularGraphBuilder) -> MolecularGraph:
         """Complete explicit hydrogens from default valences."""

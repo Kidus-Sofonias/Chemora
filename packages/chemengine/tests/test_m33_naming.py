@@ -153,7 +153,8 @@ class TestCanonicalInChI:
 
     def test_inchi_smiles_roundtrip_stable(self, chem):
         """SMILES round-trip preserves the InChI (the canonical-order
-        guarantee; InChI-text re-parsing is covered by its own suite)."""
+        guarantee; InChI-text re-parsing is covered by its own suite).
+        """
         g = chem.parse("CC(=O)Oc1ccccc1C(=O)O")
         i1 = chem.convert(g, "inchi")
         g2 = chem.parse(chem.convert(g, "smiles"))
@@ -221,3 +222,158 @@ class TestCommonNames:
     def test_known_entries_resolve(self, chem):
         assert chem.parse("aspirin").molecular_formula == "C9H8O4"
         assert chem.parse("toluene").molecular_formula == "C7H8"
+
+# ── Takeover-audit regressions (post-M33 correctness fixes) ──
+# Every test below reproduces a chemically wrong result that shipped in the
+# original M33 implementation and was fixed afterwards. They guard the
+# corrected behavior: heterocycles must be aromatic with honest formulas,
+# saturated rings must never borrow an aromatic name, out-of-coverage
+# molecules must raise instead of yielding placeholder or wrong names, and
+# tautomer canonicalization must be invariant to which partner is supplied.
+
+
+class TestHeterocycleFormulaParity:
+    """Parsed heterocycles must be the aromatic compounds the names mean."""
+
+    @pytest.mark.parametrize(
+        ("name", "formula"),
+        [
+            ("pyrrole", "C4H5N"),
+            ("imidazole", "C3H4N2"),
+            ("furan", "C4H4O"),
+            ("thiophene", "C4H4S"),
+            ("pyridine", "C5H5N"),
+            ("pyrimidine", "C4H4N2"),
+        ],
+    )
+    def test_formula(self, chem, name, formula):
+        assert chem.convert(parse_iupac_name(name), "formula") == formula
+
+    @pytest.mark.parametrize(
+        "name",
+        ["pyrrole", "imidazole", "furan", "thiophene", "pyridine", "pyrimidine"],
+    )
+    def test_ring_is_aromatic(self, chem, name):
+        g = parse_iupac_name(name)
+        # Aromatic canonical SMILES (lower-case ring atoms), not a saturated
+        # ring (pyridine parsed as C1CCCCN1 = piperidine was the defect).
+        assert chem.convert(g, "smiles") != chem.convert(g, "smiles").upper()
+        assert any(b.is_aromatic for b in g.bonds)
+
+    @pytest.mark.parametrize(
+        ("name", "formula"),
+        [("pyrrole", "C4H5N"), ("imidazole", "C3H4N2")],
+    )
+    def test_pyrolic_nh_present(self, chem, name, formula):
+        """The pyrrole-type N-H must survive parsing.
+
+        Asserted at the molecular level (formula and the C4H4N-isomer
+        distinction) rather than via the ``implicit_hydrogens`` attribute:
+        the parser expresses the N-H as an explicit hydrogen atom, and the
+        parsed graph is not sanitized, so the field stays ``None`` while the
+        compound is still correct (the SMILES path reports it as implicit).
+        """
+        g = parse_iupac_name(name)
+        assert chem.convert(g, "formula") == formula
+        # ...and the H must be bonded to the ring nitrogen, not anywhere else:
+        n_indices = {i for i, a in enumerate(g.atoms) if a.atomic_number == 7}
+        nh_bonds = [
+            b for b in g.bonds
+            if (b.atom1 in n_indices) != (b.atom2 in n_indices)
+            and g.atoms[b.atom1].atomic_number + g.atoms[b.atom2].atomic_number == 8
+        ]
+        assert nh_bonds, "pyrrole-type N must carry its hydrogen"
+
+
+class TestHeterocycleAromaticityGuard:
+    """A saturated ring must never receive an aromatic heterocycle's name."""
+
+    @pytest.mark.parametrize(
+        "smiles",
+        ["C1CCCCN1", "C1CCOCC1", "C1CCNC1", "C1CCCN1"],  # piperidine, THP, ...
+    )
+    def test_saturated_heterocycle_rejected(self, chem, smiles):
+        with pytest.raises(UnsupportedNamingError):
+            generate_iupac_name(chem.parse(smiles))
+
+    def test_aromatic_heterocycles_still_named(self, chem):
+        for smiles, want in [
+            ("c1ccncc1", "pyridine"),
+            ("c1ccoc1", "furan"),
+            ("c1ccsc1", "thiophene"),
+            ("c1cc[nH]c1", "pyrrole"),
+            ("c1ccccc1", "benzene"),
+        ]:
+            assert generate_iupac_name(chem.parse(smiles)) == want
+
+    def test_pyran_not_mis_parsed(self):
+        """The engine has no correct pyran representation: reject the name."""
+        with pytest.raises(NameParseError):
+            parse_iupac_name("pyran")
+
+
+class TestCoverageRaisesNeverInvents:
+    """Out-of-coverage molecules raise; no placeholder name is returned."""
+
+    @pytest.mark.parametrize("smiles", ["O", "N", "CS(=O)(=O)C", "O=C=O"])
+    def test_out_of_coverage_raises(self, chem, smiles):
+        with pytest.raises(UnsupportedNamingError):
+            generate_iupac_name(chem.parse(smiles))
+
+    def test_no_placeholder_name_ever_returned(self, chem):
+        """No out-of-coverage input yields a name-shaped placeholder."""
+        # 'methan-1-one' for CO2 re-parsed as formaldehyde; 'unknown' for
+        # water was a literal placeholder string. Both shapes are closed.
+        for smiles in ("O", "N", "CS(=O)(=O)C", "O=C=O", "CCOC"):
+            with pytest.raises(UnsupportedNamingError):
+                generate_iupac_name(chem.parse(smiles))
+
+
+class TestTautomerSymmetry:
+    """canonical_tautomer must be invariant to which partner is supplied."""
+
+    @pytest.mark.parametrize(
+        ("a", "b"),
+        [
+            ("CC=O", "C=C(O)"),  # acetaldehyde / vinyl alcohol
+            ("CC(=O)C", "CC(O)=C"),  # acetone enol
+            ("CC(=O)CC", "CC(O)=CC"),
+            ("CC(=O)C(C)C", "CC(O)=C(C)C"),  # internal ketone enol (no =C-H)
+            ("CCC(=O)CC", "CCC(O)=CC"),
+            ("CC(=O)N", "CC(O)=N"),  # acetamide / imidic acid
+            ("CC(=O)NC", "CC(O)=NC"),  # N-substituted
+        ],
+    )
+    def test_canonical_invariant(self, chem, a, b):
+        ga, gb = chem.parse(a), chem.parse(b)
+        ka = chem.convert(canonical_tautomer(ga), "inchikey")
+        kb = chem.convert(canonical_tautomer(gb), "inchikey")
+        assert ka == kb, f"canonical({a}) != canonical({b})"
+
+    def test_engine_generated_enol_recanconicalizes_to_keto(self, chem):
+        """The enol the engine itself generates must map back to its keto."""
+        keto = chem.parse("CC(=O)C(C)C")
+        forms = enumerate_tautomers(keto)
+        assert forms, "keto site must be detected"
+        back = canonical_tautomer(forms[0].graph)
+        assert chem.convert(back, "inchikey") == chem.convert(keto, "inchikey")
+
+    def test_both_directions_detect_partners(self, chem):
+        assert detect_tautomers(chem.parse("CC=O"))
+        assert detect_tautomers(chem.parse("C=C(O)"))
+        assert detect_tautomers(chem.parse("CC(=O)N"))
+        assert detect_tautomers(chem.parse("CC(O)=N"))
+
+    def test_enumeration_still_bounded_and_unique(self, chem):
+        for smi in ("CC(=O)C(C)C", "CC(O)=C(C)C", "CCC(O)=CC"):
+            forms = enumerate_tautomers(chem.parse(smi))
+            assert len(forms) <= MAX_TAUTOMER_FORMS
+            smiles_list = [chem.convert(f.graph, "smiles") for f in forms]
+            assert len(set(smiles_list)) == len(smiles_list)
+
+    def test_unrelated_still_untouched(self, chem):
+        for smi in ("CCO", "c1ccccc1", "CCCC", "CC(O)C"):
+            g = chem.parse(smi)
+            assert detect_tautomers(g) == []
+            assert enumerate_tautomers(g) == []
+            assert chem.convert(canonical_tautomer(g), "inchikey") == _key(chem, g)
