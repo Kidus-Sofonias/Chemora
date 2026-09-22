@@ -2240,13 +2240,16 @@ const phases = [
     ver: '0.8',     start: 152, dur: 6,  risk: 'low',     status: 'complete', weight: 5 },
   { id: 33, name: 'ChemEngine v2.0 Feature Completion: Rendering, Nomenclature & Reaction Mapping (M33)', desc: 'Close the remaining itemized Phase 10-12 v2.0 rows — PNG output, substructure highlighting, themes, preferred IUPAC + common names, IUPAC name parser, tautomer handling, atom-atom mapping via the existing MCS engine, and the mechanism architecture placeholder — plus the recorded first-import <100 ms performance target, without opening new chemistry domains',
     tasks: ['Rendering 10.2/10.3/10.5: PNG output via the roadmap-named optional dependency with 2x/4x HiDPI and graceful degradation; deterministic substructure highlighting exposed on render() and the tool surface; dark/CPK/monochrome/accessibility themes', 'Nomenclature 11.3/11.4/11.5: preferred IUPAC names for supported classes; tested common/trivial-name dictionary with recorded count; parsing/iupac/{tokenizer,parser}.py round-tripping the supported grammar with documented coverage; keto-enol and amide-imidic tautomer detection + canonicalization', 'Reactions 12.2/12.5: ReactionGraph dataclass with mapping; atom-atom mapping via maximum_common_substructure validated on a 50+ reaction reference set; atom/charge conservation validation; Phase 12 benchmark targets; mechanism architecture placeholder module + docs (not an engine)', 'Performance: first import <100 ms (M32 measurement methodology) via lazy loading / deferred plugin discovery; benchmark gate stays green', 'Reconcile Phase 10/11/12 tables, CHANGELOG, Sphinx pages, tutorials/examples; keep TODO.md, PROJECT_STATUS.md, gantt.html synchronized; full regression with exact totals'],
-    ver: '0.9',     start: 158, dur: 8,  risk: 'medium',  status: 'complete', weight: 6 }
+    ver: '0.9',     start: 158, dur: 8,  risk: 'medium',  status: 'complete', weight: 6 },
+  { id: 34, name: 'Full Reaction Mechanism Engine (M34)', desc: 'Implement the executable step-by-step mechanism engine the Phase 12 architecture anticipated and M33 staged interfaces for: curated electron-pushing rules applying to M33 ReactionGraphs, producing validated, conservation-checked MechanismTrace sequences over supported chemistry — SCOPED, IMPLEMENTATION NOT STARTED',
+    tasks: ['MechanismRule implementations of the frozen M33 protocol: validated MechanismStep proposals over ReactionGraph (applies/apply), no in-place mutation', 'Bounded catalogue of >=10 named mechanisms (SN2, SN1, E2, E1, E1cB, electrophilic addition/Markovnikov, carbonyl addition-elimination, ...) over existing domains; unsupported cases raise structured errors', 'Per-step atom+charge conservation via M33 mapping, deterministic trace ordering, AlgorithmRegistry registration, lazy import (first-import gate stays <100 ms), trace serialization', 'Curated reference oracle: >=25 named scenarios with expected step sequences; negative/illegal-step tests; determinism; benchmarks registered like existing reaction gates', 'Docs: Sphinx engine page, Phase 12 table reconciliation, CHANGELOG [1.2.0] + version 1.2.0, TODO.md/PROJECT_STATUS.md/gantt.html synchronized; full regression with exact totals'],
+    ver: '1.0',      start: 166, dur: 8,  risk: 'high',    status: 'planned', weight: 6 }
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 166;
+const TOTAL_WEEKS = 174;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;
@@ -2797,7 +2800,8 @@ function buildMilestoneDots() {
     { label: 'M30 Conversations', week: 146 },
     { label: 'M31 Production', week: 152 },
     { label: 'M32 Release', week: 158 },
-    { label: 'M33 v2.0 Features', week: 166 }
+    { label: 'M33 v2.0 Features', week: 166 },
+    { label: 'M34 Mechanisms', week: 174 }
   ];
 
   // Create a progress line

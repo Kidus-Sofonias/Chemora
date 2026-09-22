@@ -2595,6 +2595,155 @@ parser grammar coverage honestly documented; common-name dictionary count
 recorded; cairosvg optional-extra status on all matrix Pythons verified;
 whatever cannot be verified is documented, never fabricated.
 
+---
+
+### M34 — Full Reaction Mechanism Engine (SCOPED — 2026-09-22; implementation not started)
+
+**Status: 🔵 SCOPED — IMPLEMENTATION NOT STARTED.** This is a discovery/
+scoping record only; no application code changed in the scoping commit.
+
+**Objective.** Implement the executable, step-by-step mechanism engine that
+Phase 12 anticipated and M33 deliberately staged interfaces for: curated
+electron-pushing rules that apply to M33 `ReactionGraph`s and produce
+validated `MechanismTrace` sequences — deterministic, conservation-checked,
+and bounded to the chemistry ChemEngine supports ("full" = an end-to-end
+executable engine, not universal mechanism coverage).
+
+**Roadmap evidence.**
+- Future Roadmap v2.0 bullet: "**Reaction mechanisms** (full step-by-step
+  mechanism engine)" (see Future Roadmap: v2.0, below).
+- Phase 12 purpose: "Architecture anticipates reaction mechanisms (full
+  implementation deferred to v2.0)."
+- `reactions/mechanisms.py` (M33) module docstring: "**This module
+  deliberately contains no mechanism engine** … Any concrete
+  electron-pushing logic belongs to a future, separately-scoped milestone …
+  so that the broader roadmap (12.x) can be scheduled against concrete
+  interfaces rather than intentions."
+- M33 record (PROJECT_STATUS): "the mechanism module contains no
+  executable chemistry by design".
+- M33 shipped every runtime dependency the engine needs: `ReactionGraph`,
+  MCS atom-atom mapping + 53-reaction reference oracle, atom/charge
+  conservation validation, tautomer canonicalization (enol↔keto is
+  mechanism-relevant), SMARTS/template matching (Phases 5/12.4),
+  serialization, and the <100 ms lazy-import gate.
+
+**Candidate survey (why this, and where everything else stands).**
+
+| Candidate | Documented evidence post-M33 | Disposition |
+|-----------|------------------------------|-------------|
+| **Reaction mechanism engine** | Interfaces staged by M33 explicitly awaiting "a future, separately-scoped milestone"; Phase 12 deferral language; explicit v2.0 bullet; all dependencies just delivered | **Selected — M34** |
+| Organometallics / polymers / biomolecules / crystallography / NMR | v2.0 bullets only; zero partial implementation, no staged interfaces | Remain explicitly unordered |
+| GNN integration / WebAssembly | v2.0 bullets only; no ML or browser-execution scaffolding exists; platform work, not engine chemistry | Remain explicitly unordered |
+| Mobile app | "a future mobile milestone will define the compatibility path" — scope intentionally not yet defined | Cannot be scoped yet |
+| Advanced visualization (electron-arrow SVG annotation) | No roadmap row; base visualization delivered by M33 (PNG, themes, highlighting) | Not milestone-shaped |
+| Advanced stereochemistry | Phase 6 complete; only a stale 6.4 marker (placeholders exist, verified M33) + "edge cases deferred to v2.0" note | Not milestone-shaped |
+| Advanced AI chemistry / chemical search & knowledge DB | v3.0: "Automated chemical reasoning", "Chemical database engine" | Out (v3.0, longer-term) |
+| Drug discovery / retrosynthesis / docking / quantum / collaborative platform | v3.0 bullets | Out (v3.0, longer-term) |
+| Performance & distribution | Closed by M31/M32 + the M33 <100 ms gate; PyPI/GitHub Release remain credential-blocked (not milestone work) | Closed / blocked |
+| Nomenclature breadth (1000+ names aspiration); standard-InChI feature parity | Recorded limitations/aspirations in PROJECT_STATUS with no itemized rows | Recorded gaps, not milestone-shaped |
+| Product-side (quizzes/exams, offline sync, CMS expansion) | Referenced only as out-of-scope exclusions in M24–M30; no roadmap rows | Not ChemEngine scope |
+
+**In scope.**
+1. `MechanismEngine` core: rule objects implementing the frozen M33
+   `MechanismRule` protocol (`applies`/`apply`) that return *validated
+   proposals* (`MechanismStep`) over `ReactionGraph` — never mutating shared
+   graphs in place (per the M33 contract).
+2. Rule implementations for the `MovementKind` vocabulary (bond formation,
+   bond breaking, lone-pair donation, resonance shift, single-electron)
+   sufficient for a bounded curated catalogue of **≥ 10 named mechanisms**
+   over existing domains, including SN2, SN1, E2, E1, E1cB, electrophilic
+   addition with Markovnikov regioselectivity, and carbonyl nucleophilic
+   addition–elimination.
+3. Per-step validation: atom conservation via M33 mapping, charge
+   conservation, `MechanismTrace` endpoint/ordering checks, deterministic
+   step ordering.
+4. Structured errors for non-applicable/unsupported cases — no silent wrong
+   chemistry (same guard pattern as `UnsupportedNamingError`).
+5. Curated mechanism reference oracle checked into the repo: **≥ 25 named
+   scenarios with expected step sequences**, in the style of M33's
+   53-reaction mapping oracle.
+6. `AlgorithmRegistry` registration (Phase 12 atomic task) and lazy import
+   so the first-import gate stays < 100 ms.
+7. Serialization of traces (dict/JSON) through the existing `io` surface.
+8. Benchmarks: engine execution over the reference set with a documented
+   Phase-12-style budget, registered like existing reaction benchmarks.
+9. Release housekeeping at completion: CHANGELOG `[1.2.0]`, version bump
+   1.1.0 → 1.2.0 (`pyproject.toml`/`__version__`/version-consistency test
+   stay green).
+
+**Out of scope.**
+- All other Future Roadmap v2.0 domains (organometallics, polymers,
+  biomolecules, GNN, WebAssembly, crystallography, NMR).
+- All v3.0 items (drug discovery, retrosynthesis, chemical database engine,
+  docking, quantum computing, automated chemical reasoning, collaborative
+  platform).
+- Mobile; AI-tutor / backend / web / admin product work; M32's
+  credential-blocked PyPI/GitHub Release steps.
+- Curved-arrow SVG annotation rendering (visualization layer; not a
+  documented roadmap row).
+- Kinetics/thermodynamics simulation; yield/condition prediction; inference
+  of novel mechanisms for arbitrary literature reactions — the engine
+  executes and validates curated, bounded rule applications.
+- M35+ scope.
+
+**Dependencies.**
+- M33: `reactions/mechanisms.py` interfaces (`ElectronMovement`,
+  `MechanismStep`, `MechanismTrace`, `MechanismRule`), `ReactionGraph` +
+  MCS mapping (53-case oracle), conservation validators, tautomer
+  canonicalization, nomenclature guards, rendering, import-perf gate.
+- Phase 3 functional-group detection, Phase 5 SMARTS/substructure matching,
+  Phase 12.4 reaction templates, `AlgorithmRegistry`, `io` serialization.
+
+**Acceptance criteria.**
+- [ ] Executable `MechanismEngine` implements the frozen M33 interfaces
+  without breaking their contracts (M33 interface tests unchanged + green).
+- [ ] ≥ 10 named mechanisms execute end-to-end; ≥ 25 curated reference
+  scenarios with expected traces all pass.
+- [ ] Every step passes atom + charge conservation; traces satisfy
+  endpoint/ordering validation; execution is deterministic across runs.
+- [ ] Unsupported/illegal applications raise structured errors (tested).
+- [ ] Registered in `AlgorithmRegistry`; first import stays < 100 ms (perf
+  gate green).
+- [ ] Full regression green with exact recorded totals; ruff/mypy within
+  documented baselines; no undocumented skips.
+- [ ] Version 1.2.0 + CHANGELOG entry consistent (version-consistency test
+  green).
+- [ ] TODO.md, PROJECT_STATUS.md, gantt.html synchronized; gantt status →
+  complete only when the above hold.
+
+**Testing requirements.**
+- New `tests/test_mechanism_engine.py` (+ checked-in reference data): rule
+  unit tests per `MovementKind`; per-mechanism trace oracles; negative
+  tests (non-applicable rules, conservation violations, malformed traces);
+  determinism (repeat-run equality); serialization round-trip;
+  property-style conservation invariants across the reference set.
+- Full-suite totals recorded in TODO/PROJECT_STATUS; benchmark baseline
+  extended with the gate green; `infrastructure/ci_check.py` gates green.
+
+**Documentation requirements.**
+- Sphinx page(s) for the engine (+ worked example where feasible); Phase 12
+  table reconciled on completion; TODO.md M34 record; PROJECT_STATUS.md
+  M34 record + Next-Milestone row; gantt.html updated (status → complete on
+  completion); CHANGELOG `[1.2.0]`.
+
+**Risks / blockers.**
+- **Chemical-correctness risk (high):** M33's docstring calls mechanism
+  work "the most error-prone area of computational chemistry" — mitigated
+  by curated oracles, conservation validation, determinism tests, and a
+  bounded rule vocabulary with explicit unsupported errors.
+- **Scope explosion:** the space of mechanisms is unbounded — mitigated by
+  the ≥10/≥25 curated targets and the explicit out-of-scope list.
+- **Aromatic/tautomer edge cases** in intermediates — mitigated by reusing
+  M33 canonicalization and Kekulé-aware valence handling.
+- **Import-time creep** from new modules — mitigated by the existing
+  <100 ms lazy-import gate.
+- **Template/SMARTS gaps** for some named mechanisms — a gap either extends
+  Phase 12.4 templates in-scope or drops the mechanism from the catalogue
+  with a recorded note.
+- No credential/external blockers (all work is in-repo).
+
+---
+
 ## Takeover Audit (Complete — 2026-09-22)
 
 Independent re-verification of M1–M33 against the repository itself
@@ -2661,7 +2810,7 @@ local-environment limitation).
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | None — all itemized roadmap feature rows (Phases 0–15) are complete through M33; future work is the unordered v2.0/v3.0 Future Roadmap, to be scoped as a milestone when chosen |
+| **Next Milestone** | **M34 — Full Reaction Mechanism Engine** (scoped 2026-09-22, implementation not started; see M34 section) |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,
@@ -2791,11 +2940,17 @@ A rule-driven, deterministic electron-configuration subsystem in `chemengine.edu
 - **Organometallic chemistry** (dative bonds, coordination geometries)
 - **Polymer chemistry** (repeating units, chain graphs)
 - **Biomolecule support** (proteins, nucleic acids, carbohydrates)
-- **Reaction mechanisms** (full step-by-step mechanism engine)
+- **Reaction mechanisms** (full step-by-step mechanism engine) — ▶ **selected as M34** (scoped 2026-09-22; see M34 section)
 - **Graph neural network integration**
 - **WebAssembly build** (browser-side execution)
 - **Crystallography** (unit cells, space groups)
 - **NMR spectra prediction**
+
+*Selection note (2026-09-22): of the v2.0 list, only **Reaction mechanisms**
+carries a documented selection signal — the M33-staged
+`reactions/mechanisms.py` interfaces explicitly awaiting an engine — and is
+therefore scheduled as **M34**. The remaining bullets stay an explicitly
+unordered list until scoped.*
 
 ### Future Roadmap: v3.0
 

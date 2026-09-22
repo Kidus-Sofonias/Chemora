@@ -66,7 +66,7 @@ Regression tests for items 1-6 were added to
 | **Backend Tests** | 224 / 224 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
-| **Next Milestone** | None — all itemized roadmap feature rows (Phases 0–15) complete through M33; remaining work is the unordered v2.0/v3.0 Future Roadmap (organometallics, polymers, biomolecules, full mechanism engine, GNN, WebAssembly, crystallography, NMR; v3.0 drug discovery etc.), to be scoped as a milestone when chosen |
+| **Next Milestone** | **M34 — Full Reaction Mechanism Engine** — SCOPED 2026-09-22, implementation not started. Selected as the only v2.0 item with staged M33 dependencies (`reactions/mechanisms.py` interfaces awaiting an engine); remaining v2.0/v3.0 items stay unordered |
 
 ---
 
@@ -657,6 +657,86 @@ placeholder (not an engine); first import <100 ms with the benchmark gate
 green; Phase 10/11/12 tables reconciled; full regression with exact
 totals; no new P0/P1 security issues; docs synchronized; focused commits
 pushed with HEAD == origin/master and a clean tree.
+
+---
+
+### 📋 M34: Full Reaction Mechanism Engine (SCOPED — 2026-09-22; implementation not started)
+
+**Status: SCOPED — IMPLEMENTATION NOT STARTED** (discovery/scoping record
+only; the scoping commit changes documentation alone).
+
+**Objective.** Implement the executable step-by-step mechanism engine that
+Phase 12 anticipated and M33 staged interfaces for: curated electron-pushing
+rules applying to M33 `ReactionGraph`s, producing validated,
+conservation-checked `MechanismTrace` sequences, bounded to supported
+chemistry ("full" = end-to-end executable, not universal coverage).
+
+**Why this is next (repository evidence).** It is the only Future Roadmap
+item with a staged dependency edge from completed work: M33 shipped
+`reactions/mechanisms.py` as *interfaces only*, whose docstring states the
+module "deliberately contains no mechanism engine" and that concrete
+electron-pushing logic "belongs to a future, separately-scoped milestone …
+so that the broader roadmap (12.x) can be scheduled against concrete
+interfaces"; Phase 12's purpose repeats "full implementation deferred to
+v2.0"; and M33 delivered every runtime dependency (`ReactionGraph`, MCS
+mapping + 53-case oracle, conservation validators, tautomer
+canonicalization, template matching, <100 ms import gate). The other v2.0
+bullets (organometallics, polymers, biomolecules, GNN, WebAssembly,
+crystallography, NMR) have zero partial implementation and remain
+explicitly unordered; mobile has one scopeless sentence ("a future mobile
+milestone will define the compatibility path"); v3.0 stays longer-term;
+M32's PyPI/GitHub Release steps remain credential-blocked (not milestone
+work); advanced-stereochemistry, visualization, 1000+ names, and
+InChI-parity items are recorded gaps without milestone-shaped rows.
+
+**In scope.** `MechanismEngine` implementing the frozen `MechanismRule`
+protocol with validated proposals (no in-place mutation); rules for the
+`MovementKind` vocabulary; ≥10 named mechanisms (SN2, SN1, E2, E1, E1cB,
+electrophilic addition/Markovnikov, carbonyl addition–elimination, …);
+per-step atom+charge conservation, deterministic ordering, structured
+unsupported/illegal errors; ≥25-scenario curated reference oracle;
+`AlgorithmRegistry` registration; lazy import (first import <100 ms);
+trace serialization; benchmarks; CHANGELOG [1.2.0] + version 1.2.0 on
+completion.
+
+**Out of scope.** All other v2.0 domains; all v3.0 items; mobile;
+curved-arrow SVG annotation rendering; kinetics/thermodynamics;
+yield/condition prediction; novel-mechanism inference for arbitrary
+literature reactions; AI-tutor/backend/web/admin product work; M32's
+credential-blocked release steps; M35+.
+
+**Dependencies.** M33 (`reactions/mechanisms.py` interfaces,
+`ReactionGraph` + MCS mapping, conservation validators, tautomer
+canonicalization, nomenclature guards, perf gate); Phase 3 FG detection;
+Phase 5 SMARTS matching; Phase 12.4 reaction templates;
+`AlgorithmRegistry`; `io` serialization.
+
+**Acceptance criteria (summary — full list in the TODO.md M34 section).**
+Executable engine against the frozen M33 interfaces (M33 interface tests
+unchanged and green); ≥10 named mechanisms / ≥25 reference scenarios green;
+conservation + determinism + structured-error tests; registry + <100 ms
+gate; full regression with exact totals and ruff/mypy within documented
+baselines; version 1.2.0 consistent; docs + gantt synchronized (gantt →
+complete only on satisfaction).
+
+**Testing requirements.** New `tests/test_mechanism_engine.py` + checked-in
+reference data: per-`MovementKind` rule units, per-mechanism trace oracles,
+negative/illegal-step cases, determinism, serialization round-trip,
+conservation invariants across the reference set; benchmark baseline
+extended; `ci_check.py` gates green.
+
+**Documentation requirements.** Sphinx engine page (+ worked example where
+feasible); Phase 12 table reconciled; TODO.md/PROJECT_STATUS.md M34 records;
+gantt.html status → complete on completion; CHANGELOG [1.2.0].
+
+**Risks / blockers.** Chemical-correctness risk is high (M33 docstring:
+"the most error-prone area of computational chemistry") — mitigated by
+curated oracles, conservation validation, determinism tests and a bounded
+rule vocabulary; scope explosion — mitigated by the ≥10/≥25 curated targets
+and the explicit out-of-scope list; aromatic/tautomer edge cases — reuse M33
+canonicalization; import-time creep — existing <100 ms gate; SMARTS gaps —
+extend Phase 12.4 templates in-scope or drop with a recorded note. No
+credential/external blockers.
 
 ---
 
