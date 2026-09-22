@@ -23,7 +23,8 @@ class MolecularCache:
 
     def set(self, key: str, value: Any) -> None:
         """Insert or refresh an entry, evicting the least recently used
-        entry when the cache exceeds ``maxsize``."""
+        entry when the cache exceeds ``maxsize``.
+        """
         self._cache[key] = value
         self._cache.move_to_end(key)
         if len(self._cache) > self._maxsize:

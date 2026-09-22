@@ -42,7 +42,7 @@ def serialize_inchi(graph: MolecularGraph, version: str = "1S") -> str:
     # Canonicalize first: InChI layers are derived from atom numbering, so
     # an order-dependent numbering would give different InChI strings (and
     # keys) for the same molecule drawn with a different atom order.
-    from chemengine.parsing.canonical import _reindex_graph, _compute_canonical_order
+    from chemengine.parsing.canonical import _compute_canonical_order, _reindex_graph
     graph = _reindex_graph(graph, _compute_canonical_order(graph))
 
     # Build formula layer

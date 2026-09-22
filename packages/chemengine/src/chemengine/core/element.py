@@ -107,7 +107,8 @@ class Element:
     @property
     def is_metal(self) -> bool:
         """Whether the element is a metal (alkali, alkaline earth, transition,
-        post-transition, lanthanide, or actinide)."""
+        post-transition, lanthanide, or actinide).
+        """
         return self.category in ("alkali_metal", "alkaline_earth", "transition_metal", "post_transition_metal", "lanthanide", "actinide")
 
     @property
@@ -274,7 +275,8 @@ class ElementQuery:
 
     def execute(self) -> list[Element]:
         """Run the accumulated filters and return the matching elements
-        ordered by atomic number (all elements when no filters were added)."""
+        ordered by atomic number (all elements when no filters were added).
+        """
         _ensure_elements_loaded()
         if not self._filters:
             return list(_ELEMENTS_BY_Z.values())

@@ -23,8 +23,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from chemengine.core.graph import MolecularGraph, MolecularGraphBuilder
 from chemengine.core.enums import BondOrder
+from chemengine.core.graph import MolecularGraph, MolecularGraphBuilder
 
 __all__ = [
     "TautomerType",

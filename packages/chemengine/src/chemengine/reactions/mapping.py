@@ -5,7 +5,7 @@ with an explicit atom correspondence between its reactant and product graphs.
 The correspondence is computed by :func:`map_reaction`.
 
 Why a dedicated search (not the generic MCS engine)?
----------------------------------------------------
+----------------------------------------------------
 Reaction atom mapping differs from substructure search in two essential ways:
 
 1. **Bond orders are the signal, not a constraint.** A mapping that requires

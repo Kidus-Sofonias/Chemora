@@ -277,14 +277,16 @@ class QueryGraph:
 
     def add_bond(self, i: int, j: int, bond: QueryBond) -> None:
         """Record a query bond between atom indices ``i`` and ``j``
-        (both adjacency directions are registered)."""
+        (both adjacency directions are registered).
+        """
         self.bonds.append((i, j, bond))
         self.adjacency[i].append(j)
         self.adjacency[j].append(i)
 
     def get_bond_query(self, i: int, j: int) -> QueryBond | None:
         """Return the query bond between atoms ``i`` and ``j`` (either
-        direction), or ``None`` when the atoms are not bonded."""
+        direction), or ``None`` when the atoms are not bonded.
+        """
         for a, b, qb in self.bonds:
             if (a == i and b == j) or (a == j and b == i):
                 return qb

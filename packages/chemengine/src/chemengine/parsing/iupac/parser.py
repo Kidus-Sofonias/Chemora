@@ -25,7 +25,7 @@ from typing import Literal
 from chemengine.core.enums import BondOrder
 from chemengine.core.graph import MolecularGraph, MolecularGraphBuilder
 from chemengine.nomenclature.iupac import ALKANE_STEMS, MULTI_PREFIXES, SUBSTITUENT_NAMES
-from chemengine.parsing.iupac.tokenizer import Token, tokenize
+from chemengine.parsing.iupac.tokenizer import tokenize
 
 __all__ = ["NameParse", "NameParseError", "NameParser"]
 
@@ -237,11 +237,11 @@ class NameParser:
             if last_word in ("diol", "triol", "dione") and head_kind == "WORD" \
                     and head_word.endswith("ane"):
                 stem = self._longest_stem_suffix(head_word[:-3], head_pos)
-                principal = {"diol": "ol", "triol": "ol", "dione": "one"}[last_word]
+                principal: str | None = {"diol": "ol", "triol": "ol", "dione": "one"}[last_word]
                 return NameParse(
                     kind="chain", parent_length=_STEM_LENGTHS[stem], principal=principal,
                     principal_locants=tuple(locs),
-                    substituents=self._head_subs(prefix_head),
+                    substituents=tuple(self._head_subs(prefix_head)),
                 )
             # unsaturations on stem or stem+a
             if last_word in ("ene", "yne", "diene", "triene", "diyne", "triyne"):
@@ -262,7 +262,7 @@ class NameParser:
                 return NameParse(
                     kind="chain", parent_length=_STEM_LENGTHS[stem_word],
                     unsaturations=self._unsats(last_word, locs),
-                    substituents=self._head_subs(prefix_head),
+                    substituents=tuple(self._head_subs(prefix_head)),
                 )
             # alkane/cycloalkane with locanted substituents: [loc][sub][stem+ane]
             if last_word.endswith("ane"):
@@ -289,7 +289,7 @@ class NameParser:
                         raise NameParseError(
                             f"substituted parent names require locants: {last_word!r}", last_pos
                         )
-                    kind = "cycloalkane" if cyclo else "chain"
+                    kind: Literal["chain", "cycloalkane"] = "cycloalkane" if cyclo else "chain"
                     return NameParse(kind=kind, parent_length=_STEM_LENGTHS[stem], substituents=tuple(subs))
             # ol/one/amine on stem+an
             if last_word in ("ol", "one", "amine") and head_kind == "WORD" \
@@ -309,7 +309,7 @@ class NameParser:
                 if nloc_count:
                     # N-substituents were consumed from the head word by
                     # _extract_nsubs; no C-prefix remains.
-                    subs: list[Substituent] = []
+                    subs = []
                 else:
                     # Glued prefix on the parent word ('methylbutan-1-ol') may
                     # pair with a pending head locant ('3-' 'methylbutan' '1-' 'ol').
@@ -428,7 +428,7 @@ class NameParser:
         # amide: [Nsubs][prefix]stem+anamide
         if last_word.endswith("anamide"):
             stripped = self._strip_suffix(last_word, "anamide", last_pos)
-            n_subs: tuple[Substituent, ...] = ()
+            n_subs = ()
             prefix = ""
             if nloc_count:
                 # _extract_nsubs consumes the entire [Nsubs] prefix and
@@ -617,11 +617,11 @@ class NameParser:
                 subs.append(Substituent(loc, sub, _sub_z(sub)))
         return subs
 
-    def _split_prefix(self, prefix: str, position: int) -> list[tuple[int, str]]:
+    def _split_prefix(self, prefix: str, position: int) -> list[tuple[int | None, str]]:
         """Decompose a glued prefix into (multiplier or None, sub name)."""
         if not prefix:
             return []
-        result: list[tuple[int, str]] = []
+        result: list[tuple[int | None, str]] = []
         i = 0
         while i < len(prefix):
             mult_hit = False

@@ -58,7 +58,8 @@ class FunctionalGroupMatch:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the match to a JSON-compatible dict (name, SMARTS,
-        atom indices, category, and priority)."""
+        atom indices, category, and priority).
+        """
         return {
             "name": self.name,
             "smarts": self.smarts,

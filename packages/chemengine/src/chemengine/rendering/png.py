@@ -7,7 +7,7 @@ delegates rasterization to `cairosvg` (the roadmap-named converter).
 **Optional dependency.** `cairosvg` requires the native cairo library.
 It is declared as an optional extra::
 
-    pip install chemengine[png]
+    pip install chemengine[render]
 
 When the native cairo library is unavailable (common on Windows without
 GTK), :func:`render_png` and :func:`render_png_to_file` raise
@@ -47,7 +47,7 @@ def cairosvg_available() -> bool:
     install (import succeeds, rasterization fails) is also detected.
     """
     try:
-        import cairosvg  # noqa: F401
+        import cairosvg  # type: ignore[import-untyped]  # noqa: F401
     except (ImportError, OSError):
         return False
     return True
@@ -95,7 +95,7 @@ def render_png(
     if not cairosvg_available():
         raise PNGUnavailableError(
             "PNG rendering requires the optional 'cairosvg' package and the "
-            "native cairo library. Install with: pip install 'chemengine[png]'. "
+            "native cairo library. Install with: pip install 'chemengine[render]'. "
             "On Debian/Ubuntu: apt-get install libcairo2. "
             "On Windows, install GTK runtime or use SVG output. "
             "Check availability with chemengine.rendering.png.cairosvg_available()."
@@ -103,18 +103,20 @@ def render_png(
     import cairosvg
 
     svg = render_svg(graph, coordinates, **svg_options)
-    return cairosvg.svg2png(
+    png: bytes = cairosvg.svg2png(
         bytestring=svg.encode("utf-8"),
         scale=scale,
         output_width=output_width,
         output_height=output_height,
         background_color=background,
     )
+    return png
 
 
 def render_png_to_file(
     graph: MolecularGraph,
     filepath: str,
+    coordinates: tuple[Any, ...] | None = None,
     *,
     scale: float = 2.0,
     output_width: int | None = None,
@@ -127,6 +129,8 @@ def render_png_to_file(
     Args:
         graph: The molecular graph to render.
         filepath: Output file path (parent directory must exist).
+        coordinates: Optional precomputed 2D coordinates (see
+            :func:`render_png`).
         scale: DPI multiplier (see :func:`render_png`).
         output_width: Exact output width in pixels.
         output_height: Exact output height in pixels.

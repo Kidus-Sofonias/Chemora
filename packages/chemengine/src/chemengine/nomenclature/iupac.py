@@ -27,6 +27,7 @@ translate that into a structured error.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from chemengine.core.enums import BondOrder
@@ -70,7 +71,8 @@ def _is_nitro_nitrogen(graph: Any, idx: int) -> bool:
 
     Accepts both standard representations: charge-separated ``[N+](=O)[O-]``
     (one double O, one singly-bonded O carrying -1) and the pentavalent
-    ``N(=O)=O`` form (two double-bonded neutral O)."""
+    ``N(=O)=O`` form (two double-bonded neutral O).
+    """
     atom = graph.atoms[idx]
     if atom.atomic_number != 7:
         return False
@@ -477,7 +479,8 @@ def _choose_hydrocarbon_chain(
     require_triples: int,
 ) -> list[int]:
     """Pick the best hydrocarbon chain: most unsaturations, then longest,
-    then lowest locants when oriented."""
+    then lowest locants when oriented.
+    """
     def key(chain: list[int]) -> tuple[int, int, int, tuple[int, ...], tuple[int, ...]]:
         d, t = _chain_unsaturations(graph, chain)
         # Final tiebreak (alkanes): minimize substituent locants across both
@@ -513,7 +516,7 @@ def _unsaturation_locants(graph: MolecularGraph, chain: list[int]) -> tuple[int,
     return tuple(sorted(locants))
 
 
-def _orient_for_locants(chain: list[int], score: "callable") -> list[int]:
+def _orient_for_locants(chain: list[int], score: Callable[[list[int]], tuple[int, ...]]) -> list[int]:
     """Return the chain orientation (forward/reversed) minimizing score()."""
     forward = list(chain)
     reverse = list(reversed(chain))
@@ -750,8 +753,8 @@ def _name_ring(graph: MolecularGraph, rings: list[list[int]]) -> str:
             z = atom_types[a]
             if z != 6:
                 het_counts[z] = het_counts.get(z, 0) + 1
-        key = (ring_size, frozenset(het_counts.items()))
-        name = HETEROCYCLE_NAMES.get(key)
+        het_key = (ring_size, frozenset(het_counts.items()))
+        name = HETEROCYCLE_NAMES.get(het_key)
         if name is not None:
             return name
         raise UnsupportedNamingError(
@@ -1001,21 +1004,6 @@ def _hydrocarbon_branch_chain(graph: MolecularGraph, start: int, excluded: set[i
     _, far_path = farthest(any_node)
     _, diameter = farthest(far_path[-1])
     return diameter
-    """Count carbons in a branch starting from a given atom."""
-    count = 0
-    visited = {start}
-    stack = [start]
-    while stack:
-        node = stack.pop()
-        if node in excluded:
-            continue
-        if graph.atoms[node].atomic_number == 6:
-            count += 1
-        for neighbor in graph.get_neighbors(node):
-            if neighbor not in visited and neighbor not in excluded:
-                visited.add(neighbor)
-                stack.append(neighbor)
-    return max(count, 1)
 
 
 # ── Functional-group naming (acyclic) ──
@@ -1028,7 +1016,7 @@ def _chains_containing(graph: MolecularGraph, required: set[int]) -> list[list[i
 
 def _best_oriented(
     chain: list[int],
-    locant_fn: "callable",
+    locant_fn: Callable[[list[int]], tuple[int, ...]],
 ) -> tuple[list[int], tuple[int, ...]]:
     """Orient a chain to minimize locants; return (chain, locants)."""
     forward = _orient_for_locants(chain, locant_fn)
@@ -1156,7 +1144,9 @@ def _name_ester(graph: MolecularGraph, groups: dict[str, list[int]]) -> str:
     # alkyl part: branch from the alkoxy carbon (excluding the ester O)
     ester_o = next(
         n for n in graph.get_neighbors(alkoxy_carbon)
-        if graph.atoms[n].atomic_number == 8 and graph.get_bond(alkoxy_carbon, n).order == BondOrder.SINGLE
+        if graph.atoms[n].atomic_number == 8
+        and (b := graph.get_bond(alkoxy_carbon, n)) is not None
+        and b.order == BondOrder.SINGLE
     )
     branch_len = _branch_is_pure_hydrocarbon(graph, alkoxy_carbon, {ester_o})
     if branch_len is None:

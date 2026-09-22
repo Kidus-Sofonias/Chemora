@@ -144,7 +144,8 @@ class ElectronShell:
     @property
     def subshell_notation(self) -> str:
         """Aufbau notation string (e.g., ``'1s2 2s2 2p4'``) for occupied
-        subshells only."""
+        subshells only.
+        """
         return " ".join(repr(o) for o in self.orbitals if o.electrons > 0)
 
 

@@ -56,7 +56,8 @@ class _FormulaScanner:
 
     def error(self, message: str) -> FormulaParseError:
         """Build a :class:`FormulaParseError` annotated with the current
-        position and formula."""
+        position and formula.
+        """
         return FormulaParseError(message, pos=self.i, formula=self.formula)
 
     def skip_whitespace(self) -> None:
