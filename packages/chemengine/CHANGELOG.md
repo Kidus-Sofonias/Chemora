@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] — 2026-09-21 (M33 — ChemEngine v2.0 Feature Completion)
+
+### Added
+
+#### Rendering (roadmap 10.2 / 10.3 / 10.5)
+- **PNG output** (`rendering/png.py`) — SVG→PNG via the roadmap-named optional
+  `cairosvg` dependency (new `render` extra); 2x/4x HiDPI scale factors;
+  documented `PNGUnavailableError` when the extra is absent
+- **Substructure highlighting** — deterministic atom/bond highlighting on
+  `render()` and the `render_svg` tool; colors from
+  `detection.substructure` matches; no canonical-graph mutation
+- **Themes** (`rendering/themes.py`) — `RenderTheme` objects for dark, CPK,
+  monochrome, and accessibility rendering; deterministic per theme
+
+#### Nomenclature (roadmap 11.3 / 11.4 / 11.5)
+- **IUPAC name parser** (`parsing/iupac/tokenizer.py`, `parsing/iupac/parser.py`)
+  — parses the generator's supported grammar subset into molecular graphs;
+  38-case round-trip suite (name → graph → identical InChIKey); structured
+  `UnsupportedNamingError` for unsupported grammar (ethers, aromatic ethers)
+- **Common names dictionary** (`nomenclature/common_names.py`) — curated,
+  integrity-tested set (63 names) feeding the existing alias resolver
+- **Tautomer handling** (`nomenclature/tautomers.py`) — keto-enol and
+  amide-imidic detection, enumeration, and canonical selection, bounded by
+  `MAX_TAUTOMER_FORMS = 8`
+- **Generator correctness pass** (`nomenclature/iupac.py`) — longest-chain
+  selection through functional groups, substituent-locant minimization,
+  nitro recognition (previously misnamed "aminobenzene"), ring hydroxyl/amine
+  suffixes (cyclohexanol), correct locant omission
+
+#### Reactions (roadmap 12.2 / 12.5)
+- **Atom-atom mapping + ReactionGraph** (`reactions/mapping.py`) —
+  deterministic skeleton-based mapping (element equality + bond-existence
+  consistency; bond orders reported as changed/formed/broken, not
+  constrained); branch-and-bound search with signature ordering, global
+  early stop, and a deterministic node budget (explicit failure, never a
+  hang); ambiguity via one shared enumeration tree (full correspondences,
+  smaller side bijected) or a forced-seed probe (partial); budget
+  exhaustion reported conservatively as ambiguous
+- **53-case reviewed reference oracle**
+  (`tests/data/reaction_mapping_reference.json`) — version-controlled
+  regression set exceeding the roadmap's 50+ requirement; every case
+  annotated with its chemical justification (symmetries, explicit
+  boundaries, budget-limited cases)
+- **Mechanism architecture** (`reactions/mechanisms.py`) — INTERFACES ONLY
+  (roadmap 12.5 is architecture, not an engine): `MovementKind`,
+  `ArrowRef`, `ElectronMovement`, `MechanismStep`, `MechanismTrace`,
+  `MechanismRule` protocol; boundary test enforces that no engine ships
+
+#### Performance (roadmap 15.6)
+- **First import <100 ms** — 490 → ~19–27 ms (cold `-X importtime`, median
+  of 3) via PEP 562 lazy public API, lazy element/dataset tables, and lazy
+  plugin discovery; regression gate `tests/test_import_performance.py`
+  (100 ms target + 150 ms guard)
+
+### Fixed
+- **SMILES/formula misclassification** (`parsing/protocol.py`) — ring-closure
+  SMILES (`C1CCCCC1`) were routed to the formula parser and silently built
+  the wrong molecule (bare C6, no ring); a molecular formula never repeats
+  an element symbol, so repeated symbols now mean SMILES
+- **Organic-subset strictness** (`parsing/smiles.py`) — bare `H` is not in
+  the OpenSMILES organic subset and is no longer accepted as an atom
+  (formulas like `CH3CH3` now correctly reach the formula parser)
+- **Order-dependent InChI/InChIKey** (`parsing/inchi_serializer.py`) — keys
+  depended on input atom order; serializers now canonicalize first
+  (order-independent; propane matches official standard InChI)
+- **`__version__` restoration** — the lazy-import rework initially dropped
+  the module-level `__version__`; restored (Sphinx reads it at import time)
+
+---
+
 ## [1.0.0] — 2026-09-01
 
 ### Added

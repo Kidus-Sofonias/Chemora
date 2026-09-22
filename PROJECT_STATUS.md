@@ -1,7 +1,7 @@
 # Chemora — Project Status Report
 
 **Date:** September 19, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion complete / M33 scoped
+**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion + M33 ChemEngine v2.0 Feature Completion complete
 **Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) + Production Readiness & Release Engineering (M31) complete · Post-M26 corrective hardening pass complete
 
 ---
@@ -22,7 +22,7 @@ ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 ski
 | **Backend Tests** | 220 / 220 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache) |
 | **Web Tests** | 74 / 74 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
-| **Next Milestone** | M33 — ChemEngine v2.0 Feature Completion: Rendering, Nomenclature & Reaction Mapping (scoped; implementation not started) |
+| **Next Milestone** | None — all itemized roadmap feature rows (Phases 0–15) complete through M33; remaining work is the unordered v2.0/v3.0 Future Roadmap (organometallics, polymers, biomolecules, full mechanism engine, GNN, WebAssembly, crystallography, NMR; v3.0 drug discovery etc.), to be scoped as a milestone when chosen |
 
 ---
 
@@ -518,18 +518,71 @@ accounts/credentials, with exact completion steps.
 
 ---
 
-### 🔲 M33: ChemEngine v2.0 Feature Completion — Rendering, Nomenclature & Reaction Mapping (Scoped — 2026-09-21)
+### ✅ M33: ChemEngine v2.0 Feature Completion — Rendering, Nomenclature & Reaction Mapping (Complete — 2026-09-21)
 
-M33 is **scoped; implementation has not started**. M32 closed the
-ChemEngine *release* surface; M33 closes the remaining **itemized**
-Phase 10–12 feature rows — all tagged "Planned (v2.0)" in the roadmap —
+M33 is **complete**. M32 closed the
+ChemEngine *release* surface; M33 closed the remaining **itemized**
+Phase 10–12 feature rows — formerly tagged "Planned (v2.0)" in the roadmap —
 as one coherent milestone: rendering (10.2 PNG output, 10.3 substructure
 highlighting, 10.5 dark mode + themes), nomenclature (11.3 preferred IUPAC
 + common names, 11.4 IUPAC name parser, 11.5 tautomer handling), and
-reactions (12.2 atom-atom mapping via the existing MCS engine, 12.5 the
-mechanism *architecture* placeholder the completed Phase 12 explicitly
-anticipated). It also picks up the one open measured Phase 15 performance
-target M32 recorded (first import 492.9 ms vs the <100 ms target).
+reactions (12.2 atom-atom mapping, 12.5 the
+mechanism *architecture* interfaces the completed Phase 12 explicitly
+anticipated). It also met the Phase 15 performance
+target M32 recorded (first import 490 → ~19–27 ms vs the <100 ms target).
+
+**Delivered:**
+- **Rendering:** `rendering/png.py` (cairosvg optional `render` extra,
+  2x/4x HiDPI, documented `PNGUnavailableError` graceful degradation);
+  deterministic substructure highlighting on `render()` + tool surface;
+  `RenderTheme` objects (dark, CPK, monochrome, accessibility) with
+  per-theme deterministic output (43 rendering tests).
+- **Nomenclature:** generator correctness pass (longest-chain selection
+  through functional groups, substituent-locant minimization, nitro
+  recognition, ring hydroxyl/amine suffixes, locant-omission rule);
+  `parsing/iupac/{tokenizer,parser}.py` round-tripping the supported
+  grammar (38-case InChIKey-verified round-trips, structured
+  `UnsupportedNamingError` for unsupported grammar); curated 63-name
+  common-names dictionary with integrity tests; bounded keto-enol +
+  amide-imidic tautomer detection/canonicalization
+  (`MAX_TAUTOMER_FORMS=8`).
+- **Reactions:** `reactions/mapping.py` deterministic skeleton-based
+  atom-atom mapping (element equality + bond-existence consistency;
+  bond orders reported as changed/formed/broken), branch-and-bound with
+  signature ordering, node budget with explicit failure, one-tree
+  ambiguity enumeration for full correspondences (bijecting the smaller
+  side) + forced-seed probe for partial ones, conservative
+  ambiguity-on-exhaustion; 53-case reviewed reference oracle
+  (`tests/data/reaction_mapping_reference.json`, each case annotated);
+  mapping ~1–7 ms on small molecules (Phase 12 <10 ms target met);
+  `reactions/mechanisms.py` interfaces only (ElectronMovement,
+  MechanismStep/Trace, MechanismRule protocol) — no engine, enforced by
+  a boundary test.
+- **Performance:** first import 490 → ~19–27 ms via PEP 562 lazy public
+  API + lazy element/dataset tables + lazy plugin discovery; regression
+  gate `tests/test_import_performance.py` (100 ms target + 150 ms guard,
+  documented cold `-X importtime` median-of-3 methodology).
+- **Correctness fixes required by the naming acceptance criteria:**
+  saturated ring-closure SMILES silently dropped by formula
+  misclassification (`C1CCCCC1` parsed as hexane — fixed in
+  `parsing/protocol.py` + organic-subset strictness in `parsing/smiles.py`);
+  InChI/InChIKey serializers were atom-order-dependent — now canonical
+  (order-independent), matching official standard InChI for propane.
+
+**Test totals:** ChemEngine **1851 passed, 2 skipped** (both skips
+documented; baseline was 1635/1 at M32 start of M33 window), backend
+**224**, web **74**, admin **13**; backend ruff+mypy clean; web/admin tsc
++ builds green; ChemEngine package build + twine check green; Sphinx `-W`
+green; Python 3.10 verified locally, 3.11–3.13 via the CI matrix job.
+
+**Known limitations (recorded honestly):** the IUPAC parser covers exactly
+the generator's supported grammar subset (ethers and aromatic ethers raise
+`UnsupportedNamingError` rather than guessing); the common-names dictionary
+is a curated 63 names (roadmap's 1000+ aspiration recorded as future work);
+the InChI serializer remains a simplified implementation (canonical
+numbering now, full standard-InChI feature parity not claimed); the
+mechanism module contains no executable chemistry by design; GitHub
+Release/PyPI upload remain credential-blocked from M32.
 
 **Why this is next (repository evidence):** after M32 the remaining
 explicitly itemized feature work in the roadmap is exactly the rows above,

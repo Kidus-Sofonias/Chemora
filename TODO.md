@@ -364,7 +364,7 @@ Make the current engine completely reliable. Eliminate all technical debt, achie
 | 1.3 | Infrastructure test coverage | ✅ Complete |
 | 1.4 | Property-based testing integration | ✅ Complete — 24 `@given` tests in `tests/test_property_based.py` (verified M33 discovery) |
 | 1.5 | Documentation synchronization | ✅ Complete |
-| 1.6 | Benchmark baseline establishment | ✅ Complete — 60-function baseline established + CI regression gate (M31/M32); first-import <100 ms target recorded as open (492.9 ms measured, M33) |
+| 1.6 | Benchmark baseline establishment | ✅ Complete — 60-function baseline established + CI regression gate (M31/M32); first-import <100 ms target closed by M33 (490 → ~19–27 ms, cold `-X importtime` median of 3; regression gate in `tests/test_import_performance.py`) |
 | 1.7 | Parser regression test suite | ✅ Complete |
 
 ### Atomic Tasks
@@ -1208,10 +1208,10 @@ Publication-quality SVG and PNG molecular rendering with highlighting, reaction 
 | # | Milestone | Status |
 |---|-----------|--------|
 | 10.1 | SVG rendering engine | ✅ Complete |
-| 10.2 | PNG output (via SVG) | ⬜ Planned (v2.0) |
-| 10.3 | Substructure highlighting | ⬜ Planned (v2.0) |
+| 10.2 | PNG output (via SVG) | ✅ Complete (M33 — `rendering/png.py`, cairosvg optional extra, 2x/4x HiDPI, graceful `PNGUnavailableError` degradation) |
+| 10.3 | Substructure highlighting | ✅ Complete (M33 — deterministic highlight layer on `render()`, tool surface, colors from `detection.substructure` matches) |
 | 10.4 | Reaction arrows | ✅ Complete |
-| 10.5 | Dark mode + themes | ⬜ Planned (v2.0) |
+| 10.5 | Dark mode + themes | ✅ Complete (M33 — `RenderTheme` objects: dark, CPK, monochrome, accessibility; deterministic per theme) |
 
 ### Atomic Tasks
 
@@ -1281,9 +1281,9 @@ Bidirectional IUPAC naming: MolecularGraph → systematic IUPAC name and name �
 |---|-----------|--------|
 | 11.1 | Alkane/alkene/alkyne naming | ✅ Complete |
 | 11.2 | Cyclic/functional group naming | ✅ Complete |
-| 11.3 | Preferred IUPAC + common names | ⬜ Planned (v2.0) |
-| 11.4 | IUPAC name parser | ⬜ Planned (v2.0) |
-| 11.5 | Tautomer handling | ⬜ Planned (v2.0) |
+| 11.3 | Preferred IUPAC + common names | ✅ Complete (M33 — generator correctness pass; curated common-names dictionary, 63 names, tested) |
+| 11.4 | IUPAC name parser | ✅ Complete (M33 — `parsing/iupac/{tokenizer,parser}.py`; generator round-trip on the supported grammar subset, documented coverage) |
+| 11.5 | Tautomer handling | ✅ Complete (M33 — keto-enol + amide-imidic detection/canonicalization, bounded `MAX_TAUTOMER_FORMS=8`) |
 
 ### Atomic Tasks
 
@@ -1358,10 +1358,10 @@ Reaction engine: reaction graphs, templates, atom mapping, balancing, validation
 | # | Milestone | Status |
 |---|-----------|--------|
 | 12.1 | Reaction graph data model | ✅ Complete |
-| 12.2 | Atom-atom mapping | ⬜ Planned (v2.0) |
+| 12.2 | Atom-atom mapping | ✅ Complete (M33 — `reactions/mapping.py` deterministic skeleton MCS; 53-case reviewed reference oracle; budgeted search, explicit failures) |
 | 12.3 | Reaction balancing + validation | ✅ Complete |
 | 12.4 | Reaction templates | ✅ Complete |
-| 12.5 | Mechanism architecture (v2.0) | ⬜ Planned (v2.0) |
+| 12.5 | Mechanism architecture (v2.0) | ✅ Complete (M33 — `reactions/mechanisms.py` interfaces only: ElectronMovement, MechanismStep/Trace, MechanismRule protocol; no engine, by scope) |
 
 ### Atomic Tasks
 
@@ -2451,13 +2451,13 @@ accounts/credentials, with exact steps to complete them.
 
 ---
 
-### M33 — ChemEngine v2.0 Feature Completion: Rendering, Nomenclature & Reaction Mapping (Scoped)
+### M33 — ChemEngine v2.0 Feature Completion: Rendering, Nomenclature & Reaction Mapping (Complete)
 
-M33 is **scoped** (2026-09-21); implementation has **not started**. M32 is
-complete. M33 closes the remaining **itemized** Phase 10–12 rows (all
-tagged "Planned (v2.0)") as one coherent "finish the v2.0 feature list"
-milestone, and picks up the one open measured Phase 15 performance target
-(first import <100 ms) that M32 recorded. The unordered Future Roadmap
+M33 is **complete** (2026-09-21). M32 is
+complete. M33 closed the remaining **itemized** Phase 10–12 rows (all
+formerly tagged "Planned (v2.0)") as one coherent "finish the v2.0 feature
+list" milestone, and met the one open measured Phase 15 performance target
+(first import <100 ms, achieved: ~19–27 ms) that M32 recorded. The unordered Future Roadmap
 v2.0 *domains* (organometallics, polymers, biomolecules, a full mechanism
 engine, GNN, WebAssembly, crystallography, NMR) are **not** part of M33 —
 they remain separately labeled future work with no documented ordering.
@@ -2528,38 +2528,53 @@ blockers, not M33 work); AI tutor redesign; backend/web/admin product
 feature work; new ChemEngine chemistry domains beyond the rows above;
 M34+ work.
 
-**Acceptance criteria** (M33 is complete only when all of the following
-hold):
-- [ ] `render(graph, fmt="png")` (or an equivalent documented API) produces
-  a valid PNG when the `render` extra is installed, supports 2x/4x scale,
-  and raises a stable, documented error when the extra is absent.
-- [ ] `render()` accepts a substructure query/match and emits highlighted
-  atoms/bonds deterministically (same input → same output); tool surface
-  exposes the option.
-- [ ] Renderer themes exist: dark, CPK, monochrome, accessibility; each
-  produces deterministic SVG; theme selection is documented.
-- [ ] Preferred IUPAC names generated for the naming subsystem's supported
-  classes; a common-names dictionary ships with its count and test
-  coverage; 11.3 table row updated.
-- [ ] `parsing/iupac/` tokenizer+parser parse the generator's supported
-  grammar subset with round-trip tests; unsupported grammar rejected with
-  structured errors; documented coverage statement.
-- [ ] Tautomer detection (keto-enol, amide-imidic) + canonical tautomer
-  selection implemented with property/unit tests.
-- [ ] `ReactionGraph` with mapping exists; atom-atom mapping produced via
-  MCS for standard reactions; a reference reaction set (roadmap: 50+)
-  maps correctly; conservation validation detects unbalanced/mis-mapped
-  reactions; Phase 12 benchmark targets met in the benchmark suite.
-- [ ] Mechanism *architecture* placeholder module + data model + docs exist
-  (explicitly not a runnable mechanism engine).
-- [ ] First import <100 ms (M32 measurement methodology); benchmark
-  regression gate green; full test suite green.
-- [ ] Phase 10/11/12 tables reconciled; CHANGELOG entry added; Sphinx
-  pages regenerated warning-free; tutorials/examples cover the new APIs.
-- [ ] M1–M32 regression-safe: full suites + static checks + builds with
-  exact totals recorded; matrix and benchmark-regression CI jobs green.
-- [ ] No new P0/P1 security issues; no credentials committed or printed.
-- [ ] TODO.md, PROJECT_STATUS.md, gantt.html reconciled; focused commits;
+**Acceptance criteria** (all verified 2026-09-21):
+- [x] `render(graph, fmt="png")` produces a valid PNG when the `render`
+  extra is installed (cairosvg), supports 2x/4x scale, and raises the
+  stable, documented `PNGUnavailableError` when the extra is absent
+  (`rendering/png.py`; graceful-degradation tests).
+- [x] `render()` accepts a substructure query/match and emits highlighted
+  atoms/bonds deterministically (same input → same output, tested);
+  tool surface exposes theme+highlight options (facade wiring commit
+  3cc2fc4).
+- [x] Renderer themes exist: dark, CPK, monochrome, accessibility; each
+  produces deterministic SVG (43 rendering tests green).
+- [x] Preferred IUPAC names generated for the naming subsystem's supported
+  classes after a correctness pass (longest-chain/locant/nitro/ring
+  fixes); common-names dictionary ships (63 names) with integrity tests;
+  11.3 table row updated.
+- [x] `parsing/iupac/` tokenizer+parser parse the generator's supported
+  grammar subset with 38-case round-trip tests (InChIKey-equality
+  canonicalization); unsupported grammar raises structured
+  `UnsupportedNamingError`; coverage documented in module docstrings.
+- [x] Tautomer detection (keto-enol, amide-imidic) + canonical tautomer
+  selection implemented, bounded, with unit tests.
+- [x] `ReactionGraph` with deterministic atom-atom mapping; a 53-case
+  reviewed reference set (exceeds the 50+ roadmap requirement) maps
+  correctly as a version-controlled oracle
+  (`tests/data/reaction_mapping_reference.json`); explicit failures for
+  unbalanced/oversized inputs; mapping performance ~1–7 ms on small
+  molecules (Phase 12 <10 ms target met); graph construction and
+  validation benchmarks remain green in the suite.
+- [x] Mechanism *architecture* module + data model + docs exist
+  (`reactions/mechanisms.py`; explicitly no runnable engine, enforced by
+  an architecture-boundary test).
+- [x] First import <100 ms: 490 → ~19–27 ms (cold `-X importtime`, median
+  of 3, methodology in `tests/test_import_performance.py`); regression
+  gate added at the 100 ms target + 150 ms guard; benchmark regression
+  gate green; full test suite green.
+- [x] Phase 10/11/12 tables reconciled; CHANGELOG entry added; Sphinx
+  builds warning-free with `-W`; examples (12) all execute; tutorials
+  synchronized with the new APIs.
+- [x] M1–M32 regression-safe: ChemEngine 1851 passed, 2 skipped (both
+  skips documented); backend 224 passed; web 74 passed; admin 13 passed;
+  backend ruff+mypy clean; tsc clean; web/admin builds pass; package
+  build + twine check pass. Python 3.10 verified locally; 3.11–3.13
+  execute only in CI (matrix job), documented as the local-environment
+  limitation.
+- [x] No new P0/P1 security issues; no credentials committed or printed
+  (security sweep of all new modules clean).
+- [x] TODO.md, PROJECT_STATUS.md, gantt.html reconciled; focused commits;
   pushed; HEAD == origin/master; working tree clean.
 
 **Dependencies:** M32 release surface (Sphinx, examples, CI gates, twine
@@ -2590,13 +2605,13 @@ whatever cannot be verified is documented, never fabricated.
 | **ChemEngine Completion** | **100%** of v1.0.0 scope |
 | **Completed Phases** | All (0–15) + Correctness Gate + Monorepo Migration |
 | **Current Version** | v1.0.0 |
-| **Passing Tests** | 1635 / 1636 (1 skipped) |
+| **Passing Tests** | 1851 / 1853 (2 skipped, both documented: directional-bond serialization; parse-guard determinism case) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | M33 — ChemEngine v2.0 Feature Completion: Rendering, Nomenclature & Reaction Mapping (scoped; implementation not started) |
+| **Next Milestone** | None — all itemized roadmap feature rows (Phases 0–15) are complete through M33; future work is the unordered v2.0/v3.0 Future Roadmap, to be scoped as a milestone when chosen |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,
