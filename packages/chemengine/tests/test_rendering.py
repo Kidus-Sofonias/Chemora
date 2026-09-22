@@ -7,9 +7,11 @@
 
 import pytest
 
+from chemengine import ChemEngineAPI
 from chemengine.core.bonds import BondOrder
 from chemengine.core.geometry import Coordinate2D
 from chemengine.core.graph import MolecularGraph, MolecularGraphBuilder
+from chemengine.rendering.png import cairosvg_available
 from chemengine.rendering.svg import (
     _escape_xml,
     _get_color,
@@ -380,9 +382,10 @@ class TestHelpers:
         """Overlapping matches (fused rings) merge without double-count issues."""
         from chemengine.core.enums import BondOrder
         from chemengine.detection.substructure import find_subgraph_matches
-        from chemengine.rendering.svg import SubstructureHighlight
+
         # Naphthalene SMILES parsed (10 carbons, fused rings)
         from chemengine.parsing.smiles import parse_smiles
+        from chemengine.rendering.svg import SubstructureHighlight
         target = parse_smiles("c1ccc2ccccc2c1")
         qbuilder = MolecularGraphBuilder()
         for _ in range(6):
@@ -411,3 +414,79 @@ class TestHelpers:
     def test_escape_xml(self):
         assert _escape_xml("<tag>") == "&lt;tag&gt;"
         assert _escape_xml("a & b") == "a &amp; b"
+
+
+# ── PNG output (roadmap 10.2) ──
+# The PNG path is exercised two ways: (1) when cairosvg is genuinely
+# importable, the real bytes are checked; (2) when it is not -- the common
+# case on minimal environments, including CI, which installs only the dev
+# extra -- the availability probe and the facade/tool degradation contract
+# are still asserted. Either way the documented behaviour is under test.
+
+
+class TestPNGOutput:
+    """Roadmap 10.2: PNG output with honest coverage."""
+
+    @staticmethod
+    def _graph() -> "MolecularGraph":
+        """Build a small molecule for PNG availability probing."""
+        from chemengine import ChemEngineAPI
+        return ChemEngineAPI().parse("CCO")
+
+    def _svg(self) -> str:
+        from chemengine.rendering.svg import render_svg
+        return render_svg(self._graph())
+
+    def test_probe_reports_importability(self) -> None:
+        """cairosvg_available() must agree with a real import attempt."""
+        try:
+            import cairosvg  # noqa: F401
+            installed = True
+        except Exception:
+            installed = False
+        assert cairosvg_available() is installed
+
+    def test_facade_png_matches_cairosvg_availability(self) -> None:
+        """Facade render(fmt='png') honours cairosvg availability."""
+        from chemengine.rendering.png import PNGUnavailableError
+
+        graph = self._graph()
+        if cairosvg_available():
+            png = ChemEngineAPI().render(graph, fmt="png")
+            assert isinstance(png, bytes)
+            assert png[:8] == b"\x89PNG\r\n\x1a\n"
+        else:
+            with pytest.raises(PNGUnavailableError) as exc:
+                ChemEngineAPI().render(graph, fmt="png")
+            message = str(exc.value)
+            assert "cairosvg" in message
+            assert "chemengine[render]" in message
+
+    def test_unsupported_render_format_is_rejected(self) -> None:
+        """Only 'svg' and 'png' are documented render formats."""
+        from chemengine import ChemEngineAPI
+
+        with pytest.raises(ValueError, match="Unsupported render format"):
+            ChemEngineAPI().render(self._graph(), fmt="pdf")
+
+    def test_png_scales(self) -> None:
+        """2x/4x HiDPI factors are accepted where PNG is available."""
+        if not cairosvg_available():
+            pytest.skip("cairosvg (the render extra) is not installed")
+        api = ChemEngineAPI()
+        small = api.render(self._graph(), fmt="png", scale=2)
+        large = api.render(self._graph(), fmt="png", scale=4)
+        assert len(large) > len(small) > 0
+
+    def test_png_bytes_differ_from_svg(self) -> None:
+        """PNG output is a raster image, not the SVG markup."""
+        if not cairosvg_available():
+            pytest.skip("cairosvg (the render extra) is not installed")
+        png = ChemEngineAPI().render(self._graph(), fmt="png")
+        assert not png.lstrip().startswith(b"<")
+        assert self._svg().lstrip().startswith("<")
+
+    def test_deterministic_svg_independent_of_png_availability(self) -> None:
+        """SVG output must not depend on whether the PNG extra is present."""
+        svg = self._svg()
+        assert svg == self._svg()
