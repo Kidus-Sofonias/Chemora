@@ -27,8 +27,6 @@ from app.services.ai.service import TutorService
 from app.services.ai.tools import TutorToolbox
 from tests.conftest import MockGoogleTokenVerifier
 
-pytestmark = pytest.mark.asyncio
-
 
 async def _auth(
     api_client: AsyncClient, verifier: MockGoogleTokenVerifier, sub: str
