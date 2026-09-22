@@ -74,6 +74,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (order-independent; propane matches official standard InChI)
 - **`__version__` restoration** — the lazy-import rework initially dropped
   the module-level `__version__`; restored (Sphinx reads it at import time)
+- **Tautomer canonical asymmetry** (takeover audit) — `canonical_tautomer()`
+  now searches the bounded closure of the tautomer set with reverse-direction
+  site detection, so an enol and its keto form (an imidic acid and its amide)
+  canonicalize to the same representative regardless of which member is supplied
+- **Aromatic heterocycles parsed as saturated graphs** (takeover audit) —
+  `parsing/iupac/parser.py` sets the aromatic flag on ring atoms and honours
+  template N-H counts: pyridine no longer serializes as piperidine
+  (`C1CCCCN1`), and pyrrole/imidazole keep their N-H (C4H5N / C3H4N2)
+- **Saturated heterocycles named after aromatic ones** (takeover audit) —
+  the composition lookup in `nomenclature/iupac.py` is guarded by ring
+  aromaticity; piperidine and friends raise `UnsupportedNamingError`
+- **`pyran` removed from the generator table and the parser** (takeover audit) —
+  no correct neutral representation exists; the name raises rather than
+  mis-parsing to a saturated ring
+- **Placeholder/incorrect names** (takeover audit) —
+  `_name_hydrocarbon()` no longer returns `"unknown"`, and ketone chains
+  without two carbon neighbours raise `UnsupportedNamingError` uniformly
+- **Version reconciliation** (takeover audit) — `pyproject.toml` and
+  `__version__` now declare 1.1.0 to match this entry; pinned by
+  `tests/test_version_consistency.py`
 
 ---
 
