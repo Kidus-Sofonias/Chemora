@@ -1,25 +1,69 @@
 # Chemora — Project Status Report
 
-**Date:** September 19, 2026
-**Version:** 1.0.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion + M33 ChemEngine v2.0 Feature Completion complete
+**Date:** September 22, 2026
+**Version:** 1.1.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion + M33 ChemEngine v2.0 Feature Completion complete
 **Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) + Production Readiness & Release Engineering (M31) complete · Post-M26 corrective hardening pass complete
 
 ---
 
 ## Executive Summary
 
-ChemEngine v1.0.0 is **complete** with all 1635 tests passing (0 failures, 1 skipped). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), the Chemistry Learning Core (M24), the Learning & Practice Expansion (M25), the Content Management Foundation (M26), the Production Content CMS (M27), the Chemistry Learning Experience Expansion (M28), and the AI Chemistry Tutor (M29) are **complete** (199 backend tests, 71 web tests, 13 admin tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a ChemEngine-backed learning experience with server-graded practice, a coherent, expanded curriculum, and a session-gated AI tutor whose deterministic chemistry always comes from ChemEngine end to end.
+ChemEngine v1.1.0 is **complete** with all 1893 tests passing (0 failures, 4 skipped, every skip documented). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), the Chemistry Learning Core (M24), the Learning & Practice Expansion (M25), the Content Management Foundation (M26), the Production Content CMS (M27), the Chemistry Learning Experience Expansion (M28), and the AI Chemistry Tutor (M29) are **complete** (199 backend tests, 71 web tests, 13 admin tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a ChemEngine-backed learning experience with server-graded practice, a coherent, expanded curriculum, and a session-gated AI tutor whose deterministic chemistry always comes from ChemEngine end to end.
+
+---
+
+## Takeover Audit (2026-09-22)
+
+An independent takeover audit re-verified M1-M33 against the repository
+itself (code, tests, CI configuration, builds) rather than against prior
+reports. Post-audit full-suite results: ChemEngine **1893 passed / 4
+skipped** (every skip documented), backend **224**, web **74**, admin
+**13**; ruff 302 src findings (<=342 baseline), mypy 43 findings (<=44
+baseline witness), tsc clean, web/admin production builds green, Sphinx
+`-W` green, 12/12 examples, 60/60 benchmark functions, package build +
+twine check green, first import 18-30 ms (target <100 ms), 53-case
+reaction reference set green, mechanism architecture boundary test green.
+
+**Defects found and fixed (new corrective commits, history preserved):**
+
+1. `canonical_tautomer()` was asymmetric - an enol and its keto form (an
+   imidic acid and its amide) canonicalized to different representatives
+   depending on which member was supplied. Fixed by detecting the reverse
+   tautomer directions and searching the bounded tautomer closure.
+2. The IUPAC parser built aromatic heterocycles as saturated graphs (ring
+   atoms lacked the aromatic flag; template N-H counts were dropped), so
+   pyridine serialized as piperidine (`C1CCCCN1`) and pyrrole lost its
+   N-H (C4H4N instead of C4H5N).
+3. The naming generator matched saturated heterocycles against the
+   aromatic composition table - piperidine was named "pyridine".
+4. `pyran` existed on both the generator and parser sides with no correct
+   neutral representation; it now raises instead of mis-parsing.
+5. `_name_hydrocarbon()` could return the literal placeholder
+   "unknown"; out-of-coverage molecules now raise
+   `UnsupportedNamingError` everywhere (ketone carbonyls without two
+   carbon neighbours included).
+6. Packaging declared version 1.0.0 while CHANGELOG declared 1.1.0;
+   `pyproject.toml` and `__version__` now agree at 1.1.0, pinned by a
+   version-consistency regression test.
+7. Redundant module-level `pytestmark = pytest.mark.asyncio` removed
+   from the M30 conversation suite (the backend runs `asyncio_mode =
+   "auto"`, matching every other backend test module).
+
+Regression tests for items 1-6 were added to
+`packages/chemengine/tests/test_m33_naming.py`,
+`test_rendering.py` (PNG optional-dependency degradation), and the new
+`test_version_consistency.py`.
 
 | Metric | Value |
 |--------|-------|
 | **Overall Completion** | ~87% of v1.0.0 scope |
-| **Passing Tests** | 1635 / 1635 (100%) |
-| **Skipped** | 1 (directional bond round-trip) |
-| **Source Files** | 72 Python files across 16 packages |
-| **Test Files** | 37 |
+| **Passing Tests** | 1893 / 1897 (100%) |
+| **Skipped** | 4 (all documented: directional-bond round-trip; parse-guard determinism; 2 x cairosvg render extra absent) |
+| **Source Files** | 81 Python files across 16 packages |
+| **Test Files** | 46 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
-| **Backend Tests** | 220 / 220 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache) |
+| **Backend Tests** | 224 / 224 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
 | **Next Milestone** | None — all itemized roadmap feature rows (Phases 0–15) complete through M33; remaining work is the unordered v2.0/v3.0 Future Roadmap (organometallics, polymers, biomolecules, full mechanism engine, GNN, WebAssembly, crystallography, NMR; v3.0 drug discovery etc.), to be scoped as a milestone when chosen |

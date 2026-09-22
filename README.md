@@ -72,7 +72,7 @@ ChemEngine is a production-grade chemistry engine built with the **Molecular Gra
 
 - **Package name**: `chemengine`
 - **Import**: `import chemengine`
-- **Tests**: 1635 passed, 1 skipped
+- **Tests**: 1893 passed, 4 skipped (all documented)
 - **Coverage**: 80%
 
 See [`packages/chemengine/`](packages/chemengine/) for full documentation.

@@ -3,7 +3,7 @@
 > **📊 Live Gantt chart**: Open [`gantt.html`](gantt.html) in your browser for an interactive, animated visualization of this roadmap. Automatically updates when phase statuses change.
 
 > **Version:** 0.10.0 → 1.0.0 (ChemEngine complete; monorepo migration complete)
-> **Last Updated:** September 19, 2026
+> **Last Updated:** September 22, 2026
 > **Owner:** Chemora Architecture Team
 > **Status:** Active Development — Backend M19–M31 complete; M32 (ChemEngine Release Completion: API Reference, Tutorials & PyPI) complete
 
@@ -75,16 +75,16 @@ Each phase contains:
 | Metric | Value | Target (v1.0) |
 |--------|-------|----------------|
 | **Overall Completion** | ~85% | 100% |
-| **Passing Tests** | 1635 / 1635 (100%), 1 skip | >5,000 |
-| **Test Files** | 37 | >60 |
-| **Source Files** | 72 Python files | >100 |
+| **Passing Tests** | 1893 / 1897 (100%), 4 skips (all documented) | >5,000 |
+| **Test Files** | 46 | >60 |
+| **Source Files** | 81 Python files | >100 |
 | **Elements** | All 118 | All 118 |
 | **Documentation** | 10 documents | 30+ documents |
-| **Benchmarks** | 23 benchmarks | 50+ benchmarks |
+| **Benchmarks** | 60 benchmarks | 50+ benchmarks |
 | **Code Coverage** | ~70% (estimated) | >95% |
 | **Known Defects** | 0 (all regression-tested) | 0 |
 | **Stub Modules** | 0 packages | 0 |
-| **Last Updated** | September 19, 2026 | — |
+| **Last Updated** | September 22, 2026 | — |
 
 ### Version History
 
@@ -102,6 +102,7 @@ Each phase contains:
 | 0.10.0 | 2026-07-21 | Phase 8 — Molecular Properties | ✅ Complete |
 | 1.0.0 | 2026-09-08 | All phases + Correctness Gate | ✅ Complete |
 | 1.0.1 | 2026-09-08 | Correctness fixes | ✅ Complete |
+| 1.1.0 | 2026-09-21 | M33 — ChemEngine v2.0 Feature Completion | ✅ Complete |
 
 ## Correctness Gate (Completed — 2026-09-08)
 
@@ -2594,6 +2595,55 @@ parser grammar coverage honestly documented; common-name dictionary count
 recorded; cairosvg optional-extra status on all matrix Pythons verified;
 whatever cannot be verified is documented, never fabricated.
 
+## Takeover Audit (Complete — 2026-09-22)
+
+Independent re-verification of M1–M33 against the repository itself
+(code, tests, CI configuration, builds). Prior milestone reports were
+treated as claims, not evidence. History preserved; fixes landed as new
+focused corrective commits.
+
+**Defects found and fixed:**
+- [x] `canonical_tautomer()` asymmetry — an enol and its keto form (an
+  imidic acid and its amide) canonicalized to different representatives
+  depending on which member was supplied. Fixed with reverse-direction
+  site detection (`enol-keto`, `imidic-amide`) plus a bounded tautomer
+  closure search; regression tests in `tests/test_m33_naming.py`
+  (`TestTautomerSymmetry`).
+- [x] IUPAC parser built aromatic heterocycles as saturated graphs —
+  ring atoms lacked the aromatic flag and template N-H counts were
+  dropped, so pyridine serialized as piperidine (`C1CCCCN1`) and
+  pyrrole lost its N-H (C4H4N instead of C4H5N). The parser now sets
+  atom aromaticity and honours template hydrogens.
+- [x] Naming generator matched saturated heterocycles against the
+  aromatic composition table — piperidine was returned as
+  "pyridine". The composition lookup is now guarded by ring
+  aromaticity and raises `UnsupportedNamingError` instead.
+- [x] `pyran` existed on both the generator and parser sides with no
+  correct neutral representation; removed from both — the name now
+  raises instead of mis-parsing to a saturated ring.
+- [x] Placeholder/incorrect names — `_name_hydrocarbon()` could return
+  the literal string `"unknown"`, and ketone carbons without two
+  carbon neighbours could reach chain naming. Out-of-coverage inputs
+  now raise `UnsupportedNamingError` uniformly.
+- [x] Packaging version drift — `pyproject.toml`/`__version__` said
+  1.0.0 while the M33 CHANGELOG declared 1.1.0. Both are now 1.1.0,
+  pinned by the new `tests/test_version_consistency.py`.
+- [x] Redundant module-level `pytestmark = pytest.mark.asyncio`
+  removed from the M30 conversation suite (the backend runs
+  `asyncio_mode = "auto"`, like every other backend test module).
+
+**Post-audit regression (all run fresh, 2026-09-22):** ChemEngine
+**1893 passed / 4 skipped** (every skip documented); backend **224**;
+web **74**; admin **13**; ChemEngine ruff/mypy within documented
+baselines; backend ruff+mypy clean; web/admin `tsc` clean;
+web+admin production builds green; Sphinx `-W` green; 12/12 examples;
+60/60 benchmark functions; package build + `twine check` green; first
+import 18–30 ms (target <100 ms); 53-case reaction reference set
+green; mechanism architecture boundary test green;
+`infrastructure/ci_check.py --validate-only` green. Python 3.10
+verified locally; 3.11–3.13 run in the CI matrix (documented
+local-environment limitation).
+
 ---
 
 ## Roadmap Summary
@@ -2604,8 +2654,8 @@ whatever cannot be verified is documented, never fabricated.
 |--------|-------|
 | **ChemEngine Completion** | **100%** of v1.0.0 scope |
 | **Completed Phases** | All (0–15) + Correctness Gate + Monorepo Migration |
-| **Current Version** | v1.0.0 |
-| **Passing Tests** | 1851 / 1853 (2 skipped, both documented: directional-bond serialization; parse-guard determinism case) |
+| **Current Version** | v1.1.0 |
+| **Passing Tests** | 1893 / 1897 (4 skipped, all documented: directional-bond serialization; parse-guard determinism; 2 × cairosvg render extra absent) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
