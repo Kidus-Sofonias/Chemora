@@ -2745,12 +2745,11 @@ first-import gate remains below 100 ms.
 - No credential/external blockers (all work is in-repo).
 
 ---
-### M35 — Post-M34 Roadmap Clarification and Candidate Scoping (SCOPED — IMPLEMENTATION NOT STARTED)
+### M35 — Post-M34 Roadmap Clarification and Candidate Scoping (Complete — 2026-09-23)
 
-**Status: 🟦 SCOPED — IMPLEMENTATION NOT STARTED (2026-09-23).** Planning-only
-milestone: select exactly one serious future candidate from the currently
-unordered roadmap and record an implementation-ready scope. No application
-code, tests, dependencies, or ChemEngine version changes.
+**Status: ✅ COMPLETE (2026-09-23).** M35 is a planning-only decision
+milestone. No ChemEngine source, tests, dependencies, or release metadata
+changed; ChemEngine remains 1.2.0.
 
 **Objective.** Resolve the post-M34 roadmap ambiguity using repository evidence,
 not list order or technical interest. M35 records the candidate comparison,
@@ -2766,12 +2765,17 @@ chemical search/database, visualization, mobile, or v3.0 work. Retrosynthesis,
 automated reasoning, drug discovery, docking, and quantum chemistry remain v3.0
 bullets. M35 therefore clarifies the decision before opening a new domain.
 
-**Candidate map.** Serious v2.0 candidates: organometallics, polymers,
-biomolecules, GNN/learned chemistry, WebAssembly, crystallography, and NMR.
-Nomenclature/stereochemistry coverage and advanced visualization are recorded
-gaps, not itemized phases. Chemical database/search and all v3.0 bullets lack
-scoped interfaces. Mobile has no defined compatibility path; performance and
-distribution are already covered, with publication still credential-blocked.
+**Candidate selection (completed).** **Bounded template-based retrosynthesis**
+is the next implementation milestone. The evidence is the explicit v3.0
+"Full retrosynthetic analysis" objective plus a concrete dependency edge from
+completed work: M33's `ReactionGraph`, deterministic atom mapping, reaction
+templates, and validators; M34's ten named mechanisms, twelve validated
+elementary rules, deterministic traces, and serialization. The selected future
+scope is deliberately narrower than "AI-driven route planning": enumerate and
+rank precursor sequences by applying curated reaction templates/rules in
+reverse, with explicit applicability and unsupported errors. Other candidates
+remain unordered because no equivalent staged interface or bounded prerequisite
+chain is documented.
 
 **In scope.** Review current roadmap and directly relevant architecture;
 compare candidates by dependency readiness, bounded deliverable size,
@@ -2794,12 +2798,12 @@ bounded-catalogue precedent. No new M35 interfaces are required.
 **Acceptance criteria.**
 - [x] Candidate map records evidence and explicit unordered status.
 - [x] Exactly one future candidate is selected with an implementation-ready
-  scope, or a clearly documented clarification-required decision.
-- [x] Scope includes objective, boundaries, dependencies, measurable
-  acceptance criteria, tests, performance, version proposal, risks, limits, and
-  definition of done.
-- [x] TODO.md, PROJECT_STATUS.md, and gantt.html agree; Gantt is `planned` and
-  says `SCOPED, IMPLEMENTATION NOT STARTED`.
+  scope: bounded template-based retrosynthesis.
+- [x] The selected scope includes objective, boundaries, dependencies,
+  measurable acceptance direction, tests, performance, version proposal,
+  risks, limits, and definition of done.
+- [x] TODO.md, PROJECT_STATUS.md, and gantt.html agree; M35 is complete and
+  explicitly says its implementation was not started.
 - [x] `node --check`, documentation/diff checks, and the documentation-only
   diff gate pass; no version bump or implementation claim.
 
@@ -2811,12 +2815,12 @@ first-import gate. Update only the three planning files and preserve M1–M34
 records. No version bump or CHANGELOG entry: ChemEngine remains 1.2.0; the
 future implementation version proposal must be justified by compatibility impact.
 
-**Risks, limitations, and definition of done.** Clarification is intentionally
-low-productivity but prevents arbitrary scope. Candidates with large
-prerequisites must be split or rejected rather than under-scoped. M35 cannot
-resolve external credentials or order the entire v2.0/v3.0 list. Done means a
-synchronized decision record, valid planned Gantt, one focused documentation
-commit, pushed `HEAD == origin/master`, clean tree, and no M35 implementation
+**Risks, limitations, and definition of done.** The future retrosynthesis
+scope is bounded by curated templates and does not imply general chemical
+route planning. M35 cannot resolve external credentials or order the entire
+v2.0/v3.0 list. Done means a synchronized decision record, valid completed
+Gantt entry, one focused documentation commit, pushed
+`HEAD == origin/master`, clean tree, and no M35 chemistry implementation
 started.
 
 ---
@@ -2889,7 +2893,7 @@ local-environment limitation).
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | **M35 — Post-M34 Roadmap Clarification and Candidate Scoping** — SCOPED 2026-09-23, implementation not started; candidate selection is a planning decision, not chemistry work |
+| **Next Milestone** | **M36 candidate selected by M35:** bounded template-based retrosynthesis — future implementation scope recorded; M36 discovery/implementation not started |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,
