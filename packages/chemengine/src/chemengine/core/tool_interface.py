@@ -466,6 +466,13 @@ class ChemEngineAPI:
         except ImportError:
             logger.warning("Electron configuration algorithm not available")
 
+        # Register the M34 mechanism engine (executable M33 interfaces)
+        try:
+            from chemengine.reactions.engine import register_mechanism_algorithms
+            register_mechanism_algorithms(self._registry)
+        except ImportError:
+            logger.warning("Mechanism engine not available")
+
     def _register_builtin_tools(self) -> None:
         """Register all built-in tool definitions."""
         builtins = [

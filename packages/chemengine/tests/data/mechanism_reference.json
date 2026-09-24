@@ -1,0 +1,310 @@
+{
+  "meta": {
+    "schema": "chemengine.mechanism_reference/1",
+    "milestone": "M34",
+    "reviewed": true,
+    "case_count": 28,
+    "mechanisms_covered": [
+      "carbonyl_addition",
+      "carbonyl_addition_elimination",
+      "e1",
+      "e1cb",
+      "e2",
+      "electrophilic_addition",
+      "markovnikov_addition",
+      "proton_transfer",
+      "sn1",
+      "sn2"
+    ],
+    "note": "Curated mechanism scenarios reviewed against chemistry before being baked in (see each case's note). Positives must explain() green; negatives must decline or be rejected with the documented structured error type."
+  },
+  "cases": [
+    {
+      "id": "sn2-methanol",
+      "type": "positive",
+      "mechanism": "sn2",
+      "steps": [
+        "C[Cl].[OH-]>>C[O][H].[Cl-]"
+      ],
+      "expect_error": null,
+      "note": "chloromethane + hydroxide -> methanol + chloride; concerted displacement at methyl carbon"
+    },
+    {
+      "id": "sn2-iodide",
+      "type": "positive",
+      "mechanism": "sn2",
+      "steps": [
+        "C[Cl].[I-]>>CI.[Cl-]"
+      ],
+      "expect_error": null,
+      "note": "chloromethane + iodide -> iodomethane + chloride (anionic iodine nucleophile)"
+    },
+    {
+      "id": "sn2-ethanol",
+      "type": "positive",
+      "mechanism": "sn2",
+      "steps": [
+        "CC[Br].[OH-]>>CC[O][H].[Br-]"
+      ],
+      "expect_error": null,
+      "note": "bromoethane + hydroxide -> ethanol + bromide"
+    },
+    {
+      "id": "sn1-tbutyl-iodide",
+      "type": "positive",
+      "mechanism": "sn1",
+      "steps": [
+        "CC(C)(C)Cl.[I-]>>[C+](C)(C)C.[Cl-].[I-]",
+        "[C+](C)(C)C.[Cl-].[I-]>>CC(C)(C)I.[Cl-]"
+      ],
+      "expect_error": null,
+      "note": "t-butyl chloride ionizes (iodide spectator), then iodide captures the carbocation"
+    },
+    {
+      "id": "sn1-tbutyl-bromide",
+      "type": "positive",
+      "mechanism": "sn1",
+      "steps": [
+        "CC(C)(C)Cl.[Br-]>>[C+](C)(C)C.[Cl-].[Br-]",
+        "[C+](C)(C)C.[Cl-].[Br-]>>CC(C)(C)Br.[Cl-]"
+      ],
+      "expect_error": null,
+      "note": "t-butyl chloride ionizes (bromide spectator), then bromide captures the carbocation"
+    },
+    {
+      "id": "e2-ethyl-methoxide",
+      "type": "positive",
+      "mechanism": "e2",
+      "steps": [
+        "C([H])C[Cl].C[O-]>>C=C.C[O][H].[Cl-]"
+      ],
+      "expect_error": null,
+      "note": "ethyl chloride + methoxide -> ethene + methanol + chloride; concerted E2"
+    },
+    {
+      "id": "e2-isopropyl-ethoxide",
+      "type": "positive",
+      "mechanism": "e2",
+      "steps": [
+        "C([H])C(C)[Br].CC[O-]>>CC=C.CC[O][H].[Br-]"
+      ],
+      "expect_error": null,
+      "note": "2-bromopropane + ethoxide -> propene + ethanol + bromide"
+    },
+    {
+      "id": "e2-ethyl-hydroxide",
+      "type": "positive",
+      "mechanism": "e2",
+      "steps": [
+        "C([H])C[Cl].[OH-]>>C=C.[Cl-].[H]O"
+      ],
+      "expect_error": null,
+      "note": "ethyl chloride + hydroxide -> ethene + water + chloride; base already bears one H"
+    },
+    {
+      "id": "e1-water",
+      "type": "positive",
+      "mechanism": "e1",
+      "steps": [
+        "C([H])C(C)(C)Cl.[H]O>>C([H])[C+](C)C.[Cl-].[H]O",
+        "C([H])[C+](C)C.[Cl-].[H]O>>C=C(C)C.[Cl-].[H][O+]([H])[H]"
+      ],
+      "expect_error": null,
+      "note": "t-butyl chloride ionizes with water spectator; water deprotonates the carbocation to isobutene + hydronium"
+    },
+    {
+      "id": "e1-methoxide",
+      "type": "positive",
+      "mechanism": "e1",
+      "steps": [
+        "C([H])C(C)(C)Cl.C[O-]>>C([H])[C+](C)C.[Cl-].C[O-]",
+        "C([H])[C+](C)C.[Cl-].C[O-]>>C=C(C)C.[Cl-].C[O][H]"
+      ],
+      "expect_error": null,
+      "note": "t-butyl chloride ionizes with methoxide spectator; methoxide deprotonates the carbocation"
+    },
+    {
+      "id": "e1cb-ethyl",
+      "type": "positive",
+      "mechanism": "e1cb",
+      "steps": [
+        "C([H])C[Cl].C[O-]>>[CH2-]C[Cl].C[O][H]",
+        "[CH2-]C[Cl].C[O][H]>>C=C.[Cl-].C[O][H]"
+      ],
+      "expect_error": null,
+      "note": "carbanion forms first (C-Cl intact), then eliminates chloride; bounded structural match (EWG not evaluated)"
+    },
+    {
+      "id": "ea-ethene-hbr",
+      "type": "positive",
+      "mechanism": "electrophilic_addition",
+      "steps": [
+        "C=C.[H]Br>>C([H])CBr"
+      ],
+      "expect_error": null,
+      "note": "ethene + HBr -> bromoethane; symmetric alkene, regiochemistry not discriminating"
+    },
+    {
+      "id": "ea-ethene-hcl",
+      "type": "positive",
+      "mechanism": "electrophilic_addition",
+      "steps": [
+        "C=C.[H]Cl>>C([H])CCl"
+      ],
+      "expect_error": null,
+      "note": "ethene + HCl -> chloroethane"
+    },
+    {
+      "id": "mk-propene",
+      "type": "positive",
+      "mechanism": "markovnikov_addition",
+      "steps": [
+        "CC=C.[H]Br>>CC(C)Br"
+      ],
+      "expect_error": null,
+      "note": "propene + HBr -> 2-bromopropane; Br on the more substituted carbon"
+    },
+    {
+      "id": "mk-isobutylene",
+      "type": "positive",
+      "mechanism": "markovnikov_addition",
+      "steps": [
+        "CC(C)=C.[H]Br>>CC(C)(C)Br"
+      ],
+      "expect_error": null,
+      "note": "isobutylene + HBr -> t-butyl bromide; Markovnikov regiochemistry"
+    },
+    {
+      "id": "ca-cyanide-formaldehyde",
+      "type": "positive",
+      "mechanism": "carbonyl_addition",
+      "steps": [
+        "C=O.[C-]#N>>[O-]C[C]#N"
+      ],
+      "expect_error": null,
+      "note": "formaldehyde + cyanide -> cyanohydrin alkoxide; anionic carbon nucleophile"
+    },
+    {
+      "id": "ca-cyanide-acetaldehyde",
+      "type": "positive",
+      "mechanism": "carbonyl_addition",
+      "steps": [
+        "CC=O.[C-]#N>>C[C]([O-])([H])C#N"
+      ],
+      "expect_error": null,
+      "note": "acetaldehyde + cyanide -> cyanohydrin alkoxide"
+    },
+    {
+      "id": "ca-cyanide-acetone",
+      "type": "positive",
+      "mechanism": "carbonyl_addition",
+      "steps": [
+        "CC(C)=O.[C-]#N>>CC(C)([O-])C#N"
+      ],
+      "expect_error": null,
+      "note": "acetone + cyanide -> cyanohydrin alkoxide"
+    },
+    {
+      "id": "ae-ester-ammonia",
+      "type": "positive",
+      "mechanism": "carbonyl_addition_elimination",
+      "steps": [
+        "CC(=O)OC.N>>C[C]([O-])([NH3+])OC",
+        "C[C]([O-])([NH3+])OC>>CC(=O)[NH3+].C[O-]"
+      ],
+      "expect_error": null,
+      "note": "methyl acetate + ammonia: zwitterionic tetrahedral intermediate, then methoxide leaving group"
+    },
+    {
+      "id": "ae-acid-chloride-ammonia",
+      "type": "positive",
+      "mechanism": "carbonyl_addition_elimination",
+      "steps": [
+        "CC(=O)Cl.N>>C[C]([O-])([NH3+])Cl",
+        "C[C]([O-])([NH3+])Cl>>CC(=O)[NH3+].[Cl-]"
+      ],
+      "expect_error": null,
+      "note": "acetyl chloride + ammonia: tetrahedral intermediate, then chloride leaving group"
+    },
+    {
+      "id": "pt-methanol-hcl",
+      "type": "positive",
+      "mechanism": "proton_transfer",
+      "steps": [
+        "CO.[H]Cl>>C([H])[OH2+].[Cl-]"
+      ],
+      "expect_error": null,
+      "note": "methanol + HCl -> methyloxonium + chloride; heteroatom-to-heteroatom proton move"
+    },
+    {
+      "id": "pt-water-hcl",
+      "type": "positive",
+      "mechanism": "proton_transfer",
+      "steps": [
+        "O.[H]Cl>>[H][OH2+].[Cl-]"
+      ],
+      "expect_error": null,
+      "note": "water + HCl -> hydronium + chloride"
+    },
+    {
+      "id": "pt-acetate-acid",
+      "type": "positive",
+      "mechanism": "proton_transfer",
+      "steps": [
+        "CC(=O)O[H].[OH-]>>CC(=O)[O-].[H]O"
+      ],
+      "expect_error": null,
+      "note": "acetic acid + hydroxide -> acetate + water"
+    },
+    {
+      "id": "neg-anti-markovnikov",
+      "type": "negative",
+      "mechanism": "markovnikov_addition",
+      "steps": [
+        "CC=C.[H]Br>>CCCBr"
+      ],
+      "expect_error": "not_applicable",
+      "note": "propene + HBr written as 1-bromopropane (anti-Markovnikov product): both addition rules decline; peroxide/radical addition is out of scope"
+    },
+    {
+      "id": "neg-unchanged",
+      "type": "negative",
+      "mechanism": "proton_transfer",
+      "steps": [
+        "CC>>CC"
+      ],
+      "expect_error": "not_applicable",
+      "note": "no transformation at all: nothing applies"
+    },
+    {
+      "id": "neg-attribution-mismatch",
+      "type": "negative",
+      "mechanism": "sn1",
+      "steps": [
+        "C[Cl].[OH-]>>C[O][H].[Cl-]"
+      ],
+      "expect_error": "validation",
+      "note": "an SN2 reaction declared as sn1: the executed rule sequence cannot match the sn1 attribution"
+    },
+    {
+      "id": "neg-atom-imbalance",
+      "type": "negative",
+      "mechanism": "sn2",
+      "steps": [
+        "C[Cl].[OH-]>>C[O]"
+      ],
+      "expect_error": "validation",
+      "note": "chloride dropped from the product: atom conservation must reject before any rule runs"
+    },
+    {
+      "id": "neg-charge-imbalance",
+      "type": "negative",
+      "mechanism": "sn2",
+      "steps": [
+        "C[Cl].[OH-]>>C[O].[Cl]"
+      ],
+      "expect_error": "validation",
+      "note": "neutral Cl atom instead of chloride: total charge differs, conservation rejects"
+    }
+  ]
+}

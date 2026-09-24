@@ -2,10 +2,10 @@
 
 > **📊 Live Gantt chart**: Open [`gantt.html`](gantt.html) in your browser for an interactive, animated visualization of this roadmap. Automatically updates when phase statuses change.
 
-> **Version:** 0.10.0 → 1.0.0 (ChemEngine complete; monorepo migration complete)
-> **Last Updated:** September 22, 2026
+> **Version:** 0.10.0 → 1.2.0 (ChemEngine complete through M34; monorepo migration complete)
+> **Last Updated:** September 23, 2026
 > **Owner:** Chemora Architecture Team
-> **Status:** Active Development — Backend M19–M31 complete; M32 (ChemEngine Release Completion: API Reference, Tutorials & PyPI) complete
+> **Status:** Active Development — ChemEngine M1–M34 complete; Backend M19–M31 complete; Web M21–M30 complete; Admin M27 complete
 
 ---
 
@@ -75,16 +75,16 @@ Each phase contains:
 | Metric | Value | Target (v1.0) |
 |--------|-------|----------------|
 | **Overall Completion** | ~85% | 100% |
-| **Passing Tests** | 1893 / 1897 (100%), 4 skips (all documented) | >5,000 |
-| **Test Files** | 46 | >60 |
-| **Source Files** | 81 Python files | >100 |
+| **Passing Tests** | 1984 / 1988 (100%), 4 skips (all documented) | >5,000 |
+| **Test Files** | 47 | >60 |
+| **Source Files** | 82 Python files | >100 |
 | **Elements** | All 118 | All 118 |
 | **Documentation** | 10 documents | 30+ documents |
 | **Benchmarks** | 60 benchmarks | 50+ benchmarks |
 | **Code Coverage** | ~70% (estimated) | >95% |
 | **Known Defects** | 0 (all regression-tested) | 0 |
 | **Stub Modules** | 0 packages | 0 |
-| **Last Updated** | September 22, 2026 | — |
+| **Last Updated** | September 23, 2026 | — |
 
 ### Version History
 
@@ -103,6 +103,7 @@ Each phase contains:
 | 1.0.0 | 2026-09-08 | All phases + Correctness Gate | ✅ Complete |
 | 1.0.1 | 2026-09-08 | Correctness fixes | ✅ Complete |
 | 1.1.0 | 2026-09-21 | M33 — ChemEngine v2.0 Feature Completion | ✅ Complete |
+| 1.2.0 | 2026-09-23 | M34 — Full Reaction Mechanism Engine | ✅ Complete |
 
 ## Correctness Gate (Completed — 2026-09-08)
 
@@ -1362,7 +1363,7 @@ Reaction engine: reaction graphs, templates, atom mapping, balancing, validation
 | 12.2 | Atom-atom mapping | ✅ Complete (M33 — `reactions/mapping.py` deterministic skeleton MCS; 53-case reviewed reference oracle; budgeted search, explicit failures) |
 | 12.3 | Reaction balancing + validation | ✅ Complete |
 | 12.4 | Reaction templates | ✅ Complete |
-| 12.5 | Mechanism architecture (v2.0) | ✅ Complete (M33 — `reactions/mechanisms.py` interfaces only: ElectronMovement, MechanismStep/Trace, MechanismRule protocol; no engine, by scope) |
+| 12.5 | Mechanism architecture (v2.0) | ✅ Complete (M33 interfaces; M34 executable engine, curated rules, validated traces, reference oracle) |
 
 ### Atomic Tasks
 
@@ -2597,10 +2598,11 @@ whatever cannot be verified is documented, never fabricated.
 
 ---
 
-### M34 — Full Reaction Mechanism Engine (SCOPED — 2026-09-22; implementation not started)
+### M34 — Full Reaction Mechanism Engine (Complete — 2026-09-23)
 
-**Status: 🔵 SCOPED — IMPLEMENTATION NOT STARTED.** This is a discovery/
-scoping record only; no application code changed in the scoping commit.
+**Status: ✅ COMPLETE (2026-09-23).** The executable engine, curated rule
+catalogue, reference oracle, validation, serialization, registry integration,
+version 1.2.0, and full regression are delivered.
 
 **Objective.** Implement the executable, step-by-step mechanism engine that
 Phase 12 anticipated and M33 deliberately staged interfaces for: curated
@@ -2695,30 +2697,30 @@ executable engine, not universal mechanism coverage).
   Phase 12.4 reaction templates, `AlgorithmRegistry`, `io` serialization.
 
 **Acceptance criteria.**
-- [ ] Executable `MechanismEngine` implements the frozen M33 interfaces
+- [x] Executable `MechanismEngine` implements the frozen M33 interfaces
   without breaking their contracts (M33 interface tests unchanged + green).
-- [ ] ≥ 10 named mechanisms execute end-to-end; ≥ 25 curated reference
-  scenarios with expected traces all pass.
-- [ ] Every step passes atom + charge conservation; traces satisfy
+- [x] 10 named mechanisms execute end-to-end; 28 curated reference
+  scenarios (23 positive, 5 negative) with expected traces all pass.
+- [x] Every step passes atom + charge conservation; traces satisfy
   endpoint/ordering validation; execution is deterministic across runs.
-- [ ] Unsupported/illegal applications raise structured errors (tested).
-- [ ] Registered in `AlgorithmRegistry`; first import stays < 100 ms (perf
+- [x] Unsupported/illegal applications raise structured errors (tested).
+- [x] Registered in `AlgorithmRegistry`; first import stays < 100 ms (perf
   gate green).
-- [ ] Full regression green with exact recorded totals; ruff/mypy within
+- [x] Full regression green with exact recorded totals; ruff/mypy within
   documented baselines; no undocumented skips.
-- [ ] Version 1.2.0 + CHANGELOG entry consistent (version-consistency test
+- [x] Version 1.2.0 + CHANGELOG entry consistent (version-consistency test
   green).
-- [ ] TODO.md, PROJECT_STATUS.md, gantt.html synchronized; gantt status →
+- [x] TODO.md, PROJECT_STATUS.md, gantt.html synchronized; gantt status →
   complete only when the above hold.
 
-**Testing requirements.**
-- New `tests/test_mechanism_engine.py` (+ checked-in reference data): rule
-  unit tests per `MovementKind`; per-mechanism trace oracles; negative
-  tests (non-applicable rules, conservation violations, malformed traces);
-  determinism (repeat-run equality); serialization round-trip;
-  property-style conservation invariants across the reference set.
-- Full-suite totals recorded in TODO/PROJECT_STATUS; benchmark baseline
-  extended with the gate green; `infrastructure/ci_check.py` gates green.
+**Testing results (2026-09-23).** 28 checked-in oracle cases cover all ten
+mechanisms (23 positive, 5 negative). Every step is checked for atom/formula
+and charge conservation, structural and charge-aware valence validity, exact
+chain continuity, and movement/bond-change coverage. Tests additionally cover
+repeated-run determinism, input immutability, structured errors, registry
+discovery, lazy import, and dict/JSON serialization round trips. The full
+ChemEngine regression is recorded in the Roadmap Summary; the existing
+first-import gate remains below 100 ms.
 
 **Documentation requirements.**
 - Sphinx page(s) for the engine (+ worked example where feasible); Phase 12
@@ -2803,14 +2805,14 @@ local-environment limitation).
 |--------|-------|
 | **ChemEngine Completion** | **100%** of v1.0.0 scope |
 | **Completed Phases** | All (0–15) + Correctness Gate + Monorepo Migration |
-| **Current Version** | v1.1.0 |
-| **Passing Tests** | 1893 / 1897 (4 skipped, all documented: directional-bond serialization; parse-guard determinism; 2 × cairosvg render extra absent) |
+| **Current Version** | v1.2.0 |
+| **Passing Tests** | 1984 / 1988 (4 skipped, all documented: directional-bond serialization; parse-guard determinism; 2 × cairosvg render extra absent) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | **M34 — Full Reaction Mechanism Engine** (scoped 2026-09-22, implementation not started; see M34 section) |
+| **Next Milestone** | None — M34 (Full Reaction Mechanism Engine) is complete (2026-09-23, v1.2.0); remaining work is the unordered v2.0/v3.0 Future Roadmap, to be scoped when chosen |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,
@@ -2940,7 +2942,7 @@ A rule-driven, deterministic electron-configuration subsystem in `chemengine.edu
 - **Organometallic chemistry** (dative bonds, coordination geometries)
 - **Polymer chemistry** (repeating units, chain graphs)
 - **Biomolecule support** (proteins, nucleic acids, carbohydrates)
-- **Reaction mechanisms** (full step-by-step mechanism engine) — ▶ **selected as M34** (scoped 2026-09-22; see M34 section)
+- **Reaction mechanisms** (full step-by-step mechanism engine) — ✅ **M34 complete** (v1.2.0; 10 curated mechanisms, 28-case oracle; see M34 section)
 - **Graph neural network integration**
 - **WebAssembly build** (browser-side execution)
 - **Crystallography** (unit cells, space groups)

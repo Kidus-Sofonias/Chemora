@@ -10,7 +10,7 @@ Implements:
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from chemengine.core.atoms import Isotope
 from chemengine.core.enums import (
@@ -23,6 +23,10 @@ from chemengine.core.enums import (
 )
 from chemengine.core.geometry import Conformer, Coordinate2D, Coordinate3D
 from chemengine.core.graph import MolecularGraph, MolecularGraphBuilder
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from chemengine.reactions.engine import MechanismResult
+    from chemengine.reactions.reaction import Reaction, ReactionComponent
 
 # ── MolecularGraph Serialization ──
 
@@ -248,3 +252,209 @@ def convert_format(
         return generate_inchi_key(graph)
     else:
         raise ValueError(f"Unknown target format: {target_format}")
+
+
+# ---------------------------------------------------------------------------
+# Reaction serialization (M34: required for mechanism-trace round trips)
+# ---------------------------------------------------------------------------
+
+def reaction_to_dict(reaction: Reaction) -> dict[str, Any]:
+    """Serialize a :class:`chemengine.reactions.reaction.Reaction`.
+
+    Args:
+        reaction: The reaction (reactants/products/agents as component
+            dicts wrapping ``graph_to_dict`` molecules).
+
+    Returns:
+        JSON-ready dictionary representation.
+    """
+    def _component(c: ReactionComponent) -> dict[str, Any]:
+        out: dict[str, Any] = {"molecule": graph_to_dict(c.molecule)}
+        if c.coefficient != 1:
+            out["coefficient"] = c.coefficient
+        if c.label:
+            out["label"] = c.label
+        if c.atom_map is not None:
+            out["atom_map"] = {str(k): v for k, v in c.atom_map.items()}
+        return out
+
+    return {
+        "reactants": [_component(c) for c in reaction.reactants],
+        "products": [_component(c) for c in reaction.products],
+        "agents": [_component(c) for c in reaction.agents],
+        "conditions": [
+            {"name": c.name, "value": c.value} for c in reaction.conditions
+        ],
+        "arrow": {"arrow_type": reaction.arrow.arrow_type},
+        "name": reaction.name,
+        "equation": reaction.equation,
+    }
+
+
+def dict_to_reaction(data: dict[str, Any]) -> Reaction:
+    """Deserialize a dict produced by :func:`reaction_to_dict`.
+
+    Args:
+        data: Serialized reaction dictionary.
+
+    Returns:
+        A :class:`~chemengine.reactions.reaction.Reaction`.
+    """
+    from chemengine.reactions.reaction import (
+        Reaction,
+        ReactionArrow,
+        ReactionComponent,
+        ReactionCondition,
+    )
+
+    def _component(c: dict[str, Any]) -> ReactionComponent:
+        atom_map = c.get("atom_map")
+        return ReactionComponent(
+            molecule=dict_to_graph(c["molecule"]),
+            coefficient=c.get("coefficient", 1),
+            label=c.get("label", ""),
+            atom_map={int(k): v for k, v in atom_map.items()} if atom_map else None,
+        )
+
+    return Reaction(
+        reactants=tuple(_component(c) for c in data.get("reactants", [])),
+        products=tuple(_component(c) for c in data.get("products", [])),
+        agents=tuple(_component(c) for c in data.get("agents", [])),
+        conditions=tuple(
+            ReactionCondition(name=c["name"], value=c["value"])
+            for c in data.get("conditions", [])
+        ),
+        arrow=ReactionArrow(
+            arrow_type=data.get("arrow", {}).get("arrow_type", "forward")
+        ),
+        name=data.get("name", ""),
+        equation=data.get("equation", ""),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Mechanism-trace serialization (M34)
+# ---------------------------------------------------------------------------
+
+MECHANISM_TRACE_SCHEMA = "chemengine.mechanism_trace/1"
+"""Versioned schema tag for serialized mechanism traces."""
+
+
+def mechanism_trace_to_dict(result: MechanismResult) -> dict[str, Any]:
+    """Serialize a :class:`chemengine.reactions.engine.MechanismResult`.
+
+    Each step entry carries order, description, executed rule id, the
+    full reaction, the electron movements, plus derived reacting atoms,
+    bond changes and charge changes -- enough to determine reacting
+    atoms/bonds, electron movement, bond/charge changes, rule identity
+    and ordering from the document alone.
+
+    Args:
+        result: Executed mechanism result.
+
+    Returns:
+        JSON-ready dictionary with schema tag ``MECHANISM_TRACE_SCHEMA``.
+    """
+    from chemengine.reactions.engine import step_details
+
+    steps: list[dict[str, Any]] = []
+    for index, step in enumerate(result.trace.steps):
+        entry: dict[str, Any] = {
+            "order": step.order,
+            "description": step.description,
+            "rule": result.rule_names[index],
+            "reaction": reaction_to_dict(step.reaction),
+            "movements": [m.to_dict() for m in step.movements],
+        }
+        entry.update(step_details(step))
+        steps.append(entry)
+    return {
+        "schema": MECHANISM_TRACE_SCHEMA,
+        "mechanism": result.mechanism,
+        "rule_names": list(result.rule_names),
+        "steps": steps,
+    }
+
+
+def dict_to_mechanism_trace(data: dict[str, Any]) -> MechanismResult:
+    """Deserialize a dict produced by :func:`mechanism_trace_to_dict`.
+
+    Args:
+        data: Serialized mechanism trace dictionary.
+
+    Returns:
+        A :class:`~chemengine.reactions.engine.MechanismResult`.
+
+    Raises:
+        ValueError: schema tag missing/mismatched, or step/rule
+            structure inconsistent (never silently repaired).
+    """
+    from chemengine.reactions.engine import MechanismResult, MechanismValidationError
+    from chemengine.reactions.mechanisms import (
+        ArrowRef,
+        ElectronMovement,
+        MechanismStep,
+        MechanismTrace,
+        MovementKind,
+    )
+
+    if data.get("schema") != MECHANISM_TRACE_SCHEMA:
+        raise MechanismValidationError(
+            f"unsupported mechanism trace schema {data.get('schema')!r}; "
+            f"expected {MECHANISM_TRACE_SCHEMA!r}"
+        )
+    rule_names = tuple(data.get("rule_names", ()))
+    step_dicts = data.get("steps", [])
+    if len(rule_names) != len(step_dicts):
+        raise MechanismValidationError(
+            "rule_names length does not match step count"
+        )
+
+    def _ref(ref: dict[str, Any]) -> ArrowRef:
+        bond = ref.get("bond")
+        return ArrowRef(
+            atom=ref.get("atom"),
+            bond=tuple(bond) if bond is not None else None,
+        )
+
+    steps: list[MechanismStep] = []
+    for index, d in enumerate(step_dicts):
+        if d.get("rule") != rule_names[index]:
+            raise MechanismValidationError(
+                f"step {d.get('order')} rule {d.get('rule')!r} does not "
+                f"match rule_names[{index}] {rule_names[index]!r}"
+            )
+        movements = tuple(
+            ElectronMovement(
+                kind=MovementKind(m["kind"]),
+                source=_ref(m["source"]),
+                target=_ref(m["target"]),
+                electron_count=m["electron_count"],
+            )
+            for m in d.get("movements", [])
+        )
+        steps.append(
+            MechanismStep(
+                reaction=dict_to_reaction(d["reaction"]),
+                movements=movements,
+                order=d["order"],
+                description=d.get("description", ""),
+            )
+        )
+    return MechanismResult(
+        mechanism=data["mechanism"],
+        trace=MechanismTrace.from_steps(steps),
+        rule_names=rule_names,
+    )
+
+
+def mechanism_trace_to_json(
+    result: MechanismResult, indent: int | None = 2
+) -> str:
+    """Serialize a mechanism result to a stable JSON string."""
+    return json.dumps(mechanism_trace_to_dict(result), indent=indent)
+
+
+def json_to_mechanism_trace(json_str: str) -> MechanismResult:
+    """Deserialize a JSON string produced by :func:`mechanism_trace_to_json`."""
+    return dict_to_mechanism_trace(json.loads(json_str))

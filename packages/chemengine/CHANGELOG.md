@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] — 2026-09-23 (M34 — Full Reaction Mechanism Engine)
+
+### Added
+
+#### Mechanism engine (executable successor to the M33 interfaces)
+- **`reactions/engine.py`** — executable mechanism engine over the frozen
+  M33 contract: `MechanismEngine.explain()` executes curated scenarios
+  into validated `MechanismTrace` sequences; `identify()` maps a mapped
+  single-step reaction to its curated mechanism (or `None`)
+- **12 elementary rules** implementing the `MechanismRule` protocol:
+  `sn2`, `heterolysis`, `sn1_capture`, `e2`, `e1_deprotonation`,
+  `e1cb_deprotonation`, `e1cb_elimination`, `markovnikov_addition`,
+  `electrophilic_addition`, `carbonyl_addition`,
+  `tetrahedral_collapse`, `proton_transfer`
+- **10 named mechanisms** with explicit applicability constraints
+  (`CATALOGUE`): SN2, SN1, E2, E1, E1cB, electrophilic addition,
+  Markovnikov addition, carbonyl addition, carbonyl
+  addition–elimination (nucleophilic acyl substitution), and heteroatom
+  proton transfer; unsupported regiochemistry (e.g. anti-Markovnikov /
+  peroxide addition) is declined, never guessed
+- **Validation before acceptance**: per-step atom and formula
+  conservation, total-charge conservation, charge-aware valence (onium
+  intermediates pass, over-valence fails), structural graph checks, and
+  movement ⇄ bond-change coverage; invalid proposals raise structured
+  `MechanismValidationError`/`MechanismNotApplicableError` and are never
+  silently repaired
+- **Augmented heavy-atom correspondence** (`pair_atoms`) — the M33
+  mapping plus deterministic per-element pairing of leftover heavy
+  atoms, because the skeleton mapper cannot correspond atoms whose bond
+  partners change (SN2 centres, leaving groups)
+- **Structured trace documents** — `mechanism_trace_to_dict` /
+  `mechanism_trace_to_json` via the io architecture: order, rule
+  identity, full reaction, electron movements, reacting atoms, bond
+  changes and charge changes, with stable dict/JSON round trips
+- **Reference oracle** — `tests/data/mechanism_reference.json`: 28
+  reviewed cases (23 positive, 5 applicability/validation negatives)
+  covering all ten mechanisms
+- **Registry integration** — `register_mechanism_algorithms()` follows
+  the established registration pattern and is wired into
+  `ChemEngineAPI` built-in setup (`reactions.mechanisms` domain:
+  `engine`, `catalogue`)
+
+### Changed
+- `io/serialization.py` gains reaction serialization
+  (`reaction_to_dict`/`dict_to_reaction`) — previously advertised in the
+  module docstring but not implemented — required for trace round trips
+- `reactions/__init__.py` exports the mechanism-engine public surface;
+  the package version moves to 1.2.0
+
 ## [1.1.0] — 2026-09-21 (M33 — ChemEngine v2.0 Feature Completion)
 
 ### Added

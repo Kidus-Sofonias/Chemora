@@ -1,14 +1,14 @@
 # Chemora — Project Status Report
 
-**Date:** September 22, 2026
-**Version:** 1.1.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion + M33 ChemEngine v2.0 Feature Completion complete
-**Status:** ✅ ChemEngine v1.0.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) + Production Readiness & Release Engineering (M31) complete · Post-M26 corrective hardening pass complete
+**Date:** September 23, 2026
+**Version:** 1.2.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion + M33 ChemEngine v2.0 Feature Completion + M34 Full Reaction Mechanism Engine complete
+**Status:** ✅ ChemEngine v1.2.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) + Production Readiness & Release Engineering (M31) complete · Post-M26 corrective hardening pass complete
 
 ---
 
 ## Executive Summary
 
-ChemEngine v1.1.0 is **complete** with all 1893 tests passing (0 failures, 4 skipped, every skip documented). All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), the Chemistry Learning Core (M24), the Learning & Practice Expansion (M25), the Content Management Foundation (M26), the Production Content CMS (M27), the Chemistry Learning Experience Expansion (M28), and the AI Chemistry Tutor (M29) are **complete** (199 backend tests, 71 web tests, 13 admin tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a ChemEngine-backed learning experience with server-graded practice, a coherent, expanded curriculum, and a session-gated AI tutor whose deterministic chemistry always comes from ChemEngine end to end.
+ChemEngine v1.2.0 is **complete** with all 1984 tests passing (0 failures, 4 skipped, every skip documented), including M34's bounded executable mechanism engine. All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), the Chemistry Learning Core (M24), the Learning & Practice Expansion (M25), the Content Management Foundation (M26), the Production Content CMS (M27), the Chemistry Learning Experience Expansion (M28), and the AI Chemistry Tutor (M29) are **complete** (199 backend tests, 71 web tests, 13 admin tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a ChemEngine-backed learning experience with server-graded practice, a coherent, expanded curriculum, and a session-gated AI tutor whose deterministic chemistry always comes from ChemEngine end to end.
 
 ---
 
@@ -57,7 +57,7 @@ Regression tests for items 1-6 were added to
 | Metric | Value |
 |--------|-------|
 | **Overall Completion** | ~87% of v1.0.0 scope |
-| **Passing Tests** | 1893 / 1897 (100%) |
+| **Passing Tests** | 1984 / 1988 (100%) |
 | **Skipped** | 4 (all documented: directional-bond round-trip; parse-guard determinism; 2 x cairosvg render extra absent) |
 | **Source Files** | 81 Python files across 16 packages |
 | **Test Files** | 46 |
@@ -66,7 +66,7 @@ Regression tests for items 1-6 were added to
 | **Backend Tests** | 224 / 224 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
-| **Next Milestone** | **M34 — Full Reaction Mechanism Engine** — SCOPED 2026-09-22, implementation not started. Selected as the only v2.0 item with staged M33 dependencies (`reactions/mechanisms.py` interfaces awaiting an engine); remaining v2.0/v3.0 items stay unordered |
+| **Next Milestone** | None — M34 (Full Reaction Mechanism Engine) is complete (2026-09-23, v1.2.0); remaining v2.0/v3.0 Future Roadmap work is explicitly unordered and awaits scoping |
 
 ---
 
@@ -660,10 +660,11 @@ pushed with HEAD == origin/master and a clean tree.
 
 ---
 
-### 📋 M34: Full Reaction Mechanism Engine (SCOPED — 2026-09-22; implementation not started)
+### ✅ M34: Full Reaction Mechanism Engine (Complete — 2026-09-23)
 
-**Status: SCOPED — IMPLEMENTATION NOT STARTED** (discovery/scoping record
-only; the scoping commit changes documentation alone).
+**Status: COMPLETE.** The executable engine, curated rule catalogue,
+reference oracle, validation, serialization, registry integration, version
+1.2.0, and full regression are delivered.
 
 **Objective.** Implement the executable step-by-step mechanism engine that
 Phase 12 anticipated and M33 staged interfaces for: curated electron-pushing
@@ -696,7 +697,7 @@ electrophilic addition/Markovnikov, carbonyl addition–elimination, …);
 per-step atom+charge conservation, deterministic ordering, structured
 unsupported/illegal errors; ≥25-scenario curated reference oracle;
 `AlgorithmRegistry` registration; lazy import (first import <100 ms);
-trace serialization; benchmarks; CHANGELOG [1.2.0] + version 1.2.0 on
+trace serialization; CHANGELOG [1.2.0] + version 1.2.0 on
 completion.
 
 **Out of scope.** All other v2.0 domains; all v3.0 items; mobile;
