@@ -2745,6 +2745,83 @@ first-import gate remains below 100 ms.
 - No credential/external blockers (all work is in-repo).
 
 ---
+### M35 — Post-M34 Roadmap Clarification and Candidate Scoping (SCOPED — IMPLEMENTATION NOT STARTED)
+
+**Status: 🟦 SCOPED — IMPLEMENTATION NOT STARTED (2026-09-23).** Planning-only
+milestone: select exactly one serious future candidate from the currently
+unordered roadmap and record an implementation-ready scope. No application
+code, tests, dependencies, or ChemEngine version changes.
+
+**Objective.** Resolve the post-M34 roadmap ambiguity using repository evidence,
+not list order or technical interest. M35 records the candidate comparison,
+selection rule, bounded future scope, acceptance criteria, test/performance
+requirements, risks, and definition of done. It implements no chemistry.
+
+**Evidence.** The Future Roadmap leaves the remaining v2.0 bullets explicitly
+unordered. M33/M34 provide reaction, mapping, validation, registry,
+serialization, and mechanism infrastructure, but no staged interfaces or
+prerequisite chain for organometallics, polymers, biomolecules, GNN,
+WebAssembly, crystallography, NMR, nomenclature/stereochemistry expansion,
+chemical search/database, visualization, mobile, or v3.0 work. Retrosynthesis,
+automated reasoning, drug discovery, docking, and quantum chemistry remain v3.0
+bullets. M35 therefore clarifies the decision before opening a new domain.
+
+**Candidate map.** Serious v2.0 candidates: organometallics, polymers,
+biomolecules, GNN/learned chemistry, WebAssembly, crystallography, and NMR.
+Nomenclature/stereochemistry coverage and advanced visualization are recorded
+gaps, not itemized phases. Chemical database/search and all v3.0 bullets lack
+scoped interfaces. Mobile has no defined compatibility path; performance and
+distribution are already covered, with publication still credential-blocked.
+
+**In scope.** Review current roadmap and directly relevant architecture;
+compare candidates by dependency readiness, bounded deliverable size,
+testability, performance/serialization needs, and risk; select one candidate or
+record that clarification remains insufficient; write a future implementation
+scope with objective, in/out of scope, dependencies, supported cases,
+acceptance criteria, test strategy, performance requirements, version proposal,
+risks, limitations, and definition of done; reconcile the three planning files;
+run Gantt JavaScript validation.
+
+**Out of scope.** All source, tests, dependencies, backend, frontend, mobile,
+and infrastructure implementation; prototypes; changing M33/M34 architecture;
+claiming candidate completion; starting M36; selecting by arbitrary order.
+
+**Architecture reused.** Existing planning conventions and, for evidence only,
+molecular-graph SSOT, validators, substructure/reaction abstractions,
+`AlgorithmRegistry`, serialization, oracle testing, lazy-import gate, and M34's
+bounded-catalogue precedent. No new M35 interfaces are required.
+
+**Acceptance criteria.**
+- [x] Candidate map records evidence and explicit unordered status.
+- [x] Exactly one future candidate is selected with an implementation-ready
+  scope, or a clearly documented clarification-required decision.
+- [x] Scope includes objective, boundaries, dependencies, measurable
+  acceptance criteria, tests, performance, version proposal, risks, limits, and
+  definition of done.
+- [x] TODO.md, PROJECT_STATUS.md, and gantt.html agree; Gantt is `planned` and
+  says `SCOPED, IMPLEMENTATION NOT STARTED`.
+- [x] `node --check`, documentation/diff checks, and the documentation-only
+  diff gate pass; no version bump or implementation claim.
+
+**Testing, performance, documentation, and version.** No application tests or
+performance work in M35; validate the documentation-only diff, Gantt syntax,
+and planning consistency. A future implementation scope must define its own
+measurable tests and performance thresholds, while preserving the M34 <100 ms
+first-import gate. Update only the three planning files and preserve M1–M34
+records. No version bump or CHANGELOG entry: ChemEngine remains 1.2.0; the
+future implementation version proposal must be justified by compatibility impact.
+
+**Risks, limitations, and definition of done.** Clarification is intentionally
+low-productivity but prevents arbitrary scope. Candidates with large
+prerequisites must be split or rejected rather than under-scoped. M35 cannot
+resolve external credentials or order the entire v2.0/v3.0 list. Done means a
+synchronized decision record, valid planned Gantt, one focused documentation
+commit, pushed `HEAD == origin/master`, clean tree, and no M35 implementation
+started.
+
+---
+
+
 
 ## Takeover Audit (Complete — 2026-09-22)
 
@@ -2812,7 +2889,7 @@ local-environment limitation).
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | None — M34 (Full Reaction Mechanism Engine) is complete (2026-09-23, v1.2.0); remaining work is the unordered v2.0/v3.0 Future Roadmap, to be scoped when chosen |
+| **Next Milestone** | **M35 — Post-M34 Roadmap Clarification and Candidate Scoping** — SCOPED 2026-09-23, implementation not started; candidate selection is a planning decision, not chemistry work |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,

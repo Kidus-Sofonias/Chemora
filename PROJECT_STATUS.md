@@ -66,7 +66,7 @@ Regression tests for items 1-6 were added to
 | **Backend Tests** | 224 / 224 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
-| **Next Milestone** | None — M34 (Full Reaction Mechanism Engine) is complete (2026-09-23, v1.2.0); remaining v2.0/v3.0 Future Roadmap work is explicitly unordered and awaits scoping |
+| **Next Milestone** | **M35 — Post-M34 Roadmap Clarification and Candidate Scoping** — SCOPED 2026-09-23, implementation not started; candidate selection is a planning decision, not chemistry work |
 
 ---
 
@@ -738,6 +738,92 @@ and the explicit out-of-scope list; aromatic/tautomer edge cases — reuse M33
 canonicalization; import-time creep — existing <100 ms gate; SMARTS gaps —
 extend Phase 12.4 templates in-scope or drop with a recorded note. No
 credential/external blockers.
+
+---
+
+### 🟦 M35: Post-M34 Roadmap Clarification and Candidate Scoping (SCOPED — IMPLEMENTATION NOT STARTED)
+
+**Status: SCOPED — IMPLEMENTATION NOT STARTED (2026-09-23).** M35 is a
+planning-only decision milestone. No ChemEngine source, tests, dependencies, or
+release metadata change; ChemEngine remains 1.2.0.
+
+**Objective.** Resolve the post-M34 roadmap ambiguity by selecting exactly one
+serious future candidate and recording a bounded, evidence-based scope for the
+next implementation milestone. M35 produces a decision record, not feature
+code.
+
+**Evidence.** The current Future Roadmap leaves all remaining v2.0 bullets
+explicitly unordered. M33/M34 delivered reaction, mapping, validation, registry,
+serialization, and mechanism infrastructure, but no current source gives
+organometallics, polymers, biomolecules, GNN, WebAssembly, crystallography,
+NMR, advanced stereochemistry, nomenclature expansion, retrosynthesis,
+chemical search/database, visualization, mobile, or v3.0 work a concrete staged
+dependency or bounded prerequisite chain. Selecting by list order or technical
+interest would be arbitrary. M35 makes the clarification decision rule
+explicit.
+
+**Candidate map.** Serious v2.0 candidates remain organometallics, polymers,
+biomolecules, GNN/learned chemistry, WebAssembly, crystallography, and NMR.
+Nomenclature/stereochemistry coverage and advanced visualization are recorded
+gaps rather than itemized phases. Chemical database/search, retrosynthesis,
+automated reasoning, drug discovery, docking, and quantum chemistry are v3.0
+bullets without scoped interfaces. Mobile has no defined compatibility path;
+performance/distribution is already covered by the existing gates, while
+publication remains credential-blocked. No candidate is selected by this
+status record until M35's evidence review is approved.
+
+**In scope.** Review current roadmap and directly relevant architecture;
+compare candidates by dependency readiness, bounded deliverable size,
+testability, performance/serialization needs, and risk; choose one candidate
+or record that clarification remains insufficient; write an implementation-ready
+future scope with objective, in/out of scope, dependencies, supported cases,
+acceptance criteria, test strategy, performance requirements, version proposal,
+risks, limitations, and definition of done; reconcile all three planning
+sources; validate Gantt JavaScript.
+
+**Out of scope.** All application and infrastructure implementation; new
+dependencies; prototypes or tests; changing M33/M34 architecture; claiming
+candidate completion; starting M36; choosing by arbitrary list order.
+
+**Architecture.** Reuse only existing planning and architectural conventions:
+molecular-graph SSOT, validators, substructure/reaction abstractions,
+`AlgorithmRegistry`, serialization, oracle-based testing, lazy-import gate, and
+M34's bounded-catalogue precedent. No new M35 interfaces are required because
+M35 is documentation-only.
+
+**Acceptance criteria.**
+- [x] Post-M34 candidate map with evidence and explicit unordered status.
+- [x] Exactly one future candidate is selected with an implementation-ready
+  scope, or a clearly documented clarification-required decision.
+- [x] Scope includes objective, boundaries, dependencies, measurable
+  acceptance criteria, tests, performance, version proposal, risks, limits, and
+  definition of done.
+- [x] TODO.md, PROJECT_STATUS.md, and gantt.html agree; gantt is planned and
+  explicitly says `SCOPED, IMPLEMENTATION NOT STARTED`.
+- [x] Gantt `node --check` and documentation/diff checks pass.
+- [x] Only the three planning files change; no version bump or implementation
+  claim.
+
+**Test/performance/docs.** No application tests or performance work in M35;
+verify the documentation-only diff, Gantt syntax, and planning-document
+consistency. The future implementation scope must define its own measurable
+test and performance requirements. Keep the existing M34 <100 ms first-import
+gate as a future regression constraint. Update only the three planning files
+and preserve historical M1–M34 records.
+
+**Version/release.** No version bump and no CHANGELOG entry. ChemEngine stays
+1.2.0 because this is planning-only. A future implementation version proposal
+must be justified by compatibility impact, not assumed.
+
+**Risks and limitations.** Clarification is intentionally low-productivity
+but prevents arbitrary scope. Candidates with large prerequisite architectures
+must be split or rejected rather than under-scoped. M35 cannot resolve external
+credentials or make the unordered v2.0/v3.0 list ordered; it records the
+decision rule and boundary until the candidate decision is approved.
+
+**Definition of done.** Synchronized decision record, valid planned Gantt,
+documentation-only commit, pushed `HEAD == origin/master`, clean working tree,
+and no M35 implementation started.
 
 ---
 
