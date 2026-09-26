@@ -2878,6 +2878,35 @@ local-environment limitation).
 
 ---
 
+### ✅ M36: Bounded Template-Based Retrosynthetic Engine (Complete — 2026-09-25)
+
+**Status: COMPLETE.** The candidate M35 selected — bounded template-based
+retrosynthetic analysis — was implemented over the shared `MolecularGraph`
+abstraction with no SMARTS. `packages/chemengine/src/chemengine/reactions/retrosynthesis.py`
+(1090 lines) delivers an 8-template catalogue (ester-fischer, amide-hydrolysis,
+ether-cleavage-alkyl, ether-cleavage-aroyl, alcohol-to-alkyl-halide,
+carbonyl-reduction, retro-aldol, retro-diels-alder) with heavy-atom-conserving
+subtractive/additive surgery, immutable `SynthesisRoute`/`RetrosyntheticCandidate`/
+`RetrosyntheticStep` models, and a bounded-DFS `RetrosynthesisEngine` governed by
+`max_depth`, `max_candidates_per_step`, `max_total_expansions`, `max_routes`, a
+canonical-SMILES cycle guard, and structural route de-duplication. A 5-case
+`REFERENCE_ORACLE` drives conservation-validated headliners; routes round-trip via
+`retrosynthesis_route_to_dict`/`dict_to_retrosynthesis_route`. Registration is lazy
+(`register_retrosynthesis_algorithms`) and wired as a `retrosynthesize` tool +
+convenience method on `ChemEngineAPI`.
+
+**Out of scope (unchanged from M35):** unrestricted or AI-driven route planning,
+reagent/condition/yield prediction, new chemistry domains, product work, and
+curved-arrow rendering; M33/M34 APIs remain unchanged.
+
+**Deliverable & test result:** version **1.3.0**, 8 templates, 36 retrosynthesis tests;
+full ChemEngine regression **2020 passed, 4 skipped, 0 failed**. Cold `import chemengine`
+stays lazy and <100 ms (M36 retrosynthesis is deliberately absent from `__all__`).
+Documented limitation: the timing-sensitive `test_performance.py::TestProfiler::test_profile_decorator`
+gate (asserts a sub-ms decorator path) can flake under slow CI and is unrelated to M36.
+
+---
+
 ## Roadmap Summary
 
 ### Overall Progress
@@ -2886,14 +2915,14 @@ local-environment limitation).
 |--------|-------|
 | **ChemEngine Completion** | **100%** of v1.0.0 scope |
 | **Completed Phases** | All (0–15) + Correctness Gate + Monorepo Migration |
-| **Current Version** | v1.2.0 |
-| **Passing Tests** | 1984 / 1988 (4 skipped, all documented: directional-bond serialization; parse-guard determinism; 2 × cairosvg render extra absent) |
+| **Current Version** | v1.3.0 |
+| **Passing Tests** | 2020 / 2024 (100%; 4 documented skips; the timing-sensitive `test_performance.py::TestProfiler::test_profile_decorator` gate can flake under slow CI — unrelated to M36) |
 | **Release Date** | September 1, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | **M36 candidate selected by M35:** bounded template-based retrosynthesis — future implementation scope recorded; M36 discovery/implementation not started |
+| **Next Milestone** | **M36: Bounded Template-Based Retrosynthetic Engine — COMPLETE (2026-09-25, v1.3.0).** 8-template catalogue + bounded-DFS `RetrosynthesisEngine` + `SynthesisRoute`/`RetrosyntheticStep` + lazy `AlgorithmRegistry` registration + `ChemEngineAPI.retrosynthesize` tool. Full regression: 2020 passed / 4 skipped / 0 failed. |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,

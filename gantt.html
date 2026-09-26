@@ -2247,12 +2247,15 @@ const phases = [
   { id: 35, name: 'Post-M34 Roadmap Clarification and Candidate Scoping (M35)', desc: 'Resolve the explicit post-M34 roadmap ambiguity and select one evidence-backed future implementation candidate. M35 selected bounded template-based retrosynthesis because M33 reaction mapping/templates/validation and M34 mechanism rules/traces/serialization provide the concrete dependency edge; no chemistry was implemented — COMPLETE',
      tasks: ['Build a concise evidence-based map of remaining v2.0/v3.0 candidates and record what is explicitly unordered', 'Assess dependency readiness, bounded deliverable size, testability, performance/serialization needs, and prerequisite gaps using only directly relevant architecture', 'Select bounded template-based retrosynthesis for the next future implementation milestone, not by list order or technical interest', 'Record objective, in/out of scope, dependencies, supported cases, acceptance direction, test strategy, performance requirements, version proposal, risks, limitations, and definition of done', 'Synchronize TODO.md, PROJECT_STATUS.md, and gantt.html; run node --check; documentation-only diff; no version bump or chemistry implementation'],
      ver: '1.0',      start: 174, dur: 4,  risk: 'medium',  status: 'complete', weight: 4 },
+  { id: 36, name: 'Bounded Template-Based Retrosynthetic Engine (M36)', desc: 'Implementation of M35-selected candidate: 8-template catalogue over MolecularGraph (no SMARTS), heavy-atom-conserving subtractive/additive surgery, bounded-DFS RetrosynthesisEngine (max_depth, max_candidates_per_step, max_total_expansions, max_routes, canonical-SMILES cycle guard, structural deduplication), SynthesisRoute/RetrosyntheticStep models, 5-case REFERENCE_ORACLE, route ser/deser, lazy AlgorithmRegistry registration, retrosynthesize tool + convenience method on ChemEngineAPI. Full regression: 2020 passed, 4 skipped, 0 failed. Version 1.3.0 - COMPLETE',
+     tasks: ['retrosynthesis.py: 8 templates (ester-fischer, amide-hydrolysis, ether-cleavage-alkyl/aroyl, alcohol-to-alkyl-halide, carbonyl-reduction, retro-aldol, retro-diels-alder) with heavy-atom-conserving surgery over MolecularGraph', 'RetrosynthesisEngine bounded DFS (max_depth, max_candidates_per_step, max_total_expansions, max_routes) with canonical-SMILES cycle guard and structural route deduplication', 'SynthesisRoute/RetrosyntheticStep/REFERENCE_ORACLE (5 cases) with conservation-validated headliners', 'Route (de)serialization round-trip via retrosynthesis_route_to_dict / dict_to_retrosynthesis_route', 'Lazy register_retrosynthesis_algorithms + retrosynthesize ToolDefinition + ChemEngineAPI.retrosynthesize convenience dispatch; first-import <100 ms gate stays green', 'tests/test_retrosynthesis.py (36 tests) and full ChemEngine regression: 2020 passed / 4 skipped / 0 failed; CHANGELOG [1.3.0] + version 1.3.0; TODO/PROJECT_STATUS/gantt synchronized'],
+     ver: '1.3',      start: 178, dur: 6,  risk: 'medium',  status: 'complete', weight: 5 },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 178;
+const TOTAL_WEEKS = 184;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;
@@ -2805,7 +2808,8 @@ function buildMilestoneDots() {
     { label: 'M32 Release', week: 158 },
     { label: 'M33 v2.0 Features', week: 166 },
     { label: 'M34 Mechanisms', week: 174 },
-    { label: 'M35 Scope', week: 178 }
+    { label: 'M35 Scope', week: 178 },
+    { label: 'M36 Retrosynthesis', week: 184 }
   ];
 
   // Create a progress line

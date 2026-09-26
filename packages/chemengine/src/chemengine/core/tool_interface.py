@@ -473,6 +473,15 @@ class ChemEngineAPI:
         except ImportError:
             logger.warning("Mechanism engine not available")
 
+        # Register the M36 retrosynthetic planner (template catalogue)
+        try:
+            from chemengine.reactions.retrosynthesis import (
+                register_retrosynthesis_algorithms,
+            )
+            register_retrosynthesis_algorithms(self._registry)
+        except ImportError:
+            logger.warning("Retrosynthesis engine not available")
+
     def _register_builtin_tools(self) -> None:
         """Register all built-in tool definitions."""
         builtins = [
@@ -791,6 +800,40 @@ class ChemEngineAPI:
                 },
                 category="atomic",
                 tags=frozenset({"atomic", "electrons", "education", "deterministic"}),
+                        ),
+            ToolDefinition(
+                name="retrosynthesize",
+                description=(
+                    "Plan retrosynthetic routes from a target molecule. "
+                    "Returns up to ``max_routes`` synthesis routes, each "
+                    "ordered by disconnection depth and template score."
+                ),
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "smiles": {
+                            "type": "string",
+                            "description": "Target SMILES",
+                        },
+                        "max_depth": {"type": "integer", "default": 6},
+                        "max_candidates_per_step": {"type": "integer", "default": 10},
+                        "max_total_expansions": {"type": "integer", "default": 200},
+                        "max_routes": {"type": "integer", "default": 50},
+                    },
+                    "required": ["smiles"],
+                },
+                output_schema={
+                    "type": "object",
+                    "properties": {
+                        "smiles": {"type": "string"},
+                        "num_routes": {"type": "integer"},
+                        "routes": {"type": "array"},
+                    },
+                },
+                category="synthesis",
+                tags=frozenset(
+                    {"synthesis", "retrosynthesis", "reactions", "deterministic"}
+                ),
             ),
         ]
         for tool in builtins:
@@ -985,6 +1028,53 @@ class ChemEngineAPI:
         else:
             from chemengine.io.serialization import graph_to_dict
             return {"data": graph_to_dict(graph)}
+
+    def retrosynthesize(
+        self,
+        smiles: str,
+        *,
+        max_depth: int = 6,
+        max_candidates_per_step: int = 10,
+        max_total_expansions: int = 200,
+        max_routes: int = 50,
+    ) -> list[dict[str, Any]]:
+        """Plan retrosynthetic routes for a target SMILES.
+
+        Resolves the ``reactions.retrosynthesis`` / ``plan`` algorithm from the
+        registry (registered by :func:`register_retrosynthesis_algorithms`)
+        and serialises each :class:`SynthesisRoute` via
+        :func:`retrosynthesis_route_to_dict`.
+        """
+        from chemengine.reactions.retrosynthesis import (
+            retrosynthesis_route_to_dict,
+        )
+
+        algo = self._registry.get("reactions.retrosynthesis", "plan")
+        routes = algo.algorithm(
+            smiles,
+            max_depth=max_depth,
+            max_candidates_per_step=max_candidates_per_step,
+            max_total_expansions=max_total_expansions,
+            max_routes=max_routes,
+        )
+        return [retrosynthesis_route_to_dict(route) for route in routes]
+
+    def _exec_retrosynthesize(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
+        """Implementation of the retrosynthesize tool."""
+        routes = self.retrosynthesize(
+            params["smiles"],
+            max_depth=params.get("max_depth", 6),
+            max_candidates_per_step=params.get("max_candidates_per_step", 10),
+            max_total_expansions=params.get("max_total_expansions", 200),
+            max_routes=params.get("max_routes", 50),
+        )
+        return {
+            "smiles": params["smiles"],
+            "num_routes": len(routes),
+            "routes": routes,
+        }
 
 
 # ── Helper Functions ──

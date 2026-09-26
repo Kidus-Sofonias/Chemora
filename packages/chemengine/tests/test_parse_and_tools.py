@@ -83,11 +83,15 @@ EXPECTED_TOOLS = {
     "sanitize", "detect_functional_groups", "generate_2d_coordinates",
     "generate_3d_conformer", "render_svg", "name_molecule", "generate_inchi",
     "serialize", "calculate_electron_configuration",
+    "retrosynthesize",
 }
 
 
+
+
+
 class TestToolAudit:
-    def test_thirteen_tools_registered(self, api):
+    def test_builtin_tools_registered(self, api):
         names = {t.name for t in api.list_tools()}
         assert names == EXPECTED_TOOLS
 
@@ -109,6 +113,7 @@ class TestToolAudit:
             ("generate_inchi", {"smiles": "CCO"}),
             ("serialize", {"smiles": "CCO"}),
             ("calculate_electron_configuration", {"element": "Fe"}),
+            ("retrosynthesize", {"smiles": "CC(=O)OC"}),
         ],
     )
     def test_tool_executes(self, api, tool, params):

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] — 2026-09-25 (M36 — Retrosynthetic Engine)
+
+### Added
+
+#### Retrosynthetic engine (M36)
+- `reactions/retrosynthesis.py` — bounded, template-based retrosynthetic planner
+  over `MolecularGraph` with no SMARTS: 8 disconnection templates
+  (ester-fischer, amide-hydrolysis, ether-cleavage-alkyl/aroyl,
+  alcohol-to-alkyl-halide, carbonyl-reduction, retro-aldol, retro-diels-alder),
+  heavy-atom-conserving surgery, canonical-SMILES cycle guard, configurable
+  caps (`max_depth`, `max_candidates_per_step`, `max_total_expansions`,
+  `max_routes`), and structural route de-duplication.
+- Public API: `RetrosynthesisEngine`, `SynthesisRoute`, `RetrosynthesisStep`,
+  `plan_retrosynthesis`, `register_retrosynthesis_algorithms`, and
+  `retrosynthesis_route_to_dict` / `dict_to_retrosynthesis_route`.
+- `ChemEngineAPI` integration: a `retrosynthesize` tool + convenience method
+  wired through the `AlgorithmRegistry` via lazy registration (no import-time
+  side effects).
+- `tests/test_retrosynthesis.py` covering the 5 oracle cases, conservation,
+  planning caps/dedup, ser-deser round-trip, and the laziness gate.
+
 ## [1.2.0] — 2026-09-23 (M34 — Full Reaction Mechanism Engine)
 
 ### Added
