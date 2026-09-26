@@ -2,10 +2,10 @@
 
 > **📊 Live Gantt chart**: Open [`gantt.html`](gantt.html) in your browser for an interactive, animated visualization of this roadmap. Automatically updates when phase statuses change.
 
-> **Version:** 0.10.0 → 1.2.0 (ChemEngine complete through M34; monorepo migration complete)
-> **Last Updated:** September 23, 2026
+> **Version:** 0.10.0 → 1.4.0 (ChemEngine complete through M37; monorepo migration complete)
+> **Last Updated:** September 25, 2026
 > **Owner:** Chemora Architecture Team
-> **Status:** Active Development — ChemEngine M1–M34 complete; Backend M19–M31 complete; Web M21–M30 complete; Admin M27 complete
+> **Status:** Active Development — ChemEngine M1–M37 complete; Backend M19–M31 complete; Web M21–M30 complete; Admin M27 complete
 
 ---
 
@@ -104,6 +104,8 @@ Each phase contains:
 | 1.0.1 | 2026-09-08 | Correctness fixes | ✅ Complete |
 | 1.1.0 | 2026-09-21 | M33 — ChemEngine v2.0 Feature Completion | ✅ Complete |
 | 1.2.0 | 2026-09-23 | M34 — Full Reaction Mechanism Engine | ✅ Complete |
+| 1.3.0 | 2026-09-25 | M36 — Bounded Template-Based Retrosynthetic Engine | ✅ Complete |
+| 1.4.0 | 2026-09-25 | M37 — Organometallic Chemistry Engine | ✅ Complete |
 
 ## Correctness Gate (Completed — 2026-09-08)
 
@@ -2902,8 +2904,48 @@ curved-arrow rendering; M33/M34 APIs remain unchanged.
 **Deliverable & test result:** version **1.3.0**, 8 templates, 36 retrosynthesis tests;
 full ChemEngine regression **2020 passed, 4 skipped, 0 failed**. Cold `import chemengine`
 stays lazy and <100 ms (M36 retrosynthesis is deliberately absent from `__all__`).
-Documented limitation: the timing-sensitive `test_performance.py::TestProfiler::test_profile_decorator`
+ Documented limitation: the timing-sensitive `test_performance.py::TestProfiler::test_profile_decorator`
 gate (asserts a sub-ms decorator path) can flake under slow CI and is unrelated to M36.
+
+---
+
+### ✅ M37 — Organometallic Chemistry Engine (Complete — 2026-09-25)
+
+**Status: COMPLETE.** M37 delivers deterministic organometallic chemistry — the first
+new ChemEngine chemistry domain since M34 — implemented over the shared
+`MolecularGraph` abstraction with no SMILES / no external chem libraries.
+
+**Objective.** Provide reliable organometallic analysis: metal-center identification,
+dative (coordinate covalent) bond perception, ligand perception, and VSEPR-style
+coordination-geometry classification — including the d8 square-planar exception and
+optional 3-D coplanarity refinement.
+
+**Deliverables (all in `packages/chemengine/src/chemengine/organometallic.py`, ~920 lines):**
+- `CoordinationGeometry` enum (linear, trigonal-planar, tetrahedral,
+  trigonal-bipyramidal, octahedral, square-planar).
+- `is_metal_center`, `perceive_dative_bonds`, `perceive_ligands`,
+  `classify_coordination_geometry`, `analyze`, `annotate_dative_bonds`.
+- d8 square-planar exception: Ni(II), Pd(II), Pt(II), Rh(I), Ir(I), Au(III).
+- `CoordinationComplex`/`Ligand`/`DativeBond` immutable models +
+  `organometallic_complex_to_dict` / `dict_to_coordination_complex` ser-deser.
+- `REFERENCE_ORGANOMETALLIC_ORACLE` — 10 curated reference complexes
+  (e.g. Co(NH3)6^3+ octahedral, Ni(CN)4^2- square-planar, Fe(CO)5 TBP).
+- Lazy registration (`register_organometallic_algorithms`) + a
+  `ChemEngineAPI.analyze_organometallic` tool, wired through `AlgorithmRegistry`.
+
+**Design.** The module is **not** in `_LAZY_EXPORTS` and is **not** imported by
+`chemengine/__init__.py`, so cold `import chemengine` stays lightweight. It reuses
+the M33/M34 metal-detection + geometry primitives where applicable.
+
+**Out of scope:** ligand-field/COMSOL electronic structure, reaction pathways for
+organometallics, catalysis cycle simulation, force-field optimization, SMILES
+round-trip for complexes; M33/M34 APIs remain unchanged.
+
+**Deliverable & test result:** version **1.4.0**, `tests/test_organometallic.py`
+(27 tests: geometry classification, dative-bond correctness, the 10-oracle
+reference set, ligand perception, ser-deser round-trip, registry integration, and
+the import-laziness gate); full ChemEngine regression **2047 passed, 4 skipped,
+0 failed**.
 
 ---
 
@@ -2915,14 +2957,14 @@ gate (asserts a sub-ms decorator path) can flake under slow CI and is unrelated 
 |--------|-------|
 | **ChemEngine Completion** | **100%** of v1.0.0 scope |
 | **Completed Phases** | All (0–15) + Correctness Gate + Monorepo Migration |
-| **Current Version** | v1.3.0 |
-| **Passing Tests** | 2020 / 2024 (100%; 4 documented skips; the timing-sensitive `test_performance.py::TestProfiler::test_profile_decorator` gate can flake under slow CI — unrelated to M36) |
-| **Release Date** | September 1, 2026 |
+| **Current Version** | v1.4.0 |
+| **Passing Tests** | 2047 / 2051 (100%; 4 documented skips; the timing-sensitive `test_performance.py::TestProfiler::test_profile_decorator` gate can flake under slow CI — unrelated to M37) |
+| **Release Date** | September 25, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | **M36: Bounded Template-Based Retrosynthetic Engine — COMPLETE (2026-09-25, v1.3.0).** 8-template catalogue + bounded-DFS `RetrosynthesisEngine` + `SynthesisRoute`/`RetrosyntheticStep` + lazy `AlgorithmRegistry` registration + `ChemEngineAPI.retrosynthesize` tool. Full regression: 2020 passed / 4 skipped / 0 failed. |
+| **Next Milestone** | **M37: Organometallic Chemistry Engine — COMPLETE (2026-09-25, v1.4.0).** Deterministic organometallic engine over `MolecularGraph` with metal-center detection, dative-bond perception, ligand perception, VSEPR-style coordination-geometry classification (incl. d8 square-planar exception), 10-reference-oracle validation, lazy `AlgorithmRegistry` registration, and a `ChemEngineAPI.analyze_organometallic` tool. Full regression: 2047 passed / 4 skipped / 0 failed. |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,
@@ -3049,7 +3091,7 @@ A rule-driven, deterministic electron-configuration subsystem in `chemengine.edu
 
 ### Future Roadmap: v2.0
 
-- **Organometallic chemistry** (dative bonds, coordination geometries)
+- **Organometallic chemistry** (dative bonds, coordination geometries) — ✅ **M37 complete** (v1.4.0; `chemengine.organometallic` engine, metal-center detection, dative-bond/ligand perception, VSEPR coordination-geometry classification w/ d8 square-planar exception, 10-reference oracle, `ChemEngineAPI.analyze_organometallic` tool; see M37 section)
 - **Polymer chemistry** (repeating units, chain graphs)
 - **Biomolecule support** (proteins, nucleic acids, carbohydrates)
 - **Reaction mechanisms** (full step-by-step mechanism engine) — ✅ **M34 complete** (v1.2.0; 10 curated mechanisms, 28-case oracle; see M34 section)

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] — 2026-09-25 (M37 — Organometallic Chemistry Engine)
+
+### Added
+
+#### Organometallic engine (M37)
+- `organometallic.py` — deterministic organometallic chemistry engine over
+  `MolecularGraph` with no SMILES / no external chem libs: metal-center
+  detection (transition metals, lanthanides, actinides), dative (coordinate
+  covalent) bond perception, ligand perception and VSEPR-style
+  coordination-geometry classification (linear/trigonal-planar/tetrahedral/
+  trigonal-bipyramidal/octahedral) with a d8 square-planar exception
+  (Ni(II), Pd(II), Pt(II), Rh(I), Ir(I), Au(III)) and optional 3-D
+  coplanarity refinement for four-coordinate centres.
+- Public API: `CoordinationGeometry`, `DativeBond`, `Ligand`,
+  `CoordinationComplex`, `is_metal_center`, `perceive_dative_bonds`,
+  `perceive_ligands`, `classify_coordination_geometry`, `analyze`,
+  `annotate_dative_bonds`, `organometallic_complex_to_dict` /
+  `dict_to_coordination_complex`, `register_organometallic_algorithms`.
+- `REFERENCE_ORGANOMETALLIC_ORACLE` — 10 curated reference complexes
+  (Co(NH3)6^3+ octahedral, Ni(CN)4^2- square-planar, CoCl4^2- tetrahedral,
+  Fe(CO)5 TBP, Ni(CO)4 tetrahedral, etc.).
+- `ChemEngineAPI` integration: an `analyze_organometallic` tool + convenience
+  method wired through the `AlgorithmRegistry` via lazy registration (no
+  import-time side effects); the module is NOT in `_LAZY_EXPORTS` and is NOT
+  imported by `chemengine/__init__.py`, so first import stays lightweight.
+- `tests/test_organometallic.py` covering geometry classification, dative-bond
+  correctness, the 10-oracle reference set, ligand perception, ser-deser
+  round-trip, registry integration, and the import-laziness gate.
+
 ## [1.3.0] — 2026-09-25 (M36 — Retrosynthetic Engine)
 
 ### Added

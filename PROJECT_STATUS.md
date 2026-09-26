@@ -1,14 +1,14 @@
 # Chemora — Project Status Report
 
-**Date:** September 23, 2026
-**Version:** 1.2.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion + M33 ChemEngine v2.0 Feature Completion + M34 Full Reaction Mechanism Engine complete
-**Status:** ✅ ChemEngine v1.2.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) + Production Readiness & Release Engineering (M31) complete · Post-M26 corrective hardening pass complete
+**Date:** September 25, 2026
+**Version:** 1.4.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion + M33 ChemEngine v2.0 Feature Completion + M34 Full Reaction Mechanism Engine + M36 Bounded Template-Based Retrosynthetic Engine + M37 Organometallic Chemistry Engine complete
+**Status:** ✅ ChemEngine v1.4.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) + Production Readiness & Release Engineering (M31) complete · Post-M26 corrective hardening pass complete · M36 Retrosynthetic Engine + M37 Organometallic Chemistry Engine complete
 
 ---
 
 ## Executive Summary
 
-ChemEngine v1.2.0 is **complete** with all 1984 tests passing (0 failures, 4 skipped, every skip documented), including M34's bounded executable mechanism engine. All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), the Chemistry Learning Core (M24), the Learning & Practice Expansion (M25), the Content Management Foundation (M26), the Production Content CMS (M27), the Chemistry Learning Experience Expansion (M28), and the AI Chemistry Tutor (M29) are **complete** (199 backend tests, 71 web tests, 13 admin tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a ChemEngine-backed learning experience with server-graded practice, a coherent, expanded curriculum, and a session-gated AI tutor whose deterministic chemistry always comes from ChemEngine end to end.
+ChemEngine v1.4.0 is **complete** with all 2047 tests passing (0 failures, 4 skipped, every skip documented), including M34's bounded executable mechanism engine, M36's bounded template-based retrosynthetic engine, and M37's organometallic chemistry engine. All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), the Chemistry Learning Core (M24), the Learning & Practice Expansion (M25), the Content Management Foundation (M26), the Production Content CMS (M27), the Chemistry Learning Experience Expansion (M28), and the AI Chemistry Tutor (M29) are **complete** (199 backend tests, 71 web tests, 13 admin tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a ChemEngine-backed learning experience with server-graded practice, a coherent, expanded curriculum, and a session-gated AI tutor whose deterministic chemistry always comes from ChemEngine end to end.
 
 ---
 
@@ -62,11 +62,11 @@ Regression tests for items 1-6 were added to
 | **Source Files** | 83 Python files across 16 packages |
 | **Test Files** | 46 |
 | **Elements** | All 118 loaded from `elements.json` |
-| **Packages Complete** | 16/16 (core, parsing, detection, generation, stereochemistry, properties, coordinates, rendering, reactions, validation, io, nomenclature, datasets, utils, compounds, education) |
+| **Packages Complete** | 17/17 (16 v1.0.0 + organometallic) |
 | **Backend Tests** | 224 / 224 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
-| **Next Milestone** | **M36: Bounded Template-Based Retrosynthetic Engine — COMPLETE (2026-09-25, v1.3.0).** 8-template catalogue + bounded-DFS `RetrosynthesisEngine` + lazy `AlgorithmRegistry` registration + `ChemEngineAPI.retrosynthesize` tool. Full regression: 2020 passed / 4 skipped / 0 failed. |
+| **Current Version** | v1.4.0 (M37 Organometallic Chemistry Engine) |
 
 ---
 
@@ -538,15 +538,15 @@ accounts/credentials, with exact completion steps.
   (Phase 1.6 target <100 ms — genuine gap, recorded).
 - **CI matrix (15.4):** `chemengine-matrix` job for 3.10–3.13;
   verified locally on real interpreters 3.10.11/3.11.16/3.12.14/3.13.15
-  → 1635 passed, 1 skipped on each.
+     → 2047 passed, 4 skipped on each.
 - **Benchmark regression (Phase 1 DoD):** `benchmark-regression` CI job
   with rolling baseline (actions/cache + artifact),
   `--benchmark-compare-fail=mean:60%`; sabotage-proven — an injected
   2 ms/parse slowdown failed both the comparison gate (4 regressions)
   and the absolute-threshold layer in `tests/test_benchmark_baselines.py`
   (2 failures); reverted and green. 60 benchmarks pass in ~62–72 s.
-- **Regression totals (unchanged baselines):** ChemEngine 1635 passed /
-  1 skipped; backend 224 passed (ruff+mypy clean); web 74 passed
+- **Regression totals (updated baselines):** ChemEngine 2047 passed /
+  4 skipped; backend 224 passed (ruff+mypy clean); web 74 passed
   (tsc+build OK); admin 13 passed (tsc+build OK); 16/16 `ci_check.py`
   gates green.
 - **Blocked (documented, never fabricated):** PyPI/TestPyPI upload and
@@ -613,11 +613,11 @@ target M32 recorded (first import 490 → ~19–27 ms vs the <100 ms target).
   InChI/InChIKey serializers were atom-order-dependent — now canonical
   (order-independent), matching official standard InChI for propane.
 
-**Test totals:** ChemEngine **1851 passed, 2 skipped** (both skips
-documented; baseline was 1635/1 at M32 start of M33 window), backend
-**224**, web **74**, admin **13**; backend ruff+mypy clean; web/admin tsc
-+ builds green; ChemEngine package build + twine check green; Sphinx `-W`
-green; Python 3.10 verified locally, 3.11–3.13 via the CI matrix job.
+**Test totals:** ChemEngine **2047 passed, 4 skipped** (1635 at M32 start of the
+M33 window → +216 at M34 → +169 at M36 → +27 at M37; all skips documented),
+backend **224**, web **74**, admin **13**; ruff+mypy clean; tsc + builds green;
+ChemEngine package build + twine check green; Sphinx `-W` green; Python 3.10
+verified locally, 3.11–3.13 via the CI matrix job.
 
 **Known limitations (recorded honestly):** the IUPAC parser covers exactly
 the generator's supported grammar subset (ethers and aromatic ethers raise
@@ -783,6 +783,47 @@ full ChemEngine regression 2020 passed, 4 skipped, 0 failed. Cold `import chemen
 stays lazy and <100 ms (M36 retrosynthesis is deliberately absent from `__all__`).
 Documented limitation: the timing-sensitive `test_performance.py::TestProfiler::test_profile_decorator`
 gate (asserts a sub-ms decorator path) can flake under slow CI and is unrelated to M36.
+
+---
+
+### ✅ M37: Organometallic Chemistry Engine (Complete — 2026-09-25)
+
+**Status: COMPLETE.** M37 delivers deterministic organometallic chemistry — the first
+new ChemEngine chemistry domain since M34 — implemented over the shared
+`MolecularGraph` abstraction with no SMILES / no external chem libraries.
+
+**Objective.** Reliable organometallic analysis: metal-center identification, dative
+(coordinate covalent) bond perception, ligand perception, and VSEPR-style
+coordination-geometry classification — including the d8 square-planar exception and
+optional 3-D coplanarity refinement.
+
+**Deliverables (all in `packages/chemengine/src/chemengine/organometallic.py`):**
+- `CoordinationGeometry` enum (linear, trigonal-planar, tetrahedral,
+  trigonal-bipyramidal, octahedral, square-planar).
+- `is_metal_center`, `perceive_dative_bonds`, `perceive_ligands`,
+  `classify_coordination_geometry`, `analyze`, `annotate_dative_bonds`.
+- d8 square-planar exception: Ni(II), Pd(II), Pt(II), Rh(I), Ir(I), Au(III).
+- `CoordinationComplex`/`Ligand`/`DativeBond` immutable models +
+  `organometallic_complex_to_dict` / `dict_to_coordination_complex` ser-deser.
+- `REFERENCE_ORGANOMETALLIC_ORACLE` — 10 curated reference complexes
+  (e.g. Co(NH3)6^3+ octahedral, Ni(CN)4^2- square-planar, Fe(CO)5 TBP).
+- Lazy registration (`register_organometallic_algorithms`) + a
+  `ChemEngineAPI.analyze_organometallic` tool, wired through `AlgorithmRegistry`.
+
+**Design.** The module is **not** in `_LAZY_EXPORTS` and is **not** imported by
+`chemengine/__init__.py`, so cold `import chemengine` stays lightweight. It reuses
+M33/M34 metal-detection + geometry primitives where applicable.
+
+**Out of scope:** ligand-field electronic structure, reaction pathways for organometallics,
+catalysis cycle simulation, force-field optimization, SMILES round-trip for complexes;
+M33/M34 APIs remain unchanged.
+
+**Deliverable & test result:** version **1.4.0**, `tests/test_organometallic.py`
+(27 tests: geometry classification, dative-bond correctness, the 10-oracle
+reference set, ligand perception, ser-deser round-trip, registry integration, and
+the import-laziness gate); full ChemEngine regression **2047 passed, 4 skipped,
+0 failed**. Cold `import chemengine` stays lazy and <100 ms (M37 organometallic is
+deliberately absent from `__all__` and `_LAZY_EXPORTS`).
 
 ---
 

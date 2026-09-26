@@ -9,6 +9,7 @@ single facade through which every capability is accessed.
    :maxdepth: 2
 
    chemengine
+   chemengine.organometallic
    chemengine.core
    chemengine.parsing
    chemengine.detection

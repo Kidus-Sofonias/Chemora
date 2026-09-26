@@ -82,8 +82,9 @@ EXPECTED_TOOLS = {
     "parse_smiles", "parse_formula", "compute_property", "validate",
     "sanitize", "detect_functional_groups", "generate_2d_coordinates",
     "generate_3d_conformer", "render_svg", "name_molecule", "generate_inchi",
-    "serialize", "calculate_electron_configuration",
+        "serialize", "calculate_electron_configuration",
     "retrosynthesize",
+    "analyze_organometallic",
 }
 
 

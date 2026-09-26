@@ -482,6 +482,15 @@ class ChemEngineAPI:
         except ImportError:
             logger.warning("Retrosynthesis engine not available")
 
+        # Register the M37 organometallic engine (dative bonds + geometry)
+        try:
+            from chemengine.organometallic import (
+                register_organometallic_algorithms,
+            )
+            register_organometallic_algorithms(self._registry)
+        except ImportError:
+            logger.warning("Organometallic engine not available")
+
     def _register_builtin_tools(self) -> None:
         """Register all built-in tool definitions."""
         builtins = [
@@ -830,9 +839,49 @@ class ChemEngineAPI:
                         "routes": {"type": "array"},
                     },
                 },
-                category="synthesis",
+                                category="synthesis",
                 tags=frozenset(
                     {"synthesis", "retrosynthesis", "reactions", "deterministic"}
+                ),
+            ),
+            ToolDefinition(
+                name="analyze_organometallic",
+                description=(
+                    "Analyze organometallic coordination complexes: detect "
+                    "metal centers, perceive dative (coordinate covalent) "
+                    "bonds, perceive ligands and classify coordination "
+                    "geometry from a molecular graph."
+                ),
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "smiles": {
+                            "type": "string",
+                            "description": "Input molecule SMILES",
+                        },
+                        "refine_3d": {
+                            "type": "boolean",
+                            "description": (
+                                "Use 3D coordinates to refine four-coordinate "
+                                "geometry (square-planar vs tetrahedral). "
+                                "Default false."
+                            ),
+                            "default": False,
+                        },
+                    },
+                    "required": ["smiles"],
+                },
+                output_schema={
+                    "type": "object",
+                    "properties": {
+                        "smiles": {"type": "string"},
+                        "num_complexes": {"type": "integer"},
+                        "complexes": {"type": "array"},
+                    },
+                },
+                category="organometallic",
+                tags=frozenset(
+                    {"organometallic", "dative", "coordination", "deterministic"}
                 ),
             ),
         ]
@@ -1069,11 +1118,54 @@ class ChemEngineAPI:
             max_candidates_per_step=params.get("max_candidates_per_step", 10),
             max_total_expansions=params.get("max_total_expansions", 200),
             max_routes=params.get("max_routes", 50),
-        )
+                )
         return {
             "smiles": params["smiles"],
             "num_routes": len(routes),
             "routes": routes,
+        }
+
+    def analyze_organometallic(
+        self,
+        graph: MolecularGraph,
+        *,
+        refine_3d: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Analyze organometallic coordination complexes in a molecular graph.
+
+        Delegates to :func:`chemengine.organometallic.analyze` and serializes
+        each :class:`CoordinationComplex` via
+        :func:`~chemengine.organometallic.organometallic_complex_to_dict`.
+
+        Args:
+            graph: The molecular graph to analyze.
+            refine_3d: When ``True``, refine four-coordinate geometry using
+                3-D coordinates.
+
+        Returns:
+            One dictionary per metal centre, ordered by centre index.
+        """
+        from chemengine.organometallic import (
+            analyze,
+            organometallic_complex_to_dict,
+        )
+
+        return [
+            organometallic_complex_to_dict(complex)
+            for complex in analyze(graph, refine_3d=refine_3d)
+        ]
+
+    def _exec_analyze_organometallic(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
+        """Implementation of the analyze_organometallic tool."""
+        graph = self.parse(params["smiles"], fmt="smiles")
+        refine = bool(params.get("refine_3d", False))
+        complexes = self.analyze_organometallic(graph, refine_3d=refine)
+        return {
+            "smiles": params["smiles"],
+            "num_complexes": len(complexes),
+            "complexes": complexes,
         }
 
 
