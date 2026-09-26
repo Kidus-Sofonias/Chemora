@@ -482,6 +482,15 @@ class ChemEngineAPI:
         except ImportError:
             logger.warning("Retrosynthesis engine not available")
 
+        # Register the M38 forward-reaction predictor (reactant -> product catalogue)
+        try:
+            from chemengine.reactions.forward import (
+                register_forward_reaction_algorithms,
+            )
+            register_forward_reaction_algorithms(self._registry)
+        except ImportError:
+            logger.warning("Forward reaction engine not available")
+
         # Register the M37 organometallic engine (dative bonds + geometry)
         try:
             from chemengine.organometallic import (

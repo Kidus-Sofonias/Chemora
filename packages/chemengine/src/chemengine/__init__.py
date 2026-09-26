@@ -50,7 +50,7 @@ __all__ = sorted([*_LAZY_EXPORTS, "__version__"])
 
 # Version stays module-level: Sphinx (docs/conf.py) and packaging tooling read
 # it at import time without triggering the lazy machinery.
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 
 
 def __getattr__(name: str) -> Any:

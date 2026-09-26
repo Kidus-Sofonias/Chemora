@@ -2,10 +2,10 @@
 
 > **📊 Live Gantt chart**: Open [`gantt.html`](gantt.html) in your browser for an interactive, animated visualization of this roadmap. Automatically updates when phase statuses change.
 
-> **Version:** 0.10.0 → 1.4.0 (ChemEngine complete through M37; monorepo migration complete)
+> **Version:** 0.10.0 → 1.5.0 (ChemEngine complete through M38; monorepo migration complete)
 > **Last Updated:** September 25, 2026
 > **Owner:** Chemora Architecture Team
-> **Status:** Active Development — ChemEngine M1–M37 complete; Backend M19–M31 complete; Web M21–M30 complete; Admin M27 complete
+> **Status:** Active Development — ChemEngine M1–M38 complete; Backend M19–M31 complete; Web M21–M30 complete; Admin M27 complete
 
 ---
 
@@ -106,6 +106,7 @@ Each phase contains:
 | 1.2.0 | 2026-09-23 | M34 — Full Reaction Mechanism Engine | ✅ Complete |
 | 1.3.0 | 2026-09-25 | M36 — Bounded Template-Based Retrosynthetic Engine | ✅ Complete |
 | 1.4.0 | 2026-09-25 | M37 — Organometallic Chemistry Engine | ✅ Complete |
+| 1.5.0 | 2026-09-25 | M38 — Forward Reaction Engine | ✅ Complete |
 
 ## Correctness Gate (Completed — 2026-09-08)
 
@@ -2957,14 +2958,58 @@ the import-laziness gate); full ChemEngine regression **2047 passed, 4 skipped,
 |--------|-------|
 | **ChemEngine Completion** | **100%** of v1.0.0 scope |
 | **Completed Phases** | All (0–15) + Correctness Gate + Monorepo Migration |
-| **Current Version** | v1.4.0 |
-| **Passing Tests** | 2047 / 2051 (100%; 4 documented skips; the timing-sensitive `test_performance.py::TestProfiler::test_profile_decorator` gate can flake under slow CI — unrelated to M37) |
+| **Current Version** | v1.5.0 |
+| **Passing Tests** | 2055 / 2059 (100%; 4 documented skips; the timing-sensitive `test_performance.py::TestProfiler::test_profile_decorator` gate can flake under slow CI — unrelated to M37) |
 | **Release Date** | September 25, 2026 |
 | **Repository Structure** | Monorepo (ChemEngine at `packages/chemengine/`, FastAPI backend + auth in `backend/`, web client in `apps/web/`) |
 | **Backend Tests** | 224 / 224 passing (M19 foundation, M20 auth, M22 chemistry, M23 elements, M24+M25 learning, M26+M27 admin content incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
 | **Web Tests** | 74 / 74 passing (M21 auth, M22 explorer, M23 element explorer, M24+M25 learning, M28 nav/resume, M29+M30 tutor UI) |
 | **Admin Tests** | 13 / 13 passing (M27 admin CMS incl. deletion flow, M28) |
-| **Next Milestone** | **M37: Organometallic Chemistry Engine — COMPLETE (2026-09-25, v1.4.0).** Deterministic organometallic engine over `MolecularGraph` with metal-center detection, dative-bond perception, ligand perception, VSEPR-style coordination-geometry classification (incl. d8 square-planar exception), 10-reference-oracle validation, lazy `AlgorithmRegistry` registration, and a `ChemEngineAPI.analyze_organometallic` tool. Full regression: 2047 passed / 4 skipped / 0 failed. |
+### ✅ M38 — Forward Reaction Engine (Complete — 2026-09-25)
+
+**Status: COMPLETE.** M38 delivers the forward counterpart to the M36 retrosynthetic
+engine: deterministic product prediction (reactants → products) over the shared
+`MolecularGraph` abstraction with no SMARTS. `packages/chemengine/src/chemengine/reactions/forward.py`
+(~340 lines) implements 5 deterministic templates (ester-saponification,
+alkene-hydrogenation, e2-elimination, alcohol-dehydration, hydrolysis-alkyl-halide)
+with heavy-atom-conserving surgery on a merged reactant canvas, canonical-SMILES
+product de-duplication, deterministic ordering (priority descending, ties broken
+by template id), and a conservation-validation guard. A 5-case `REFERENCE_ORACLE`
+drives the contracts; predictions round-trip via
+`forward_prediction_to_dict`/`dict_to_forward_prediction`. Registration is lazy
+(`register_forward_reaction_algorithms`) and wired into `ChemEngineAPI` built-in
+setup (no import-time side effects; `forward.py` is NOT in `_LAZY_EXPORTS` nor
+`__init__.py`, preserving the `import chemengine` first-import gate).
+
+The 5 templates and their priorities:
+| Template id | Reaction | Priority |
+|-------------|----------|----------|
+| m38-ester-saponification | acid + alcohol → ester + water | 1 |
+| m38-alkene-hydrogenation | alkene + H2 → alkane | 5 |
+| m38-e2-elimination | alkyl halide → alkene + HX | 3 |
+| m38-alcohol-dehydration | alcohol → alkene + water | 3 |
+| m38-hydrolysis-alkyl-halide | alkyl halide + H2O → alcohol + HX | 3 |
+
+`e2-elimination`, `alcohol-dehydration`, and `hydrolysis-alkyl-halide` share
+priority 3; the tie is broken deterministically by template id inside the engine.
+
+**Scope note:** A `forward` ToolDefinition / `execute_tool` dispatch was intentionally
+NOT added. The M38 acceptance criteria expose the forward engine via the
+`AlgorithmRegistry` API surface only; a dedicated `forward` tool entry in the
+OpenAPI schema is a larger feature deferred to a future milestone.
+
+**Out of scope (unchanged from M35):** reagent/condition/yield prediction, new
+chemistry domains, curved-arrow rendering; M33/M34/M36 APIs remain unchanged.
+
+**Deliverable & test result:** version **1.5.0**, 5 templates, `tests/test_forward.py`
+(8 tests: module constants, oracle regression, engine/wrapper agreement,
+unmatched reactant, ser-deser round-trip, registry idempotency, API wiring,
+lazy-import gate); full ChemEngine regression **2055 passed, 4 skipped,
+0 failed** (2047 → +8 from M38). Cold `import chemengine` stays lazy and <100 ms
+(M38 forward is deliberately absent from `__all__` and `_LAZY_EXPORTS`).
+
+---
+| **Next Milestone** | **M38: Forward Reaction Engine — COMPLETE (2026-09-26, v1.5.0).** Bounded forward reaction predictor over `MolecularGraph` with 5 deterministic templates (ester-saponification, alkene-hydrogenation, e2-elimination, alcohol-dehydration, hydrolysis-alkyl-halide), heavy-atom-conserving surgery, canonical-SMILES de-duplication, deterministic ordering, 5-case reference oracle, lazy `AlgorithmRegistry` registration, and `ChemEngineAPI` wiring (no `forward` ToolDefinition dispatch — deferred to a future milestone). Full regression: 2055 passed / 4 skipped / 0 failed. |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,
@@ -3092,6 +3137,7 @@ A rule-driven, deterministic electron-configuration subsystem in `chemengine.edu
 ### Future Roadmap: v2.0
 
 - **Organometallic chemistry** (dative bonds, coordination geometries) — ✅ **M37 complete** (v1.4.0; `chemengine.organometallic` engine, metal-center detection, dative-bond/ligand perception, VSEPR coordination-geometry classification w/ d8 square-planar exception, 10-reference oracle, `ChemEngineAPI.analyze_organometallic` tool; see M37 section)
+- **Forward reaction engine** (reactant → product prediction) — ✅ **M38 complete** (v1.5.0; 5 deterministic templates, heavy-atom-conserving surgery, canonical-SMILES de-duplication, reference oracle, lazy registry wiring; see M38 section)
 - **Polymer chemistry** (repeating units, chain graphs)
 - **Biomolecule support** (proteins, nucleic acids, carbohydrates)
 - **Reaction mechanisms** (full step-by-step mechanism engine) — ✅ **M34 complete** (v1.2.0; 10 curated mechanisms, 28-case oracle; see M34 section)

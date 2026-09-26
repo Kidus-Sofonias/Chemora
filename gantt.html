@@ -2252,13 +2252,16 @@ const phases = [
      ver: '1.3',      start: 178, dur: 6,  risk: 'medium',  status: 'complete', weight: 5 },
    { id: 37, name: 'Organometallic Chemistry Engine (M37)', desc: 'Deterministic organometallic chemistry over MolecularGraph (no SMILES, no external chem libs): metal-center detection (transition metals, lanthanides, actinides), dative (coordinate covalent) bond perception, ligand perception, VSEPR-style coordination-geometry classification (linear/trigonal-planar/tetrahedral/trigonal-bipyramidal/octahedral) with d8 square-planar exception (Ni(II), Pd(II), Pt(II), Rh(I), Ir(I), Au(III)) and optional 3-D coplanarity refinement.',
       tasks: ['organometallic.py: metal-center detection, dative bond perception, ligand perception', 'VSEPR-style coordination-geometry classification + d8 square-planar exception + optional 3-D coplanarity refinement', 'CoordinationGeometry enum, CoordinationComplex/Ligand/DativeBond models + ser/deser', 'REFERENCE_ORGANOMETALLIC_ORACLE (10 curated complexes) validated', 'Lazy registration + analyze_organometallic Tool + ChemEngineAPI.analyze_organometallic; module not in _LAZY_EXPORTS nor __init__.py preserving first-import <100 ms gate', 'tests/test_organometallic.py (27 tests) and full regression: 2047 passed / 4 skipped / 0 failed; CHANGELOG [1.4.0] + version 1.4.0; TODO/PROJECT_STATUS/gantt synchronized'],
-     ver: '1.4',      start: 184, dur: 4,  risk: 'medium',  status: 'complete', weight: 5 },
+          ver: '1.4',      start: 184, dur: 4,  risk: 'medium',  status: 'complete', weight: 5 },
+  { id: 38, name: 'Forward Reaction Engine (M38)', desc: 'Bounded, template-based forward reaction predictor over MolecularGraph (no SMARTS): 5 deterministic templates (ester-saponification, alkene-hydrogenation, e2-elimination, alcohol-dehydration, hydrolysis-alkyl-halide) with heavy-atom-conserving surgery on a merged reactant canvas, canonical-SMILES product de-duplication, deterministic ordering (priority then template id), conservation-validation guard, 5-case REFERENCE_ORACLE, ReactionPrediction, (de)serialization, lazy AlgorithmRegistry registration + ChemEngineAPI wiring; NO forward ToolDefinition/execute_tool dispatch (deferred to a future milestone).',
+     tasks: ['forward.py: 5 templates with deterministic ordering (priority desc, ties broken by template id)', 'ForwardSurgery with break_bonds/form_bonds/order_changes over merged reactant canvas', 'ForwardReactionEngine (bounded: max_candidates_per_template, max_results) with heavy-atom conservation guard', 'REFERENCE_ORACLE (5 curated reactant→product cases) + ReactionPrediction model', 'dict_to_forward_prediction / forward_prediction_to_dict ser/deser round-trip', 'Lazy register_forward_reaction_algorithms + ChemEngineAPI wiring; NOT in _LAZY_EXPORTS preserving first-import <100 ms gate', 'tests/test_forward.py (8 tests) and full regression: 2055 passed / 4 skipped / 0 failed; CHANGELOG [1.5.0] + version 1.5.0; TODO/PROJECT_STATUS/gantt synchronized'],
+     ver: '1.5',      start: 188, dur: 4,  risk: 'low',    status: 'complete', weight: 5 },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 184;
+const TOTAL_WEEKS = 192;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;
@@ -2813,7 +2816,8 @@ function buildMilestoneDots() {
     { label: 'M34 Mechanisms', week: 174 },
     { label: 'M35 Scope', week: 178 },
     { label: 'M36 Retrosynthesis', week: 184 },
-    { label: 'M37 Organometallic', week: 188 }
+        { label: 'M37 Organometallic', week: 188 },
+    { label: 'M38 Forward', week: 192 }
   ];
 
   // Create a progress line

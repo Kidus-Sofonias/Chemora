@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] — 2026-09-25 (M38 — Forward Reaction Engine)
+
+### Added
+
+#### Forward reaction engine (M38)
+- `reactions/forward.py` — bounded, template-based forward reaction predictor over
+  `MolecularGraph` with no SMARTS: 5 deterministic templates (ester-saponification,
+  alkene-hydrogenation, e2-elimination, alcohol-dehydration, hydrolysis-alkyl-halide),
+  heavy-atom-conserving surgery on a merged reactant canvas, canonical-SMILES
+  product de-duplication, deterministic ordering (priority then template id),
+  and heavy-atom conservation validation as a guard.
+- Public API: `ForwardReactionEngine`, `ForwardReactionTemplate`, `ForwardSurgery`,
+  `ReactionPrediction`, `REFERENCE_ORACLE`, `dict_to_forward_prediction` /
+  `forward_prediction_to_dict`, `predict_reaction`,
+  `register_forward_reaction_algorithms`.
+- `REFERENCE_ORACLE` — 5 curated reactant → product cases covering all 5 templates.
+- `ChemEngineAPI` integration: lazy `AlgorithmRegistry` registration (no import-time
+  side effects); `forward.py` is NOT in `_LAZY_EXPORTS` and NOT imported by
+  `chemengine/__init__.py`, preserving the `import chemengine` first-import gate.
+- `tests/test_forward.py` (8 tests): module constants, oracle regression,
+  engine/wrapper agreement, unmatched reactant, ser-deser round-trip, registry
+  idempotency, API wiring, and the lazy-import gate.
+
+**Scope note:** A `forward` ToolDefinition / `execute_tool` dispatch was intentionally
+NOT added. The M38 acceptance criteria expose the forward engine via the
+`AlgorithmRegistry` API surface only; a dedicated `forward` tool entry in the
+OpenAPI schema is a larger feature deferred to a future milestone.
+
 ## [1.4.0] — 2026-09-25 (M37 — Organometallic Chemistry Engine)
 
 ### Added

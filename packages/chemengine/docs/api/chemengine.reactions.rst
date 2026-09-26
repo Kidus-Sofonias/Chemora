@@ -64,3 +64,16 @@ Executable bounded mechanism engine (M34): 10 curated named mechanisms,
    :members:
    :show-inheritance:
    :no-index:
+
+``chemengine.reactions.forward``
+--------------------------------
+
+Bounded, template-based forward reaction predictor (M38): reactant → product
+prediction over ``MolecularGraph`` with no SMARTS. 5 deterministic templates,
+canonical-SMILES de-duplication, deterministic ordering, and a 5-case reference
+oracle.
+
+.. automodule:: chemengine.reactions.forward
+   :members:
+   :show-inheritance:
+   :no-index:
