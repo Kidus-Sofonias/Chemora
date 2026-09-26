@@ -22,6 +22,11 @@ dependencies = [
     "pydantic>=2.10.0",
     "pydantic-settings>=2.6.0",
     "google-auth>=2.35.0",
+    # google-auth's "requests" transport (google.auth.transport.requests, used by
+    # app/services/google_auth.py at import time) is an OPTIONAL google-auth
+    # dependency, so it must be declared explicitly or clean installs (CI) fail
+    # to import the backend with: ImportError: The requests library is not installed.
+    "requests>=2.31.0",
     "httpx>=0.28.0",
     # ChemEngine — the authoritative deterministic chemistry engine. This is
     # the monorepo-local package at packages/chemengine; it is installed into
