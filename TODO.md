@@ -2,10 +2,10 @@
 
 > **📊 Live Gantt chart**: Open [`gantt.html`](gantt.html) in your browser for an interactive, animated visualization of this roadmap. Automatically updates when phase statuses change.
 
-> **Version:** 0.10.0 → 1.5.0 (ChemEngine complete through M38; monorepo migration complete)
-> **Last Updated:** September 25, 2026
+> **Version:** 0.10.0 → 1.6.0 (ChemEngine complete through M39; monorepo migration complete)
+> **Last Updated:** September 26, 2026
 > **Owner:** Chemora Architecture Team
-> **Status:** Active Development — ChemEngine M1–M38 complete; Backend M19–M31 complete; Web M21–M30 complete; Admin M27 complete
+> **Status:** Active Development — ChemEngine M1–M39 complete; Backend M19–M31 complete; Web M21–M30 complete; Admin M27 complete
 
 ---
 
@@ -107,6 +107,7 @@ Each phase contains:
 | 1.3.0 | 2026-09-25 | M36 — Bounded Template-Based Retrosynthetic Engine | ✅ Complete |
 | 1.4.0 | 2026-09-25 | M37 — Organometallic Chemistry Engine | ✅ Complete |
 | 1.5.0 | 2026-09-25 | M38 — Forward Reaction Engine | ✅ Complete |
+| 1.6.0 | 2026-09-26 | M39 — Polymer Chemistry Engine | ✅ Complete |
 
 ## Correctness Gate (Completed — 2026-09-08)
 
@@ -3009,7 +3010,64 @@ lazy-import gate); full ChemEngine regression **2055 passed, 4 skipped,
 (M38 forward is deliberately absent from `__all__` and `_LAZY_EXPORTS`).
 
 ---
-| **Next Milestone** | **M38: Forward Reaction Engine — COMPLETE (2026-09-26, v1.5.0).** Bounded forward reaction predictor over `MolecularGraph` with 5 deterministic templates (ester-saponification, alkene-hydrogenation, e2-elimination, alcohol-dehydration, hydrolysis-alkyl-halide), heavy-atom-conserving surgery, canonical-SMILES de-duplication, deterministic ordering, 5-case reference oracle, lazy `AlgorithmRegistry` registration, and `ChemEngineAPI` wiring (no `forward` ToolDefinition dispatch — deferred to a future milestone). Full regression: 2055 passed / 4 skipped / 0 failed. |
+
+### ✅ M39 — Polymer Chemistry Engine (Complete — 2026-09-26)
+
+**Status: COMPLETE.** M39 adds deterministic, graph-based polymer chemistry
+over the shared `MolecularGraph` abstraction (no SMARTS, no RDKit, no external
+chem libraries, no string matching). `packages/chemengine/src/chemengine/polymer.py`
+supports two representations: **repeat-unit form** (wildcard `*` junction atoms,
+e.g. `*CC*`, `*OC(=O)c1ccccc1CO*`) and **terminal-chain form** (finite
+oligomers, e.g. `CCCCCC`).
+
+Core analysis over the molecular graph: `find_connection_points` locates `*`
+junction atoms; `extract_repeat_unit` carves the wildcard-free repeat unit
+(preserving attachment atoms); `classify_polymerization` distinguishes addition
+from condensation (an in-chain carbonyl bonded to O or N spanning the two
+attachment points); `find_end_groups` returns terminal functional groups;
+`degree_of_polymerization` reports the *structural* DP (backbone length / KMP
+minimal-period of the backbone signature) — for polyethylene-family backbones
+this counts `-CH2-` units, internally consistent with DPn × mer-MW ≈ chain MW;
+and `number_avg_mw` computes the number-average molecular weight. `analyze_polymer`
+is the one-shot entry point returning a `PolymerAnalysis`.
+
+Models: `EndGroup`, `RepeatUnit`, `PolymerAnalysis`. `(De)serialization` flows
+through the existing `chemengine.io.serialization` surface via
+`polymer_analysis_to_dict` / `dict_to_polymer_analysis`; `SCHEMA_VERSION =
+"chemengine-polymer-analysis/v1"` and `POLYMER_CATALOGUE_VERSION = "1.0.0"`.
+
+`REFERENCE_POLYMER_ORACLE` — 8 curated, chemistry-checked reference cases
+spanning addition (polyethylene, PEG, PTFE, poly(oxyethylene imine)) and
+condensation (PET, hydroxy-acetate) polymerization. `*` atoms (atomic number 0)
+are placeholders, excluded from formulas/weights/validation so `analyze_polymer`
+never hands a wildcard-containing graph to `MolecularGraph.validate()` (which
+rejects atomic number 0).
+
+Registration is lazy (`register_polymer_algorithms`, idempotent, 3 entries:
+`polymer/analyze`, `polymer/repeat_unit`, `polymer/degree_of_polymerization`)
+and wired into `ChemEngineAPI` built-in setup (no import-time side effects;
+`polymer.py` is NOT in `_LAZY_EXPORTS` nor imported by `chemengine/__init__.py`,
+preserving the `import chemengine` first-import gate).
+
+**Scope note:** A `polymer` ToolDefinition / `execute_tool` dispatch was
+intentionally NOT added. The M39 acceptance criteria expose the engine via the
+`AlgorithmRegistry` API surface only; a dedicated `polymer` tool entry in the
+OpenAPI schema is a larger feature deferred to a future milestone.
+
+**Out of scope (unchanged from M35):** SMILES/RDKit-backed polymer analysis,
+biomolecules, condensation-by-condensation polymerization simulation, property
+prediction for uncurated repeat units; M33–M38 APIs remain unchanged.
+
+**Deliverable & test result:** version **1.6.0**, 8 curated reference cases,
+`tests/test_polymer.py` (108 tests: 8-case reference oracle, repeat-unit
+extraction, structural degree of polymerization, polymerization-type
+classification, end-group detection, (de)serialization round-trips, catalogue
+metadata, and registry registration/idempotency + `ChemEngineAPI` wiring), and
+full ChemEngine regression **2163 passed, 4 skipped, 0 failed** (2055 → +108
+from M39). Cold `import chemengine` stays lazy and <100 ms (polymer absent
+from `__all__` and `_LAZY_EXPORTS`).
+
+| **Next Milestone** | **M39: Polymer Chemistry Engine — COMPLETE (2026-09-26, v1.6.0).** Deterministic, graph-based polymer chemistry engine over `MolecularGraph` (no SMARTS/RDKit): repeat-unit & terminal-chain representations, connection-point detection, repeat-unit extraction, addition/condensation classification, end-group detection, structural degree of polymerization (KMP backbone periodicity), number-average MW, 8-case reference oracle, lazy `AlgorithmRegistry` registration wired into `ChemEngineAPI`. Full regression: 2163 passed / 4 skipped / 0 failed. **Next:** M40 (unscoped) — v2.0 future roadmap domains (biomolecules, GNN, crystallography, NMR) remain an explicitly unordered list. |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,

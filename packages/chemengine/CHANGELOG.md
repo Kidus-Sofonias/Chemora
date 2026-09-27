@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] — 2026-09-26 (M39 — Polymer Chemistry Engine)
+
+### Added
+
+#### Polymer chemistry engine (M39)
+- `polymer.py` — deterministic, graph-based polymer chemistry engine over the
+  shared `MolecularGraph` abstraction (no SMARTS, no RDKit, no external chem
+  libraries, no string matching). Two representations: **repeat-unit form**
+  (wildcard `*` junction atoms, e.g. `*CC*`, `*OC(=O)c1ccccc1CO*`) and
+  **terminal-chain form** (finite oligomers, e.g. `CCCCCC`).
+- Capabilities: `find_connection_points` (locate `*` junction atoms);
+  `extract_repeat_unit` (carve the wildcard-free repeat unit, preserving the
+  attachment atoms); `classify_polymerization` (addition vs condensation from
+  an in-chain carbonyl bonded to O/N spanning the two attachment points);
+  `find_end_groups` (terminal functional groups); `degree_of_polymerization`
+  (structural DP via KMP minimal-period of the backbone signature);
+  `analyze_polymer` (one-shot `PolymerAnalysis`); `number_avg_mw`; and
+  `polymer_analysis_to_dict` / `dict_to_polymer_analysis` (de)serialization
+  through the existing `chemengine.io.serialization` surface.
+- Public API: `EndGroup`, `RepeatUnit`, `PolymerAnalysis`,
+  `REFERENCE_POLYMER_ORACLE`, `SCHEMA_VERSION`, `POLYMER_CATALOGUE_VERSION`,
+  `find_connection_points`, `extract_repeat_unit`, `find_end_groups`,
+  `degree_of_polymerization`, `classify_polymerization`, `analyze_polymer`,
+  `number_avg_mw`, `polymer_analysis_to_dict`, `dict_to_polymer_analysis`,
+  `list_polymer_reference`, `register_polymer_algorithms`.
+- `REFERENCE_POLYMER_ORACLE` — 8 curated, chemistry-checked reference cases
+  spanning addition (polyethylene, PEG, PTFE, poly(oxyethylene imine)) and
+  condensation (PET, hydroxy-acetate) polymerization, including terminal-chain
+  end-group detection.
+- `ChemEngineAPI` integration: lazy `AlgorithmRegistry` registration wired into
+  `ChemEngineAPI` built-in setup (3 entries: `polymer/analyze`,
+  `polymer/repeat_unit`, `polymer/degree_of_polymerization`); idempotent, no
+  import-time side effects. `polymer.py` is NOT in `_LAZY_EXPORTS` and is NOT
+  imported by `chemengine/__init__.py`, preserving the `import chemengine`
+  first-import gate (<100 ms).
+- `tests/test_polymer.py` (108 tests): 8-case reference-oracle regression
+  (×6 assertions), repeat-unit extraction, structural degree of polymerization,
+  polymerization-type classification, end-group detection, (de)serialization
+  round-trips, catalogue metadata, and registry registration/idempotency +
+  `ChemEngineAPI` wiring.
+
+**Scope note:** As with M38, a dedicated `polymer` `ToolDefinition` /
+`execute_tool` dispatch was intentionally NOT added — the M39 engine is exposed
+via the `AlgorithmRegistry` API surface only; an OpenAPI tool entry is a larger
+feature deferred to a future milestone.
+
 ## [1.5.0] — 2026-09-25 (M38 — Forward Reaction Engine)
 
 ### Added

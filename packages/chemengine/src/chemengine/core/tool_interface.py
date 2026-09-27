@@ -499,6 +499,12 @@ class ChemEngineAPI:
             register_organometallic_algorithms(self._registry)
         except ImportError:
             logger.warning("Organometallic engine not available")
+        # Register the M39 polymer chemistry engine (repeat-unit / DP analysis)
+        try:
+            from chemengine.polymer import register_polymer_algorithms
+            register_polymer_algorithms(self._registry)
+        except ImportError:
+            logger.warning("Polymer chemistry engine not available")
 
     def _register_builtin_tools(self) -> None:
         """Register all built-in tool definitions."""

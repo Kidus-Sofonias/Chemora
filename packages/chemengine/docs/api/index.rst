@@ -10,6 +10,7 @@ single facade through which every capability is accessed.
 
    chemengine
    chemengine.organometallic
+   chemengine.polymer
    chemengine.core
    chemengine.parsing
    chemengine.detection
