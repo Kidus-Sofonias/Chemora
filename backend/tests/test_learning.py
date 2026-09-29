@@ -50,6 +50,10 @@ async def test_lesson_catalog(api_client: AsyncClient) -> None:
         "molar-mass",
         "stoichiometry",
         "acids-bases",
+        # M40 biomolecular analysis expansion.
+        "amino-acids",
+        "peptide-bonds",
+        "short-peptides",
     ]
     first = lessons[0]
     assert set(first.keys()) == {

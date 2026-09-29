@@ -89,8 +89,13 @@ class ChemEngineAPI:
         >>> result = api.execute_tool("parse_smiles", {"smiles": "CCO"})
     """
 
-    def __init__(self, registry: Any | None = None, bus: Any | None = None,
-                 plugin_mgr: Any | None = None, datasets: Any | None = None) -> None:
+    def __init__(
+        self,
+        registry: Any | None = None,
+        bus: Any | None = None,
+        plugin_mgr: Any | None = None,
+        datasets: Any | None = None,
+    ) -> None:
         """Initialize the ChemEngineAPI.
 
         Args:
@@ -114,8 +119,9 @@ class ChemEngineAPI:
 
     # ── AI Tool Interface ──
 
-    def list_tools(self, category: str | None = None,
-                   tags: set[str] | None = None) -> list[ToolDefinition]:
+    def list_tools(
+        self, category: str | None = None, tags: set[str] | None = None
+    ) -> list[ToolDefinition]:
         """List all available tools, optionally filtered.
 
         Args:
@@ -132,8 +138,9 @@ class ChemEngineAPI:
             tools = [t for t in tools if tags.issubset(t.tags)]
         return tools
 
-    def execute_tool(self, name: str, params: dict[str, Any],
-                     correlation_id: str | None = None) -> dict[str, Any]:
+    def execute_tool(
+        self, name: str, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Execute a tool by name with the given parameters.
 
         This is the primary entry point for AI agents. It validates the
@@ -168,25 +175,30 @@ class ChemEngineAPI:
         try:
             result = method(params, correlation_id)
             # Publish tool executed event
-            self._bus.publish(self._make_event(
-                "tool.executed",
-                {"tool": name, "params": params, "result": result},
-                "tool_interface",
-                correlation_id,
-            ))
+            self._bus.publish(
+                self._make_event(
+                    "tool.executed",
+                    {"tool": name, "params": params, "result": result},
+                    "tool_interface",
+                    correlation_id,
+                )
+            )
             return cast("dict[str, Any]", result)
         except Exception as e:
             logger.exception(f"Tool '{name}' failed: {e}")
-            self._bus.publish(self._make_event(
-                "tool.failed",
-                {"tool": name, "params": params, "error": str(e)},
-                "tool_interface",
-                correlation_id,
-            ))
+            self._bus.publish(
+                self._make_event(
+                    "tool.failed",
+                    {"tool": name, "params": params, "error": str(e)},
+                    "tool_interface",
+                    correlation_id,
+                )
+            )
             return {"error": str(e)}
 
-    def execute_batch(self, calls: list[tuple[str, dict[str, Any], str | None]]
-                      ) -> list[dict[str, Any]]:
+    def execute_batch(
+        self, calls: list[tuple[str, dict[str, Any], str | None]]
+    ) -> list[dict[str, Any]]:
         """Execute multiple tools in sequence.
 
         Args:
@@ -252,12 +264,15 @@ class ChemEngineAPI:
             return graph.molecular_formula
         if target == "smiles":
             from chemengine.parsing.smiles import serialize_smiles
+
             return serialize_smiles(graph, **options)
         if target == "inchi":
             from chemengine.parsing.inchi_serializer import serialize_inchi
+
             return serialize_inchi(graph)
         if target == "inchikey":
             from chemengine.parsing.inchi_serializer import generate_inchi_key
+
             return generate_inchi_key(graph)
         raise ValueError(
             f"Unknown target format: '{target}'. Supported targets: "
@@ -312,10 +327,12 @@ class ChemEngineAPI:
         try:
             return compute_property(graph, property_name)
         except KeyError:
-            supported = sorted(set(graph_properties) | {"logp", "tpsa", "fraction_csp3", "hba", "hbd", "rotatable_bonds", "num_rings"})
+            supported = sorted(
+                set(graph_properties)
+                | {"logp", "tpsa", "fraction_csp3", "hba", "hbd", "rotatable_bonds", "num_rings"}
+            )
             raise ValueError(
-                f"Unknown property: '{property_name}'. "
-                f"Supported properties: {', '.join(supported)}"
+                f"Unknown property: '{property_name}'. Supported properties: {', '.join(supported)}"
             ) from None
 
     def validate(self, graph: MolecularGraph, rule_set: str = "standard") -> ValidationResult:
@@ -329,6 +346,7 @@ class ChemEngineAPI:
             A ValidationResult with all findings.
         """
         from chemengine.validation.rules import get_validation_rules
+
         errors: list[Any] = []
         warnings: list[Any] = []
         infos: list[Any] = []
@@ -357,6 +375,7 @@ class ChemEngineAPI:
             A new, sanitized MolecularGraph.
         """
         from chemengine.validation.sanitize import sanitize as _sanitize
+
         return _sanitize(graph)
 
     def detect_functional_groups(self, graph: MolecularGraph) -> list[dict[str, Any]]:
@@ -377,6 +396,7 @@ class ChemEngineAPI:
         from chemengine.detection.functional_groups import (
             detect_functional_groups_dict as _detect_fg,
         )
+
         return _detect_fg(graph)
 
     def render(self, graph: MolecularGraph, fmt: str = "svg", **options: Any) -> Any:
@@ -402,9 +422,11 @@ class ChemEngineAPI:
         """
         if fmt == "svg":
             from chemengine.rendering.svg import render_svg as _render_svg
+
             return _render_svg(graph, **options)
         if fmt == "png":
             from chemengine.rendering.png import render_png as _render_png
+
             return _render_png(graph, coordinates=None, **options)
         raise ValueError(f"Unsupported render format: {fmt}")
 
@@ -420,10 +442,7 @@ class ChemEngineAPI:
 
     def list_plugins(self) -> list[dict[str, str]]:
         """List loaded plugins."""
-        return [
-            {"name": p.name, "version": p.version}
-            for p in self._plugin_mgr.list_loaded()
-        ]
+        return [{"name": p.name, "version": p.version} for p in self._plugin_mgr.list_loaded()]
 
     # ── Registry Access ──
 
@@ -448,11 +467,13 @@ class ChemEngineAPI:
         """Register built-in algorithms with the AlgorithmRegistry."""
         # Register formula parser
         from chemengine.parsing.formula import register_formula_parser
+
         register_formula_parser(self._registry)
 
         # Register SMILES parser (if available)
         try:
             from chemengine.parsing.smiles import register_smiles_parser
+
             register_smiles_parser(self._registry)
         except ImportError:
             logger.warning("SMILES parser not available")
@@ -462,6 +483,7 @@ class ChemEngineAPI:
             from chemengine.education.electron_config import (
                 register_electron_config_algorithm,
             )
+
             register_electron_config_algorithm(self._registry)
         except ImportError:
             logger.warning("Electron configuration algorithm not available")
@@ -469,6 +491,7 @@ class ChemEngineAPI:
         # Register the M34 mechanism engine (executable M33 interfaces)
         try:
             from chemengine.reactions.engine import register_mechanism_algorithms
+
             register_mechanism_algorithms(self._registry)
         except ImportError:
             logger.warning("Mechanism engine not available")
@@ -478,6 +501,7 @@ class ChemEngineAPI:
             from chemengine.reactions.retrosynthesis import (
                 register_retrosynthesis_algorithms,
             )
+
             register_retrosynthesis_algorithms(self._registry)
         except ImportError:
             logger.warning("Retrosynthesis engine not available")
@@ -487,6 +511,7 @@ class ChemEngineAPI:
             from chemengine.reactions.forward import (
                 register_forward_reaction_algorithms,
             )
+
             register_forward_reaction_algorithms(self._registry)
         except ImportError:
             logger.warning("Forward reaction engine not available")
@@ -496,15 +521,25 @@ class ChemEngineAPI:
             from chemengine.organometallic import (
                 register_organometallic_algorithms,
             )
+
             register_organometallic_algorithms(self._registry)
         except ImportError:
             logger.warning("Organometallic engine not available")
+
         # Register the M39 polymer chemistry engine (repeat-unit / DP analysis)
         try:
             from chemengine.polymer import register_polymer_algorithms
+
             register_polymer_algorithms(self._registry)
         except ImportError:
             logger.warning("Polymer chemistry engine not available")
+        # Register the M40 biomolecular engine (residue / sequence / peptide analysis)
+        try:
+            from chemengine.biomolecules import register_biomolecule_algorithms
+
+            register_biomolecule_algorithms(self._registry)
+        except ImportError:
+            logger.warning("Biomolecular engine not available")
 
     def _register_builtin_tools(self) -> None:
         """Register all built-in tool definitions."""
@@ -517,13 +552,16 @@ class ChemEngineAPI:
                     "properties": {
                         "smiles": {"type": "string", "description": "SMILES string"},
                         "compute": {
-                            "type": "array", "items": {"type": "string"},
-                            "description": ("Properties to compute. Supported: mass, weight, "
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": (
+                                "Properties to compute. Supported: mass, weight, "
                                 "formula, heavy_atoms, logp, tpsa, fraction_csp3, hba, hbd, "
-                                "rotatable_bonds, num_rings")
-                        }
+                                "rotatable_bonds, num_rings"
+                            ),
+                        },
                     },
-                    "required": ["smiles"]
+                    "required": ["smiles"],
                 },
                 output_schema={
                     "type": "object",
@@ -534,8 +572,8 @@ class ChemEngineAPI:
                         "formula": {"type": "string"},
                         "exact_mass": {"type": "number"},
                         "heavy_atoms": {"type": "integer"},
-                        "properties": {"type": "object"}
-                    }
+                        "properties": {"type": "object"},
+                    },
                 },
                 category="parsing",
                 tags=frozenset({"smiles", "parsing"}),
@@ -546,17 +584,20 @@ class ChemEngineAPI:
                 input_schema={
                     "type": "object",
                     "properties": {
-                        "formula": {"type": "string", "description": "Molecular formula (e.g., C5H12)"}
+                        "formula": {
+                            "type": "string",
+                            "description": "Molecular formula (e.g., C5H12)",
+                        }
                     },
-                    "required": ["formula"]
+                    "required": ["formula"],
                 },
                 output_schema={
                     "type": "object",
                     "properties": {
                         "formula": {"type": "string"},
                         "exact_mass": {"type": "number"},
-                        "error": {"type": "string"}
-                    }
+                        "error": {"type": "string"},
+                    },
                 },
                 category="parsing",
                 tags=frozenset({"formula", "parsing"}),
@@ -569,20 +610,20 @@ class ChemEngineAPI:
                     "properties": {
                         "smiles": {"type": "string", "description": "SMILES string"},
                         "properties": {
-                            "type": "array", "items": {"type": "string"},
-                            "description": ("Properties to compute. Supported: mass, weight, "
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": (
+                                "Properties to compute. Supported: mass, weight, "
                                 "formula, heavy_atoms, logp, tpsa, fraction_csp3, hba, hbd, "
-                                "rotatable_bonds, num_rings")
-                        }
+                                "rotatable_bonds, num_rings"
+                            ),
+                        },
                     },
-                    "required": ["smiles", "properties"]
+                    "required": ["smiles", "properties"],
                 },
                 output_schema={
                     "type": "object",
-                    "properties": {
-                        "smiles": {"type": "string"},
-                        "properties": {"type": "object"}
-                    }
+                    "properties": {"smiles": {"type": "string"}, "properties": {"type": "object"}},
                 },
                 category="properties",
                 tags=frozenset({"properties", "computation"}),
@@ -597,10 +638,10 @@ class ChemEngineAPI:
                         "rule_set": {
                             "type": "string",
                             "enum": ["strict", "standard", "relaxed"],
-                            "description": "Validation strictness"
-                        }
+                            "description": "Validation strictness",
+                        },
                     },
-                    "required": ["smiles"]
+                    "required": ["smiles"],
                 },
                 output_schema={
                     "type": "object",
@@ -610,8 +651,8 @@ class ChemEngineAPI:
                         "num_warnings": {"type": "integer"},
                         "errors": {"type": "array"},
                         "warnings": {"type": "array"},
-                        "info": {"type": "array"}
-                    }
+                        "info": {"type": "array"},
+                    },
                 },
                 category="validation",
                 tags=frozenset({"validation", "check"}),
@@ -621,18 +662,16 @@ class ChemEngineAPI:
                 description="Sanitize a molecular graph to fix common issues",
                 input_schema={
                     "type": "object",
-                    "properties": {
-                        "smiles": {"type": "string", "description": "SMILES string"}
-                    },
-                    "required": ["smiles"]
+                    "properties": {"smiles": {"type": "string", "description": "SMILES string"}},
+                    "required": ["smiles"],
                 },
                 output_schema={
                     "type": "object",
                     "properties": {
                         "original_smiles": {"type": "string"},
                         "sanitized_smiles": {"type": "string"},
-                        "formula": {"type": "string"}
-                    }
+                        "formula": {"type": "string"},
+                    },
                 },
                 category="validation",
                 tags=frozenset({"validation", "sanitize"}),
@@ -642,17 +681,15 @@ class ChemEngineAPI:
                 description="Detect functional groups in a molecule",
                 input_schema={
                     "type": "object",
-                    "properties": {
-                        "smiles": {"type": "string", "description": "SMILES string"}
-                    },
-                    "required": ["smiles"]
+                    "properties": {"smiles": {"type": "string", "description": "SMILES string"}},
+                    "required": ["smiles"],
                 },
                 output_schema={
                     "type": "object",
                     "properties": {
                         "smiles": {"type": "string"},
-                        "functional_groups": {"type": "array"}
-                    }
+                        "functional_groups": {"type": "array"},
+                    },
                 },
                 category="detection",
                 tags=frozenset({"detection", "functional_groups"}),
@@ -664,16 +701,16 @@ class ChemEngineAPI:
                     "type": "object",
                     "properties": {
                         "smiles": {"type": "string", "description": "SMILES string"},
-                        "bond_length": {"type": "number", "description": "Bond length in SVG units"}
+                        "bond_length": {
+                            "type": "number",
+                            "description": "Bond length in SVG units",
+                        },
                     },
-                    "required": ["smiles"]
+                    "required": ["smiles"],
                 },
                 output_schema={
                     "type": "object",
-                    "properties": {
-                        "smiles": {"type": "string"},
-                        "coordinates": {"type": "array"}
-                    }
+                    "properties": {"smiles": {"type": "string"}, "coordinates": {"type": "array"}},
                 },
                 category="coordinates",
                 tags=frozenset({"coordinates", "2d"}),
@@ -685,16 +722,16 @@ class ChemEngineAPI:
                     "type": "object",
                     "properties": {
                         "smiles": {"type": "string", "description": "SMILES string"},
-                        "num_conformers": {"type": "integer", "description": "Number of conformers to generate"}
+                        "num_conformers": {
+                            "type": "integer",
+                            "description": "Number of conformers to generate",
+                        },
                     },
-                    "required": ["smiles"]
+                    "required": ["smiles"],
                 },
                 output_schema={
                     "type": "object",
-                    "properties": {
-                        "smiles": {"type": "string"},
-                        "conformers": {"type": "array"}
-                    }
+                    "properties": {"smiles": {"type": "string"}, "conformers": {"type": "array"}},
                 },
                 category="coordinates",
                 tags=frozenset({"coordinates", "3d", "conformer"}),
@@ -706,16 +743,20 @@ class ChemEngineAPI:
                     "type": "object",
                     "properties": {
                         "smiles": {"type": "string", "description": "SMILES string"},
-                        "bond_length": {"type": "number", "description": "Bond length in SVG units"},
-                        "show_hydrogens": {"type": "boolean", "description": "Show explicit hydrogens"}
+                        "bond_length": {
+                            "type": "number",
+                            "description": "Bond length in SVG units",
+                        },
+                        "show_hydrogens": {
+                            "type": "boolean",
+                            "description": "Show explicit hydrogens",
+                        },
                     },
-                    "required": ["smiles"]
+                    "required": ["smiles"],
                 },
                 output_schema={
                     "type": "object",
-                    "properties": {
-                        "svg": {"type": "string", "description": "SVG markup string"}
-                    }
+                    "properties": {"svg": {"type": "string", "description": "SVG markup string"}},
                 },
                 category="rendering",
                 tags=frozenset({"rendering", "svg"}),
@@ -725,17 +766,15 @@ class ChemEngineAPI:
                 description="Generate IUPAC name for a molecule",
                 input_schema={
                     "type": "object",
-                    "properties": {
-                        "smiles": {"type": "string", "description": "SMILES string"}
-                    },
-                    "required": ["smiles"]
+                    "properties": {"smiles": {"type": "string", "description": "SMILES string"}},
+                    "required": ["smiles"],
                 },
                 output_schema={
                     "type": "object",
                     "properties": {
                         "smiles": {"type": "string"},
-                        "name": {"type": "string", "description": "IUPAC name"}
-                    }
+                        "name": {"type": "string", "description": "IUPAC name"},
+                    },
                 },
                 category="nomenclature",
                 tags=frozenset({"nomenclature", "iupac"}),
@@ -745,18 +784,16 @@ class ChemEngineAPI:
                 description="Generate InChI and InChIKey for a molecule",
                 input_schema={
                     "type": "object",
-                    "properties": {
-                        "smiles": {"type": "string", "description": "SMILES string"}
-                    },
-                    "required": ["smiles"]
+                    "properties": {"smiles": {"type": "string", "description": "SMILES string"}},
+                    "required": ["smiles"],
                 },
                 output_schema={
                     "type": "object",
                     "properties": {
                         "smiles": {"type": "string"},
                         "inchi": {"type": "string", "description": "InChI string"},
-                        "inchikey": {"type": "string", "description": "InChIKey (27 chars)"}
-                    }
+                        "inchikey": {"type": "string", "description": "InChIKey (27 chars)"},
+                    },
                 },
                 category="parsing",
                 tags=frozenset({"parsing", "inchi"}),
@@ -768,15 +805,17 @@ class ChemEngineAPI:
                     "type": "object",
                     "properties": {
                         "smiles": {"type": "string", "description": "SMILES string"},
-                        "format": {"type": "string", "enum": ["json", "dict"], "description": "Output format"}
+                        "format": {
+                            "type": "string",
+                            "enum": ["json", "dict"],
+                            "description": "Output format",
+                        },
                     },
-                    "required": ["smiles"]
+                    "required": ["smiles"],
                 },
                 output_schema={
                     "type": "object",
-                    "properties": {
-                        "data": {"description": "Serialized data"}
-                    }
+                    "properties": {"data": {"description": "Serialized data"}},
                 },
                 category="io",
                 tags=frozenset({"io", "serialization"}),
@@ -824,7 +863,7 @@ class ChemEngineAPI:
                 },
                 category="atomic",
                 tags=frozenset({"atomic", "electrons", "education", "deterministic"}),
-                        ),
+            ),
             ToolDefinition(
                 name="retrosynthesize",
                 description=(
@@ -854,10 +893,8 @@ class ChemEngineAPI:
                         "routes": {"type": "array"},
                     },
                 },
-                                category="synthesis",
-                tags=frozenset(
-                    {"synthesis", "retrosynthesis", "reactions", "deterministic"}
-                ),
+                category="synthesis",
+                tags=frozenset({"synthesis", "retrosynthesis", "reactions", "deterministic"}),
             ),
             ToolDefinition(
                 name="analyze_organometallic",
@@ -895,36 +932,66 @@ class ChemEngineAPI:
                     },
                 },
                 category="organometallic",
-                tags=frozenset(
-                    {"organometallic", "dative", "coordination", "deterministic"}
+                tags=frozenset({"organometallic", "dative", "coordination", "deterministic"}),
+            ),
+            ToolDefinition(
+                name="analyze_biomolecule",
+                description=(
+                    "Analyze biomolecular structure: recognize amino-acid and "
+                    "nucleic-acid residues, extract the one-letter sequence, "
+                    "detect peptide (amide) bonds, and classify the biomolecule "
+                    "(amino_acid / nucleotide / none) from a molecular graph."
                 ),
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "smiles": {
+                            "type": "string",
+                            "description": "Input molecule SMILES",
+                        },
+                    },
+                    "required": ["smiles"],
+                },
+                output_schema={
+                    "type": "object",
+                    "properties": {
+                        "smiles": {"type": "string"},
+                        "biomolecule": {"type": "object"},
+                    },
+                },
+                category="biomolecules",
+                tags=frozenset({"biomolecules", "residue", "sequence", "deterministic"}),
             ),
         ]
         for tool in builtins:
             self._tools[tool.name] = tool
 
-    def _make_event(self, event_type: str, payload: Any, source: str,
-                    correlation_id: str | None = None) -> Any:
+    def _make_event(
+        self, event_type: str, payload: Any, source: str, correlation_id: str | None = None
+    ) -> Any:
         """Create an Event object."""
         from chemengine.core.events import Event
-        return Event(type=event_type, payload=payload, source=source,
-                     correlation_id=correlation_id)
+
+        return Event(type=event_type, payload=payload, source=source, correlation_id=correlation_id)
 
     # ── Tool Implementations ──
 
-    def _exec_parse_smiles(self, params: dict[str, Any],
-                           correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_parse_smiles(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the parse_smiles tool."""
         graph = self.parse(params["smiles"], fmt="smiles")
         # Compute canonical SMILES using the canonicalization engine
         try:
             from chemengine.parsing.canonical import canonical_smiles
+
             canonical = canonical_smiles(graph)
         except Exception:
             canonical = ""
         # Compute InChI
         try:
             from chemengine.parsing.inchi_serializer import generate_inchi_key, serialize_inchi
+
             inchi = serialize_inchi(graph)
             inchikey = generate_inchi_key(graph)
         except Exception:
@@ -949,8 +1016,9 @@ class ChemEngineAPI:
             result["properties"] = properties
         return result
 
-    def _exec_parse_formula(self, params: dict[str, Any],
-                            correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_parse_formula(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the parse_formula tool."""
         graph = self.parse(params["formula"], fmt="formula")
         return {
@@ -958,8 +1026,9 @@ class ChemEngineAPI:
             "exact_mass": graph.exact_mass,
         }
 
-    def _exec_compute_property(self, params: dict[str, Any],
-                                correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_compute_property(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the compute_property tool."""
         graph = self.parse(params["smiles"], fmt="smiles")
         props = {}
@@ -967,20 +1036,23 @@ class ChemEngineAPI:
             props[prop] = self.compute(graph, prop)
         return {"smiles": params["smiles"], "properties": props}
 
-    def _exec_validate(self, params: dict[str, Any],
-                        correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_validate(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the validate tool."""
         graph = self.parse(params["smiles"], fmt="smiles")
         rule_set = params.get("rule_set", "standard")
         result = self.validate(graph, rule_set=rule_set)
         return result.to_dict()
 
-    def _exec_sanitize(self, params: dict[str, Any],
-                        correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_sanitize(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the sanitize tool."""
         graph = self.parse(params["smiles"], fmt="smiles")
         sanitized = self.sanitize(graph)
         from chemengine.parsing.smiles import serialize_smiles
+
         try:
             sanitized_smiles = serialize_smiles(sanitized)
         except Exception:
@@ -991,8 +1063,9 @@ class ChemEngineAPI:
             "formula": sanitized.molecular_formula,
         }
 
-    def _exec_detect_functional_groups(self, params: dict[str, Any],
-                                         correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_detect_functional_groups(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the detect_functional_groups tool."""
         graph = self.parse(params["smiles"], fmt="smiles")
         groups = self.detect_functional_groups(graph)
@@ -1001,11 +1074,13 @@ class ChemEngineAPI:
             "functional_groups": groups,
         }
 
-    def _exec_generate_inchi(self, params: dict[str, Any],
-                               correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_generate_inchi(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the generate_inchi tool."""
         graph = self.parse(params["smiles"], fmt="smiles")
         from chemengine.parsing.inchi_serializer import generate_inchi_key, serialize_inchi
+
         inchi = serialize_inchi(graph)
         inchikey = generate_inchi_key(graph)
         return {
@@ -1022,29 +1097,32 @@ class ChemEngineAPI:
             _electron_config_to_dict,
             calculate_electron_configuration,
         )
-        config = calculate_electron_configuration(
-            params["element"], charge=params.get("charge", 0)
-        )
+
+        config = calculate_electron_configuration(params["element"], charge=params.get("charge", 0))
         result = _electron_config_to_dict(config)
         result["element"] = params["element"]
         return result
 
-    def _exec_generate_2d_coordinates(self, params: dict[str, Any],
-                                       correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_generate_2d_coordinates(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the generate_2d_coordinates tool."""
         graph = self.parse(params["smiles"], fmt="smiles")
         from chemengine.coordinates.layout_2d import generate_2d_coordinates
+
         coords = generate_2d_coordinates(graph)
         return {
             "smiles": params["smiles"],
             "coordinates": [{"x": c.x, "y": c.y} for c in coords],
         }
 
-    def _exec_generate_3d_conformer(self, params: dict[str, Any],
-                                     correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_generate_3d_conformer(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the generate_3d_conformer tool."""
         graph = self.parse(params["smiles"], fmt="smiles")
         from chemengine.coordinates.conformer_3d import generate_conformers
+
         num = params.get("num_conformers", 1)
         conformers = generate_conformers(graph, num_conformers=num)
         return {
@@ -1059,11 +1137,13 @@ class ChemEngineAPI:
             ],
         }
 
-    def _exec_render_svg(self, params: dict[str, Any],
-                          correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_render_svg(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the render_svg tool."""
         graph = self.parse(params["smiles"], fmt="smiles")
         from chemengine.rendering.svg import render_svg
+
         svg = render_svg(
             graph,
             bond_length=params.get("bond_length", 40.0),
@@ -1073,24 +1153,29 @@ class ChemEngineAPI:
         )
         return {"svg": svg}
 
-    def _exec_name_molecule(self, params: dict[str, Any],
-                             correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_name_molecule(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the name_molecule tool."""
         graph = self.parse(params["smiles"], fmt="smiles")
         from chemengine.nomenclature.iupac import generate_iupac_name
+
         name = generate_iupac_name(graph)
         return {"smiles": params["smiles"], "name": name}
 
-    def _exec_serialize(self, params: dict[str, Any],
-                         correlation_id: str | None = None) -> dict[str, Any]:
+    def _exec_serialize(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
         """Implementation of the serialize tool."""
         graph = self.parse(params["smiles"], fmt="smiles")
         fmt = params.get("format", "json")
         if fmt == "json":
             from chemengine.io.serialization import graph_to_json
+
             return {"data": graph_to_json(graph)}
         else:
             from chemengine.io.serialization import graph_to_dict
+
             return {"data": graph_to_dict(graph)}
 
     def retrosynthesize(
@@ -1133,7 +1218,7 @@ class ChemEngineAPI:
             max_candidates_per_step=params.get("max_candidates_per_step", 10),
             max_total_expansions=params.get("max_total_expansions", 200),
             max_routes=params.get("max_routes", 50),
-                )
+        )
         return {
             "smiles": params["smiles"],
             "num_routes": len(routes),
@@ -1181,6 +1266,36 @@ class ChemEngineAPI:
             "smiles": params["smiles"],
             "num_complexes": len(complexes),
             "complexes": complexes,
+        }
+
+    def analyze_biomolecule(self, graph: MolecularGraph) -> dict[str, Any]:
+        """Analyze biomolecular residues, sequence, and peptide bonds in a graph.
+
+        Delegates to :func:`chemengine.biomolecules.analyze_biomolecule` and
+        serializes the result via :func:`biomolecule_analysis_to_dict`.
+
+        Args:
+            graph: The molecular graph to analyze.
+
+        Returns:
+            A JSON-able dict with ``residues``, ``sequence``,
+            ``peptide_bonds``, ``biomolecule_class``, and structural metadata.
+        """
+        from chemengine.biomolecules import (
+            analyze_biomolecule as _analyze_biomolecule,
+            biomolecule_analysis_to_dict,
+        )
+
+        return biomolecule_analysis_to_dict(_analyze_biomolecule(graph))
+
+    def _exec_analyze_biomolecule(
+        self, params: dict[str, Any], correlation_id: str | None = None
+    ) -> dict[str, Any]:
+        """Implementation of the analyze_biomolecule tool."""
+        graph = self.parse(params["smiles"], fmt="smiles")
+        return {
+            "smiles": params["smiles"],
+            "biomolecule": self.analyze_biomolecule(graph),
         }
 
 

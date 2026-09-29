@@ -10,10 +10,12 @@ only place where a tutor tool call reaches ChemEngine, and it enforces:
 3. **Controlled errors** — any failure becomes a :class:`ToolError` with a
    stable code; raw engine exceptions never reach the model or the client.
 
-Allowlist rationale (derived from ChemEngine's 13-tool registry):
+Allowlist rationale (derived from ChemEngine's 14-tool registry):
 ``parse_smiles``/``parse_formula`` (deterministic identity),
 ``compute_property`` (masses/descriptors), ``validate``,
-``detect_functional_groups``, ``calculate_electron_configuration``.
+``detect_functional_groups``, ``calculate_electron_configuration``, and
+``analyze_biomolecule`` (M40 residue/sequence/peptide-bond analysis for the
+biomolecules learning experience).
 
 Deliberately **not** exposed: ``sanitize`` (mutates structures),
 ``generate_2d_coordinates``/``generate_3d_conformer`` (heavy, irrelevant to
@@ -42,6 +44,7 @@ TUTOR_TOOLS: dict[str, str] = {
     "validate": "chemical-correctness checks on a structure",
     "detect_functional_groups": "curriculum-relevant functional-group analysis",
     "calculate_electron_configuration": "Madelung-rule electron configurations",
+    "analyze_biomolecule": "residue/sequence/peptide-bond analysis of biomolecules",
 }
 
 _MAX_STRING_ARG_LENGTH = 200

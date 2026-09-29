@@ -1,4 +1,5 @@
 import type {
+  BiomoleculeAnalysis,
   ChemistryExploreResult,
   MoleculeIdentity,
   MoleculeProperties,
@@ -16,6 +17,9 @@ export function ExplorerResult({ result }: { result: ChemistryExploreResult }) {
         <FormulaOnlyNote />
       )}
       {result.properties ? <PropertiesCard properties={result.properties} /> : null}
+      {result.biomolecule ? (
+        <BiomoleculeCard biomolecule={result.biomolecule} />
+      ) : null}
     </div>
   );
 }
@@ -116,6 +120,44 @@ function PropertiesCard({ properties }: { properties: MoleculeProperties }) {
       </dl>
       <p className="help muted">
         Descriptors are computed by ChemEngine and are estimates based on the
+        molecular graph.
+      </p>
+    </section>
+  );
+}
+
+function BiomoleculeCard({ biomolecule }: { biomolecule: BiomoleculeAnalysis }) {
+  const bondCount = biomolecule.peptide_bonds.length;
+  return (
+    <section className="card" aria-labelledby="biomolecule-title">
+      <h2 id="biomolecule-title">Biomolecular analysis (M40)</h2>
+      <dl className="props">
+        <div className="prop">
+          <dt>Biomolecule class</dt>
+          <dd data-testid="biomolecule-class">{biomolecule.biomolecule_class}</dd>
+        </div>
+        <div className="prop">
+          <dt>Sequence</dt>
+          <dd data-testid="biomolecule-sequence">
+            {biomolecule.sequence || <span className="muted">—</span>}
+          </dd>
+        </div>
+        <div className="prop">
+          <dt>Residues</dt>
+          <dd data-testid="biomolecule-residue-count">{biomolecule.residue_count}</dd>
+        </div>
+        <div className="prop">
+          <dt>Peptide bonds</dt>
+          <dd data-testid="biomolecule-peptide-bonds">{bondCount}</dd>
+        </div>
+        <div className="prop">
+          <dt>Chain length</dt>
+          <dd data-testid="biomolecule-chain-length">{biomolecule.chain_length}</dd>
+        </div>
+      </dl>
+      <p className="help muted">
+        Classified and sequenced by ChemEngine's biomolecular analysis. The
+        residues, sequence, and peptide-bond count are read directly from the
         molecular graph.
       </p>
     </section>

@@ -2266,12 +2266,21 @@ const phases = [
         'tests/test_polymer.py (108 tests) and full regression: 2163 passed / 4 skipped / 0 failed; CHANGELOG [1.6.0] + version 1.6.0; TODO/PROJECT_STATUS/gantt synchronized',
       ],
       ver: '1.6',      start: 192, dur: 4,  risk: 'low',    status: 'complete', weight: 5 },
+  { id: 40, name: 'Biomolecular Analysis & Learning (M40)', desc: 'Deterministic biomolecular analysis over the shared MolecularGraph (no SMARTS/RDKit/external chem libs): residue recognition, peptide-bond detection, sequence/position assignment, classification (amino_acid/peptide/nucleotide/none); BiomoleculeAnalysis model + biomolecule_analysis_to_dict/dict_to_biomolecule_analysis ser/deser; SCHEMA_VERSION chemengine-biomolecule-analysis/v1 + BIOMOLECULE_CATALOGUE_VERSION 1.0.0; 33-case REFERENCE_BIOORACLE; 27 test functions (155 parametrized cases) in test_biomolecules.py; backend explore() returns biomolecule block via the existing POST /api/v1/chemistry/explore adapter (no new endpoint, no duplicated TS chemistry logic); 3 learning lessons (amino-acids, peptide-bonds, short-peptides) via the shared lesson viewer + BiomoleculeCard; AI tutor analyze_biomolecule allowlisted with result injection (AI never invents analysis). Full regression: 2320 passed / 4 skipped / 0 failed. Version 1.7.0 - COMPLETE',
+    tasks: [
+      'packages/chemengine/src/chemengine/biomolecules.py: analyze_biomolecule returning BiomoleculeAnalysis (residues, sequence, peptide_bonds, biomolecule_class, chain_length, molecular_formula, canonical_smiles) over MolecularGraph; BiomoleculeError; biomolecule_analysis_to_dict/dict_to_biomolecule_analysis via chemengine.io.serialization; SCHEMA_VERSION chemengine-biomolecule-analysis/v1 + BIOMOLECULE_CATALOGUE_VERSION 1.0.0',
+      'REFERENCE_BIOORACLE (33 curated chemistry-checked reference cases); tests/test_biomolecules.py (27 test functions, 155 cases) covering residue recognition, peptide-bond detection, sequence/position assignment, classification, (de)serialization round-trips, catalogue metadata, lazy registry wiring, non-biomolecular -> class none edge cases',
+      'backend services/chemistry.py explore() biomolecule block (None for formula-only / unclassifiable, explorer never breaks); backend/api/v1/chemistry.py via existing POST /api/v1/chemistry/explore (no new endpoint, no duplicated TS); services/ai/tools.py analyze_biomolecule allowlisted with result injection',
+      'app/learning/content.py seeds amino-acids, peptide-bonds, short-peptides lessons with chemistry_spotlight sections (live engine analysis); web ExplorerResult BiomoleculeCard (biomolecule-class/-sequence/-residue-count/-peptide-bonds/-chain-length testids; omitted when biomolecule null) + generic LearningPage via Learn nav',
+      'apps/web/tests/m40-biomolecules.test.tsx (3 cases) + tests/test_chemistry_service.py, tests/test_chemistry.py, tests/test_learning.py, tests/test_m28_content.py, tests/test_tutor.py (analyze_biomolecule allowlist/sequence/peptide-bonds/none) passing; CHANGELOG [1.7.0] + version 1.7.0 (test_version_consistency.py); TODO/PROJECT_STATUS/gantt synchronized',
+    ],
+      ver: '1.7',      start: 196, dur: 4,  risk: 'low',    status: 'complete', weight: 5 },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
    COMPUTED VALUES
    ═══════════════════════════════════════════════════════════════════════ */
-const TOTAL_WEEKS = 196;
+const TOTAL_WEEKS = 200;
 const TOTAL_PHASES = phases.length;
 
 const completedCount = phases.filter(p => p.status === 'complete').length;
@@ -2828,7 +2837,8 @@ function buildMilestoneDots() {
     { label: 'M36 Retrosynthesis', week: 184 },
         { label: 'M37 Organometallic', week: 188 },
     { label: 'M38 Forward', week: 192 },
-    { label: 'M39 Polymer', week: 196 }
+    { label: 'M39 Polymer', week: 196 },
+    { label: 'M40 Biomolecular', week: 200 }
   ];
 
   // Create a progress line

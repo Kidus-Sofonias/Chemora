@@ -15,7 +15,7 @@ import logging
 from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.services.chemistry import ChemistryError, ChemistryResult, ChemistryService
 
@@ -67,8 +67,37 @@ class MoleculeProperties(BaseModel):
     fraction_csp3: float
 
 
+class BiomoleculeResidue(BaseModel):
+    """One recognised residue (engine analysis, not stored content)."""
+
+    type: str
+    atom_indices: list[int]
+    position: int
+    one_letter_code: str
+
+
+class BiomoleculeAnalysis(BaseModel):
+    """M40 biomolecular analysis returned with the explore result."""
+    schema_version: str = Field(
+        ...,  # required
+        validation_alias="schema",
+        serialization_alias="schema",
+    )
+
+    residue_count: int
+    residues: list[BiomoleculeResidue]
+    sequence: str
+    peptide_bonds: list[list[int]]
+    biomolecule_class: str
+    chain_length: int
+    molecular_formula: str
+    canonical_smiles: str
+
+
 class ChemistryExploreResponse(BaseModel):
     """Structured result of a chemistry exploration."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     input: str
     detected_type: str | None
@@ -76,6 +105,7 @@ class ChemistryExploreResponse(BaseModel):
     identity: MoleculeIdentity
     structure: MoleculeStructure | None
     properties: MoleculeProperties | None
+    biomolecule: BiomoleculeAnalysis | None = None
 
 
 class ChemistryErrorDetail(BaseModel):
@@ -115,6 +145,11 @@ def _to_response(result: ChemistryResult) -> ChemistryExploreResponse:
         properties=(
             MoleculeProperties.model_validate(result.properties)
             if result.properties is not None
+            else None
+        ),
+        biomolecule=(
+            BiomoleculeAnalysis.model_validate(result.biomolecule)
+            if result.biomolecule is not None
             else None
         ),
     )

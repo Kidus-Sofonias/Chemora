@@ -1,14 +1,14 @@
 # Chemora — Project Status Report
 
-**Date:** September 26, 2026
-**Version:** 1.6.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion + M33 ChemEngine v2.0 Feature Completion + M34 Full Reaction Mechanism Engine + M36 Bounded Template-Based Retrosynthetic Engine + M37 Organometallic Chemistry Engine + M38 Forward Reaction Engine + M39 Polymer Chemistry Engine complete
-**Status:** ✅ ChemEngine v1.6.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) + Production Readiness & Release Engineering (M31) complete · Post-M26 corrective hardening pass complete · M36 Retrosynthetic Engine + M37 Organometallic Chemistry Engine + M38 Forward Reaction Engine + M39 Polymer Chemistry Engine complete
+**Date:** September 28, 2026
+**Version:** 1.7.0 (ChemEngine) / 0.1.0 (Chemora monorepo) / Backend M19–M31 complete / Web M21–M30 complete / Admin CMS M27 complete / M29 AI Chemistry Tutor + M30 AI Tutor Completion & Conversation Infrastructure + M31 Production Readiness & Release Engineering + M32 ChemEngine Release Completion + M33 ChemEngine v2.0 Feature Completion + M34 Full Reaction Mechanism Engine + M36 Bounded Template-Based Retrosynthetic Engine + M37 Organometallic Chemistry Engine + M38 Forward Reaction Engine + M39 Polymer Chemistry Engine + M40 Biomolecular Analysis & Learning Experience complete
+**Status:** ✅ ChemEngine v1.7.0 complete · Monorepo migration complete · Backend Foundation (M19) + Authentication (M20) + Web Auth (M21) + Chemistry Explorer (M22) + Element Explorer (M23) + Chemistry Learning Core (M24) + Learning & Practice Expansion (M25) + Content Management Foundation (M26) + Production Content CMS (M27) + Chemistry Learning Experience Expansion (M28) + AI Chemistry Tutor (M29) + AI Tutor Completion & Conversation Infrastructure (M30) + Production Readiness & Release Engineering (M31) complete · Post-M26 corrective hardening pass complete · M36 Retrosynthetic Engine + M37 Organometallic Chemistry Engine + M38 Forward Reaction Engine + M39 Polymer Chemistry Engine + M40 Biomolecular Analysis & Learning Experience complete
 
 ---
 
 ## Executive Summary
 
-ChemEngine v1.6.0 is **complete** with all 2163 tests passing (0 failures, 4 skipped, every skip documented), including M34's bounded executable mechanism engine, M36's bounded template-based retrosynthetic engine, M37's organometallic chemistry engine, and M38's forward reaction prediction engine, and M39's polymer chemistry engine. All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), the Chemistry Learning Core (M24), the Learning & Practice Expansion (M25), the Content Management Foundation (M26), the Production Content CMS (M27), the Chemistry Learning Experience Expansion (M28), and the AI Chemistry Tutor (M29) are **complete** (199 backend tests, 71 web tests, 13 admin tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a ChemEngine-backed learning experience with server-graded practice, a coherent, expanded curriculum, and a session-gated AI tutor whose deterministic chemistry always comes from ChemEngine end to end.
+ChemEngine v1.7.0 is **complete** with all 2320 tests passing (0 failures, 4 skipped, every skip documented), including M34's bounded executable mechanism engine, M36's bounded template-based retrosynthetic engine, M37's organometallic chemistry engine, and M38's forward reaction prediction engine, M39's polymer chemistry engine, and M40's biomolecular analysis engine and biomolecules learning experience. All planned phases (0–15) are finished. The repository has been restructured from a ChemEngine-only layout into the Chemora monorepo layout. The FastAPI backend (M19), Google-authenticated sessions (M20), the web auth client (M21), the Chemistry Explorer (M22), the Element Explorer (M23), the Chemistry Learning Core (M24), the Learning & Practice Expansion (M25), the Content Management Foundation (M26), the Production Content CMS (M27), the Chemistry Learning Experience Expansion (M28), and the AI Chemistry Tutor (M29) are **complete** (235 backend tests, 77 web tests, 13 admin tests) — together they run real deterministic chemistry, element/electron-structure exploration, and a ChemEngine-backed learning experience with server-graded practice, a coherent, expanded curriculum, and a session-gated AI tutor whose deterministic chemistry always comes from ChemEngine end to end.
 
 ---
 
@@ -57,16 +57,16 @@ Regression tests for items 1-6 were added to
 | Metric | Value |
 |--------|-------|
 | **Overall Completion** | ~87% of v1.0.0 scope |
-| **Passing Tests** | 2163 / 2167 (100%) |
+| **Passing Tests** | 2320 / 2324 (100%) |
 | **Skipped** | 4 (all documented: directional-bond round-trip; parse-guard determinism; 2 x cairosvg render extra absent) |
 | **Source Files** | 83 Python files across 16 packages |
 | **Test Files** | 46 |
 | **Elements** | All 118 loaded from `elements.json` |
 | **Packages Complete** | 17/17 (16 v1.0.0 + organometallic) |
-| **Backend Tests** | 224 / 224 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics) |
-| **Web Tests** | 74 / 74 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI) |
+| **Backend Tests** | 235 / 235 passing (M19 Foundation, M20 Authentication, M22 Chemistry API, M23 Elements API, M24+M25 Learning API, M26+M27 Admin Content API incl. preview & deletion, M28 curriculum & learning experience, M29 AI tutor, M30 conversations/streaming/cache, M31 health/readiness diagnostics, M40 biomolecular analysis & learning experience) |
+| **Web Tests** | 77 / 77 passing (M21 Auth integration, M22 Chemistry Explorer, M23 Element Explorer, M24+M25 Learning, M28 nav/resume, M29+M30 tutor UI, M40 biomolecular analysis card) |
 | **Admin Tests** | 13 / 13 passing (M27 Admin CMS: dashboard, lesson list, editor navigation, preview, answer-key safety, deletion flow; M28) |
-| **Current Version** | v1.6.0 (M39 Polymer Chemistry Engine) |
+| **Current Version** | v1.7.0 (M40 Biomolecular Analysis & Learning Experience) |
 
 ---
 
@@ -613,9 +613,9 @@ target M32 recorded (first import 490 → ~19–27 ms vs the <100 ms target).
   InChI/InChIKey serializers were atom-order-dependent — now canonical
   (order-independent), matching official standard InChI for propane.
 
-**Test totals:** ChemEngine **2163 passed, 4 skipped** (1635 at M32 start of the
-M33 window → +216 at M34 → +169 at M36 → +27 at M37 → +8 at M38 → +108 at M39; all skips documented),
-backend **224**, web **74**, admin **13**; ruff+mypy clean; tsc + builds green;
+**Test totals:** ChemEngine **2320 passed, 4 skipped** (1635 at M32 start of the
+M33 window → +216 at M34 → +169 at M36 → +27 at M37 → +8 at M38 → +108 at M39 → +157 at M40 (155 biomolecule-engine tests in test_biomolecules.py; full regression green); all skips documented),
+backend **235**, web **77**, admin **13**; ruff+mypy clean; tsc + builds green;
 ChemEngine package build + twine check green; Sphinx `-W` green; Python 3.10
 verified locally, 3.11–3.13 via the CI matrix job.
 
@@ -917,6 +917,67 @@ of polymerization, polymerization-type classification, end-group detection,
 registration/idempotency + `ChemEngineAPI` wiring); full ChemEngine regression
 **2163 passed, 4 skipped, 0 failed** (2055 → +108 from M39). Cold `import
 chemengine` stays lazy and <100 ms.
+
+### ✅ M40: Biomolecular Analysis & Learning Experience (Complete — 2026-09-28)
+
+**Status: COMPLETE.** M40 adds deterministic biomolecular analysis to ChemEngine
+and turns it into a student-facing learning experience consumed by the chemistry
+explorer, the learning curriculum, and the AI tutor. Residue recognition,
+peptide-bond detection, sequence assignment, and classification (amino acid,
+peptide, nucleotide, or `none`) all run over the shared `MolecularGraph`
+abstraction — no SMARTS, no RDKit, no external chem libraries, no string
+matching.
+
+**Delivered:**
+- `packages/chemengine/src/chemengine/biomolecules.py` — `analyze_biomolecule`
+  returning a `BiomoleculeAnalysis` (residues, sequence, peptide bonds, class,
+  chain length, molecular formula, canonical SMILES); `BiomoleculeError` for
+  inputs the engine cannot classify; `biomolecule_analysis_to_dict` /
+  `dict_to_biomolecule_analysis` (de)serialization through
+  `chemengine.io.serialization`; `SCHEMA_VERSION =
+  "chemengine-biomolecule-analysis/v1"`,
+  `BIOMOLECULE_CATALOGUE_VERSION = "1.0.0"`.
+- `REFERENCE_BIOORACLE` — 33 curated, chemistry-checked reference cases.
+- `tests/test_biomolecules.py` — 27 test functions / 155 parametrized cases
+  covering residue recognition, peptide-bond detection, sequence/position
+  assignment, classification, (de)serialization round-trips, catalogue
+  metadata, lazy registry wiring, and edge cases (non-biomolecular inputs
+  classify as `none`).
+- Backend `services/chemistry.py` `explore()` returns a `biomolecule` block for
+  structure-bearing inputs (gracefully `None` for formula-only inputs or
+  molecules the engine cannot classify — the general chemistry explorer never
+  breaks). Exposed through the existing `POST /api/v1/chemistry/explore` adapter
+  (M22) — no new endpoint, no duplicated TS chemistry logic.
+- Three learning lessons seeded in `app/learning/content.py` (amino-acids,
+  peptide-bonds, short-peptides) with `chemistry_spotlight` sections that fetch
+  live engine analysis and render the biomolecule card through the shared
+  `ExplorerResult` component. The generic `LearningPage` teaches all three
+  through the existing "Learn" navigation — no lesson-specific web surface.
+- Web `ExplorerResult` `BiomoleculeCard` (biomolecule-class, -sequence,
+  -residue-count, -peptide-bonds, -chain-length data-testids; the entire card is
+  omitted when the backend returns no `biomolecule` block).
+- AI Tutor: `analyze_biomolecule` is allowlisted in `services/ai/tools.py` with
+  result injection — the AI Tutor may discuss biomolecules only with
+  engine-computed data and never invents analysis. Verified by
+  `tests/test_tutor.py`.
+
+**Design.** Biomolecular analysis is built *around* the existing deterministic
+engine rather than redesigning it. The web never hardcodes answers: practice
+questions are server-randomized (`chemistry_validate`) and graded server-side;
+the `BiomoleculeCard` renders whatever the backend returns. The engine module is
+not in `_LAZY_EXPORTS` and is imported lazily by `ChemEngineAPI`, keeping cold
+`import chemengine` well under the <100 ms gate.
+
+**Scope note:** A dedicated `biomolecule` ToolDefinition / OpenAPI-schema tool and
+a standalone biomolecules learning page are intentionally deferred; M33–M39 APIs
+remain unchanged.
+
+**Deliverable & test result:** version **1.7.0**, `tests/test_biomolecules.py`
+(27 functions / 155 cases) + `apps/web/tests/m40-biomolecules.test.tsx` (3 cases)
++ backend E2E coverage across `test_chemistry_service.py`, `test_chemistry.py`,
+`test_learning.py`, `test_m28_content.py`, `test_tutor.py`; full ChemEngine
+regression **2320 passed, 4 skipped, 0 failed** (2163 at M39 → +157 from M40).
+Cold `import chemengine` stays lazy and <100 ms.
 
 ---
 

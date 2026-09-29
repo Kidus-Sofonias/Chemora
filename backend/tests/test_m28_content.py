@@ -26,6 +26,12 @@ M28_LESSONS = (
     "acids-bases",
 )
 
+M40_LESSONS = (
+    "amino-acids",
+    "peptide-bonds",
+    "short-peptides",
+)
+
 
 # ── Curriculum validation ────────────────────────────────────────────────
 
@@ -48,13 +54,29 @@ def test_m28_curriculum_present_in_seed_order() -> None:
         "chemical-formulas",
         "molecules-and-properties",
     ]
-    assert slugs[5:] == list(M28_LESSONS)
+    assert slugs[5:11] == list(M28_LESSONS)
+    # M40 lessons follow the M28 curriculum.
+    assert slugs[11:] == list(M40_LESSONS)
 
 
 def test_m28_lessons_are_coherent() -> None:
     """Every M28 lesson has ordered sections, practice, and an engine tie-in."""
     by_slug = {lesson.slug: lesson for lesson in get_lessons()}
     for slug in M28_LESSONS:
+        lesson = by_slug[slug]
+        kinds = [section.kind for section in lesson.sections]
+        assert "practice" in kinds, slug
+        assert "chemistry_spotlight" in kinds, slug
+        # Every question id referenced by a practice section exists.
+        for section in lesson.sections:
+            for qid in section.question_ids:
+                assert lesson.question_by_id(qid) is not None, (slug, qid)
+
+
+def test_m40_lessons_are_coherent() -> None:
+    """Every M40 lesson has ordered sections, practice, and an engine tie-in."""
+    by_slug = {lesson.slug: lesson for lesson in get_lessons()}
+    for slug in M40_LESSONS:
         lesson = by_slug[slug]
         kinds = [section.kind for section in lesson.sections]
         assert "practice" in kinds, slug
@@ -106,7 +128,7 @@ async def test_m28_lessons_visible_to_students(api_client: AsyncClient) -> None:
     response = await api_client.get("/api/v1/learning/lessons")
     assert response.status_code == 200
     slugs = [lesson["slug"] for lesson in response.json()["lessons"]]
-    assert slugs[-6:] == list(M28_LESSONS)
+    assert slugs[-9:] == list(M28_LESSONS) + list(M40_LESSONS)
 
 
 @pytest.mark.asyncio

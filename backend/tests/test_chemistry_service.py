@@ -86,3 +86,47 @@ def test_unparseable_input_raises_unsupported(service: ChemistryService) -> None
     assert exc_info.value.code == "unsupported_input"
     # Message is user-facing and free of internals.
     assert "Traceback" not in exc_info.value.message
+
+
+# --- Biomolecular analysis (M40) ------------------------------------------
+
+
+def test_biomolecule_none_for_formula_input(service: ChemistryService) -> None:
+    """A bare formula carries no connectivity — biomolecule is None."""
+    result = service.explore("H2O")
+    assert result.structure_available is False
+    assert result.biomolecule is None
+
+
+def test_biomolecule_ethanol_class_none(service: ChemistryService) -> None:
+    """Ethanol is structure-bearing but not biomolecular: class 'none'."""
+    result = service.explore("CCO")
+    assert result.biomolecule is not None
+    bm = result.biomolecule
+    assert bm["biomolecule_class"] == "none"
+    assert bm["sequence"] == ""
+    assert bm["residue_count"] == 0
+
+
+def test_biomolecule_tripeptide_recognized(service: ChemistryService) -> None:
+    """The Cys-Val-Ala tripeptide reports 3 residues and 2 peptide bonds."""
+    result = service.explore("NC(C)C(=O)NC(C(C)C)C(=O)N1C(C(=O)O)CCC1")
+    assert result.biomolecule is not None
+    bm = result.biomolecule
+    assert bm["biomolecule_class"] == "amino_acid"
+    assert bm["residue_count"] == 3
+    assert bm["sequence"] == "AVP"
+    assert len(bm["peptide_bonds"]) == 2
+    # Residues carry one-letter codes.
+    assert {r["one_letter_code"] for r in bm["residues"]} == {"A", "V", "P"}
+
+
+def test_biomolecule_alanine_single_residue(service: ChemistryService) -> None:
+    """Alanine is a single amino-acid residue with one-letter code A."""
+    result = service.explore("NC(C)C(=O)O")
+    assert result.biomolecule is not None
+    bm = result.biomolecule
+    assert bm["biomolecule_class"] == "amino_acid"
+    assert bm["residue_count"] == 1
+    assert bm["sequence"] == "A"
+    assert bm["peptide_bonds"] == []

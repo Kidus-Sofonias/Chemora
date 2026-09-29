@@ -22,6 +22,11 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+from chemengine.biomolecules import (
+    BiomoleculeError,
+    analyze_biomolecule,
+    biomolecule_analysis_to_dict,
+)
 from chemengine.core.graph import MolecularGraph
 from chemengine.core.tool_interface import ChemEngineAPI
 from chemengine.io.serialization import graph_to_dict
@@ -62,6 +67,7 @@ class ChemistryResult:
     identity: dict[str, object]
     structure: dict[str, object] | None = None
     properties: dict[str, object] | None = None
+    biomolecule: dict[str, object] | None = None
 
 
 def _get_engine() -> ChemEngineAPI:
@@ -127,6 +133,12 @@ class ChemistryService:
         }
 
         structure_available = detected_type in _STRUCTURAL_INPUT_TYPES
+        # Biomolecular analysis (M40) is chemistry-engine-computed and is only
+        # meaningful for structure-bearing inputs; a bare formula carries no
+        # connectivity. The engine bounds this itself (ChainTooLongError past
+        # 5000 atoms) and explore's 160-char input cap keeps real inputs well
+        # inside that bound, so this never blocks the general explorer.
+        biomolecule = self._biomolecule(graph, structure_available)
 
         if not structure_available:
             return ChemistryResult(
@@ -134,6 +146,7 @@ class ChemistryService:
                 detected_type=detected_type,
                 structure_available=False,
                 identity=identity,
+                biomolecule=biomolecule,
             )
 
         return ChemistryResult(
@@ -143,6 +156,7 @@ class ChemistryService:
             identity=identity,
             structure=self._structure(graph),
             properties=self._properties(graph),
+            biomolecule=biomolecule,
         )
 
     def _structure(self, graph: MolecularGraph) -> dict[str, object]:
@@ -174,3 +188,31 @@ class ChemistryService:
                 float(self._engine.compute(graph, "fraction_csp3")), 4
             ),
         }
+
+    def _biomolecule(
+        self, graph: MolecularGraph, structure_available: bool
+    ) -> dict[str, object] | None:
+        """Run biomolecular analysis (M40) for structure-bearing inputs.
+
+        Returns the serialized :class:`BiomoleculeAnalysis` dict, or ``None``
+        for formula-only inputs or when the engine cannot analyse the graph
+        (for example, a molecule with no recognisable residue backbone). Such
+        failures never break the general chemistry explorer — they degrade to
+        ``None`` so the structure and descriptors are still served.
+        """
+        if not structure_available:
+            return None
+        try:
+            analysis: dict[str, object] = biomolecule_analysis_to_dict(
+                analyze_biomolecule(graph),
+            )
+            return analysis
+        except BiomoleculeError as exc:
+            logger.info(
+                "Biomolecule analysis skipped for input",
+                extra={"error_type": type(exc).__name__},
+            )
+            return None
+        except Exception:  # noqa: BLE001 — explorer must never break on this
+            logger.warning("Biomolecule analysis failed", exc_info=True)
+            return None

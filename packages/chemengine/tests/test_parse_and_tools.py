@@ -83,8 +83,9 @@ EXPECTED_TOOLS = {
     "sanitize", "detect_functional_groups", "generate_2d_coordinates",
     "generate_3d_conformer", "render_svg", "name_molecule", "generate_inchi",
         "serialize", "calculate_electron_configuration",
-    "retrosynthesize",
+        "retrosynthesize",
     "analyze_organometallic",
+    "analyze_biomolecule",
 }
 
 
@@ -115,6 +116,8 @@ class TestToolAudit:
             ("serialize", {"smiles": "CCO"}),
             ("calculate_electron_configuration", {"element": "Fe"}),
             ("retrosynthesize", {"smiles": "CC(=O)OC"}),
+            ("analyze_organometallic", {"smiles": "N[Fe+2]N"}),
+            ("analyze_biomolecule", {"smiles": "NC(C)C(=O)O"}),
         ],
     )
     def test_tool_executes(self, api, tool, params):

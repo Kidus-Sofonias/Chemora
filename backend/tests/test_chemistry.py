@@ -174,6 +174,7 @@ async def test_response_schema(client: AsyncClient) -> None:
         "identity",
         "structure",
         "properties",
+        "biomolecule",
     }
     assert set(data["identity"].keys()) == {
         "formula",
@@ -182,3 +183,64 @@ async def test_response_schema(client: AsyncClient) -> None:
         "heavy_atom_count",
         "atom_count",
     }
+
+
+# --- Biomolecular analysis (M40) ---
+
+
+@pytest.mark.asyncio
+async def test_biomolecule_tripeptide(client: AsyncClient) -> None:
+    """The Cys-Val-Ala tripeptide is recognised as three residues, two bonds."""
+    response = await _explore(
+        client, "NC(C)C(=O)NC(C(C)C)C(=O)N1C(C(=O)O)CCC1"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    bm = data["biomolecule"]
+    assert bm is not None
+    assert bm["biomolecule_class"] == "amino_acid"
+    assert bm["residue_count"] == 3
+    assert len(bm["residues"]) == 3
+    assert bm["sequence"] == "AVP"
+    assert len(bm["peptide_bonds"]) == 2
+    # Each peptide bond is an atom-index triplet.
+    for bond in bm["peptide_bonds"]:
+        assert len(bond) == 3
+
+
+@pytest.mark.asyncio
+async def test_biomolecule_alanine_single_residue(client: AsyncClient) -> None:
+    """Alanine is a single amino-acid residue (class amino_acid)."""
+    response = await _explore(client, "NC(C)C(=O)O")
+    assert response.status_code == 200
+    data = response.json()
+    bm = data["biomolecule"]
+    assert bm is not None
+    assert bm["biomolecule_class"] == "amino_acid"
+    assert bm["residue_count"] == 1
+    assert bm["sequence"] == "A"
+    # No peptide bonds in a single residue.
+    assert bm["peptide_bonds"] == []
+
+
+@pytest.mark.asyncio
+async def test_biomolecule_ethanol_class_none(client: AsyncClient) -> None:
+    """Ethanol is structure-bearing but not biomolecular: class 'none'."""
+    response = await _explore(client, "CCO")
+    assert response.status_code == 200
+    data = response.json()
+    bm = data["biomolecule"]
+    assert bm is not None
+    assert bm["biomolecule_class"] == "none"
+    assert bm["sequence"] == ""
+    assert bm["residue_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_biomolecule_h2o_is_none(client: AsyncClient) -> None:
+    """H2O is a bare formula — no structure, so biomolecule is null."""
+    response = await _explore(client, "H2O")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["structure_available"] is False
+    assert data["biomolecule"] is None

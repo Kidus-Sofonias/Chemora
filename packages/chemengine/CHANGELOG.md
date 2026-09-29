@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.0] — 2026-09-28 (M40 — Biomolecules Learning Experience)
+
+### Added
+
+#### Biomolecular residue & sequence analysis engine (M40)
+- `biomolecules.py` — deterministic, graph-based biomolecular analysis engine over
+  the shared `MolecularGraph` abstraction (no SMARTS, no RDKit, no external
+  biochemistry libraries, no string matching). Residue recognition is a small,
+  bounded topological catalogue of residue patterns matched against the graph;
+  backbone traversal and peptide-bond detection are pure graph walking. Everything
+  is reproducible and bounded.
+- Capabilities: `recognize_residues` (amino-acid and nucleotide residues);
+  `extract_sequence` (one-letter-code chain, read N terminus → C terminus);
+  `detect_peptide_bonds` (amide C–N links, with atom indices);
+  `analyze_biomolecule` (one-shot `BiomoleculeAnalysis`); and
+  `biomolecule_analysis_to_dict` / `dict_to_biomolecule_analysis`
+  (de)serialization.
+- Public API: `SCHEMA_VERSION` (`chemengine-biomolecule-analysis/v1`),
+  `RECOGNITION_CATALOGUE_VERSION` (`1.0.0`), `MAX_RESIDUES`, `MAX_CHAIN_LENGTH`,
+  `ResidueType`, `ResidueClass`, `Residue`, `BiomoleculeAnalysis`,
+  `BiomoleculeError`, `UnrecognizedResidueError`, `ChainTooLongError`,
+  `recognize_residues`, `extract_sequence`, `detect_peptide_bonds`,
+  `analyze_biomolecule`, `biomolecule_analysis_to_dict`,
+  `dict_to_biomolecule_analysis`, `list_biomolecule_reference`,
+  `register_biomolecule_algorithms`, and `REFERENCE_BIOORACLE`.
+- `REFERENCE_BIOORACLE` — 33 curated, chemistry-checked reference cases: the 20
+  standard amino acids, representative oligopeptides (dipeptide/tripeptide/tetrapeptide), the four DNA/RNA bases, and negative controls (water, ammonia, acetone, acetamide, ethane) so ring C=N / C=O patterns cannot be misread as peptide bonds.
+- Bounded computation: the engine rejects oversized graphs deterministically
+  (`ChainTooLongError` past `MAX_CHAIN_LENGTH`) rather than allowing unbounded
+  traversal.
+- `ChemEngineAPI` integration: lazy `register_biomolecule_algorithms` wired into
+  the built-in setup, plus a dedicated `analyze_biomolecule` tool
+  (`ChemEngineAPI.analyze_biomolecule` delegates to the engine and serializes via
+  `biomolecule_analysis_to_dict`). `biomolecules.py` is NOT in `_LAZY_EXPORTS`
+  and is NOT imported by `chemengine/__init__.py`, preserving the `import
+  chemengine` first-import gate (<100 ms).
+- `tests/test_biomolecules.py` (27 tests): 33-case reference-oracle regression,
+  residue recognition (single + branched residues), sequence extraction & N→C
+  ordering, peptide-bond detection, (de)serialization round-trips, catalogue
+  metadata, registry registration/idempotency + `ChemEngineAPI` wiring, and the
+  lazy-import gate. Full regression: 2320 passed / 4 skipped / 0 failed.
+
+**Scope note:** The M40 biomolecule engine is exposed to students exclusively
+through computed results — the Chemistry Explorer biomolecular analysis card, the
+Biomolecules learning lessons (whose `chemistry_spotlight` sections fetch live
+engine data over the existing `/api/v1/chemistry/explore` API), and the AI
+Chemistry Tutor's allowlisted `analyze_biomolecule` tool. No chemistry results
+are hard-coded in the backend, frontend, or content layer.
+
 ## [1.6.0] — 2026-09-26 (M39 — Polymer Chemistry Engine)
 
 ### Added

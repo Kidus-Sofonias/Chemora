@@ -1240,6 +1240,318 @@ LESSON_ACIDS_BASES = Lesson(
     ),
 )
 
+LESSON_AMINO_ACIDS = Lesson(
+    id="lesson-amino-acids",
+    slug="amino-acids",
+    title="Amino Acids",
+    description=(
+        "The building blocks of proteins: a uniform backbone, side chains "
+        "that vary - and a live structure that shows the engine reading "
+        "them as recognisable residues."
+    ),
+    subject="biochemistry",
+    difficulty="beginner",
+    estimated_minutes=8,
+    order=11,
+    sections=(
+        Section(
+            id="intro",
+            kind="introduction",
+            title="A molecular alphabet",
+            body=(
+                "Proteins are chains of amino acids, each with the same "
+                "backbone (amino group - carbon - carboxyl group) but a unique "
+                "side chain - the R group - that gives each residue its "
+                "identity. There are twenty common ones, from glycine (the "
+                "simplest, H as its side chain) to tryptophan (the largest, "
+                "a fused ring system).",
+            ),
+        ),
+        Section(
+            id="explain",
+            kind="explanation",
+            title="The backbone and the side chain",
+            body=(
+                "Every amino acid links its side chain to the central "
+                "alpha-carbon. Polymerisation joins the carboxyl group of one "
+                "to the amino group of the next, releasing water - a peptide "
+                "(amide) bond forms between them. The chain reads, in "
+                "biology's shorthand, left to right from an N terminus "
+                "(amino end) to a C terminus (carboxyl end).",
+                "Alanine - the simplest chiral amino acid - illustrates the "
+                "pattern: NH2-CH(R)-COOH, with a methyl side chain. The "
+                "engine recognises this backbone and labels the residue.",
+            ),
+        ),
+        Section(
+            id="spotlight",
+            kind="chemistry_spotlight",
+            title="Alanine, live",
+            body=(
+                "Feed alanine's structure to the engine and it reports a "
+                "single amino-acid residue with the one-letter code A. The "
+                "live analysis is the first hint that chemistry can read not "
+                "just atoms, but the functional units they assemble into.",
+            ),
+            molecule_input="NC(C)C(=O)O",
+        ),
+        Section(
+            id="practice",
+            kind="practice",
+            title="Check your understanding",
+            body=(),
+            question_ids=("aa-1", "aa-2", "aa-3"),
+        ),
+    ),
+    questions=(
+        _q(
+            "aa-1",
+            "What functional groups flank the central carbon in every "
+            "standard amino acid?",
+            "an amino group and a carboxyl group",
+            "Each alpha-amino acid has an amino (NH2) group and a carboxyl "
+            "(COOH) group attached to the same central carbon.",
+            (
+                "an amino group and a carboxyl group",
+                "two hydroxyl groups",
+                "an amino group and a phosphate group",
+                "a carbonyl and a sulfhydryl group",
+            ),
+        ),
+        _q(
+            "aa-2",
+            "Glycine, alanine, valine, leucine, isoleucine - what varies "
+            "across these five amino acids?",
+            "their side chains",
+            "The backbone (amino and carboxyl groups) is identical in every "
+            "amino acid; only the R side chain differs.",
+            (
+                "their side chains",
+                "their backbone groups",
+                "their atomic numbers",
+                "their molecular weights",
+            ),
+        ),
+        _q(
+            "aa-3",
+            "Write the one-letter code for alanine.",
+            "A",
+            "Alanine is A. The engine reports residue A from its structure.",
+            (
+                "A",
+                "G",
+                "V",
+                "L",
+            ),
+        ),
+    ),
+)
+
+LESSON_PEPTIDE_BONDS = Lesson(
+    id="lesson-peptide-bonds",
+    slug="peptide-bonds",
+    title="Peptide Bonds",
+    description=(
+        "The condensation reaction that links amino acids: water leaves, a "
+        "rigid amide bridge remains - and the engine counts every one."
+    ),
+    subject="biochemistry",
+    difficulty="beginner",
+    estimated_minutes=7,
+    order=12,
+    sections=(
+        Section(
+            id="intro",
+            kind="introduction",
+            title="From monomers to polymers",
+            body=(
+                "A single amino acid is a monomer. Link amino acids and you "
+                "build a polymer - a peptide (short) or protein (long). The "
+                "link is the peptide bond: the carboxyl of one residue "
+                "donates to the amino of the next, and a water molecule "
+                "leaves. Chemistry calls this a condensation, or dehydration "
+                "synthesis.",
+            ),
+        ),
+        Section(
+            id="explain",
+            kind="explanation",
+            title="Planar and rigid",
+            body=(
+                "A peptide bond is not free to rotate. Its double-bond "
+                "character locks the carbonyl group and the amide nitrogen "
+                "into one plane, giving proteins their first hint of 3-D "
+                "structure. The amide hydrogen and the carbonyl oxygen sit "
+                "on opposite sides - that is the trans configuration the "
+                "engine assumes by default.",
+                "Count the peptide bonds in a chain and you count the links: "
+                "two amino acids make one peptide bond, three make two, and "
+                "so on. Each bond is reported as [carbonyl carbon, carbonyl "
+                "oxygen, amide nitrogen] using atom indices.",
+            ),
+        ),
+        Section(
+            id="spotlight",
+            kind="chemistry_spotlight",
+            title="A tripeptide, bonded",
+            body=(
+                "The sequence A-V-P (alanine-valine-proline) is held together "
+                "by two peptide bonds, and the engine finds both. The one-"
+                "letter sequence is AVP - the alphabet of protein written as "
+                "chemistry.",
+            ),
+            molecule_input="NC(C)C(=O)NC(C(C)C)C(=O)N1C(C(=O)O)CCC1",
+        ),
+        Section(
+            id="practice",
+            kind="practice",
+            title="Check your understanding",
+            body=(),
+            question_ids=("pb-1", "pb-2", "pb-3"),
+        ),
+    ),
+    questions=(
+        _q(
+            "pb-1",
+            "How many peptide bonds connect three amino acids in a chain?",
+            "2",
+            "Each link is a peptide bond, so n residues share n - 1 bonds: "
+            "three residues give two peptide bonds.",
+        ),
+        _q(
+            "pb-2",
+            "What kind of reaction forms a peptide bond between two amino "
+            "acids?",
+            "a condensation reaction",
+            "A carboxyl group and an amino group combine, releasing a water "
+            "molecule - a condensation (dehydration synthesis) reaction.",
+            (
+                "a condensation reaction",
+                "a hydrolysis reaction",
+                "an oxidation reaction",
+                "a substitution reaction",
+            ),
+        ),
+        _q(
+            "pb-3",
+            "What two atoms define a peptide bond's rigid plane?",
+            "the carbonyl carbon and the amide nitrogen",
+            "The peptide bond's partial double-bond character lies between "
+            "the amide nitrogen and its adjacent (carbonyl) carbon, locking "
+            "the group into a planar unit.",
+            (
+                "the carbonyl carbon and the amide nitrogen",
+                "the amino group and the carboxyl group",
+                "the alpha-carbon and the side chain",
+                "the carbonyl oxygen and the amide hydrogen",
+            ),
+        ),
+    ),
+)
+
+LESSON_SHORT_PEPTIDES = Lesson(
+    id="lesson-short-peptides",
+    slug="short-peptides",
+    title="Short Peptides",
+    description=(
+        "Two residues make a dipeptide, three make a tripeptide: the engine "
+        "reads the sequence and counts the amide links that hold them."
+    ),
+    subject="biochemistry",
+    difficulty="beginner",
+    estimated_minutes=6,
+    order=13,
+    sections=(
+        Section(
+            id="intro",
+            kind="introduction",
+            title="Reading a chain",
+            body=(
+                "A peptide's name tells its length: a dipeptide has two "
+                "residues, a tripeptide has three, an tetrapeptide has four. "
+                "Biologists write these as a one-letter code chain - the "
+                "sequence - read from the free amino (N) terminus to the "
+                "free carboxyl (C) terminus.",
+                "The Chemora engine reads that sequence directly from the "
+                "molecular graph: it finds each amino-acid residue, labels it "
+                "with its one-letter code, and reports the full chain.",
+            ),
+        ),
+        Section(
+            id="explain",
+            kind="explanation",
+            title="Sequence and classification",
+            body=(
+                "Once the engine sees the repeating backbone - amino "
+                "nitrogen, alpha-carbon, carbonyl carbon, carbonyl oxygen - "
+                "it classifies the molecule as an amino_acid (single "
+                "residue) or the length of its chain (multiple residues). "
+                "A peptide with no detectable residue backbone is reported as "
+                "class 'none'.",
+                "The one-letter codes stack left to right. Glycine is G, "
+                "alanine A, valine V, proline P. The dipeptide GA or the "
+                "tripeptide GAV are whole sequences - and each link is a "
+                "peptide bond the engine counts for you.",
+            ),
+        ),
+        Section(
+            id="spotlight-dipeptide",
+            kind="chemistry_spotlight",
+            title="A dipeptide, sequenced",
+            body=(
+                "Two residues linked by one peptide bond: glycine-alanine "
+                "(sequence GA). Feed it to the engine and it reports the "
+                "two-residue chain and the single amide link between them.",
+            ),
+            molecule_input="NCC(=O)NC(C)C(=O)O",
+        ),
+        Section(
+            id="practice",
+            kind="practice",
+            title="Check your understanding",
+            body=(),
+            question_ids=("sp-1", "sp-2", "sp-3"),
+        ),
+    ),
+    questions=(
+        _q(
+            "sp-1",
+            "A peptide made of two residues - one alanine linked to one "
+            "glycine - is called a...",
+            "dipeptide",
+            "Two residues make a dipeptide; three make a tripeptide.",
+            (
+                "dipeptide",
+                "tripeptide",
+                "tetrapeptide",
+                "oligopeptide",
+            ),
+        ),
+        _q(
+            "sp-2",
+            "If an engine reports the sequence GAV, how many peptide bonds "
+            "hold the chain together?",
+            "2",
+            "GAV is three residues, so two peptide bonds link them: G-A and "
+            "A-V.",
+        ),
+        _q(
+            "sp-3",
+            "In which direction is a peptide's one-letter sequence read?",
+            "from the amino terminus to the carboxyl terminus",
+            "Sequences run N terminus (free amino group) to C terminus "
+            "(free carboxyl group).",
+            (
+                "from the amino terminus to the carboxyl terminus",
+                "from the carboxyl terminus to the amino terminus",
+                "in alphabetical order by side chain",
+                "from the largest side chain to the smallest",
+            ),
+        ),
+    ),
+)
+
+
 LESSONS = (
     LESSON_ELECTRON_CONFIGURATION,
     LESSON_VALENCE_ELECTRONS,
@@ -1252,6 +1564,9 @@ LESSONS = (
     LESSON_MOLAR_MASS,
     LESSON_STOICHIOMETRY,
     LESSON_ACIDS_BASES,
+    LESSON_AMINO_ACIDS,
+    LESSON_PEPTIDE_BONDS,
+    LESSON_SHORT_PEPTIDES,
 )
 
 

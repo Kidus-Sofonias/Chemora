@@ -63,6 +63,31 @@ export interface MoleculeProperties {
   fraction_csp3: number;
 }
 
+/** One recognised residue from the engine's biomolecular analysis (M40). */
+export interface BiomoleculeResidue {
+  type: string;
+  atom_indices: number[];
+  position: number;
+  one_letter_code: string;
+}
+
+/**
+ * M40 biomolecular analysis. Populated only for structure-bearing inputs that
+ * the engine can recognize as amino acids, peptides, or nucleotides.
+ */
+export interface BiomoleculeAnalysis {
+  schema: string;
+  catalogue_version: string;
+  residue_count: number;
+  residues: BiomoleculeResidue[];
+  sequence: string;
+  peptide_bonds: number[][];
+  biomolecule_class: string;
+  chain_length: number;
+  molecular_formula: string;
+  canonical_smiles: string;
+}
+
 export interface ChemistryExploreResult {
   input: string;
   detected_type: string | null;
@@ -70,6 +95,8 @@ export interface ChemistryExploreResult {
   identity: MoleculeIdentity;
   structure: MoleculeStructure | null;
   properties: MoleculeProperties | null;
+  /** Biomolecular analysis, or null for non-biomolecular / formula inputs. */
+  biomolecule: BiomoleculeAnalysis | null;
 }
 
 // ── Element Explorer (M23) ────────────────────────────────────────────────

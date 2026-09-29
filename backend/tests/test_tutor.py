@@ -185,6 +185,25 @@ class TestToolbox:
         assert result["symbol"] == "Fe"
         assert result["shorthand"].endswith("3d6 4s2")
 
+    def test_analyze_biomolecule_tool(self) -> None:
+        """analyze_biomolecule is allowlisted and returns sequence data."""
+        result = TutorToolbox().execute(
+            "analyze_biomolecule", {"smiles": "NC(C)C(=O)NC(C(C)C)C(=O)N1C(C(=O)O)CCC1"}
+        )
+        assert result["smiles"] == "NC(C)C(=O)NC(C(C)C)C(=O)N1C(C(=O)O)CCC1"
+        bm = result["biomolecule"]
+        assert bm["biomolecule_class"] == "amino_acid"
+        assert bm["residue_count"] == 3
+        assert bm["sequence"] == "AVP"
+        assert len(bm["peptide_bonds"]) == 2
+
+    def test_analyze_biomolecule_non_biomolecular(self) -> None:
+        """analyze_biomolecule returns class 'none' for non-biomolecular input."""
+        result = TutorToolbox().execute("analyze_biomolecule", {"smiles": "CCO"})
+        bm = result["biomolecule"]
+        assert bm["biomolecule_class"] == "none"
+        assert bm["sequence"] == ""
+
     def test_oversized_argument_rejected(self) -> None:
         """Oversized argument rejected."""
         with pytest.raises(ToolError, match="too long"):
