@@ -19,6 +19,7 @@ by formula/SMILES/InChI).
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -30,7 +31,11 @@ from app.db.session import get_db_session
 from app.learning.content import Lesson, Question, Section
 from app.models.learning import LessonProgress
 from app.models.user import User
-from app.services.learning import LearningError, LearningService
+from app.services.learning import (
+    LearningError,
+    LearningService,
+    recommend_next_lesson,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +78,7 @@ class LessonSummary(BaseModel):
     estimated_minutes: int
     section_count: int
     question_count: int
+    objectives: list[str] = Field(default_factory=list)
 
 
 class LessonListResponse(BaseModel):
@@ -91,6 +97,7 @@ class LessonDetailResponse(BaseModel):
     subject: str
     difficulty: str
     estimated_minutes: int
+    objectives: list[str] = Field(default_factory=list)
     sections: list[SectionPublic]
 
 
@@ -136,14 +143,10 @@ def get_learning_service(
     return LearningService(db)
 
 
-def _progress_response(
-    progress: LessonProgress, lesson: Lesson
-) -> LearningProgressResponse:
+def _progress_response(progress: LessonProgress, lesson: Lesson) -> LearningProgressResponse:
     """Build the progress response, deriving percent from section counts."""
     total = len(lesson.sections)
-    done = sum(
-        1 for section in lesson.sections if section.id in progress.completed_sections
-    )
+    done = sum(1 for section in lesson.sections if section.id in progress.completed_sections)
     percent = round(100 * done / total) if total else 0
     return LearningProgressResponse(
         lesson_slug=progress.lesson_slug,
@@ -192,6 +195,7 @@ def _lesson_detail_response(lesson: Lesson) -> LessonDetailResponse:
         subject=lesson.subject,
         difficulty=lesson.difficulty,
         estimated_minutes=lesson.estimated_minutes,
+        objectives=[*lesson.objectives],
         sections=[_section_public(section, lesson) for section in lesson.sections],
     )
 
@@ -221,6 +225,7 @@ async def list_lessons(
                 estimated_minutes=lesson.estimated_minutes,
                 section_count=len(lesson.sections),
                 question_count=len(lesson.questions),
+                objectives=[*lesson.objectives],
             )
             for lesson in lessons
         ]
@@ -286,6 +291,223 @@ async def list_progress(
             )
         )
     return ProgressListResponse(progress=progress_responses)
+
+
+# --- Dashboard (M43) ---
+
+# Earliest comparable timestamp so recently-drafted rows sort last deterministically.
+_DASHBOARD_EPOCH = datetime.min.replace(tzinfo=timezone.utc)
+
+
+class DashboardSectionProgress(BaseModel):
+    """A started lesson as surfaced on the student dashboard."""
+
+    lesson_slug: str
+    title: str
+    description: str
+    subject: str
+    difficulty: str
+    estimated_minutes: int
+    objectives: list[str] = Field(default_factory=list)
+    progress_percent: int
+    completed: bool
+    completed_sections: list[str]
+    section_count: int
+    questions_attempted: int
+    questions_correct: int
+    needs_review: bool
+    resume_section_id: str | None = None
+    last_accessed_at: datetime | None = None
+
+
+class DashboardTopicProgress(BaseModel):
+    """Aggregate progress for a curricular subject."""
+
+    subject: str
+    lesson_count: int
+    completed: int
+    progress_percent: int
+
+
+class DashboardTotals(BaseModel):
+    """Roll-up counts for the dashboard."""
+
+    started: int
+    in_progress: int
+    completed: int
+    needs_review: int
+
+
+class DashboardResponse(BaseModel):
+    """Read-only dashboard view composed from the catalog + existing progress."""
+
+    sections: list[DashboardSectionProgress]
+    topics: list[DashboardTopicProgress]
+    totals: DashboardTotals
+    recommended_slug: str | None = None
+    recommended_reason: str = ""
+    recommended: DashboardSectionProgress | None = None
+
+
+def _dashboard_section(
+    lesson: Lesson, row: LessonProgress
+) -> DashboardSectionProgress:
+    """Project a progress row into the dashboard's per-lesson summary."""
+    section_ids = [section.id for section in lesson.sections]
+    done = sum(1 for sid in section_ids if sid in row.completed_sections)
+    percent = round(100 * done / len(section_ids)) if section_ids else 0
+    completed = row.completed_at is not None
+    attempted = len(row.answers)
+    correct = sum(1 for value in row.answers.values() if value)
+    needs_review = attempted > 0 and correct < attempted
+    resume_section_id: str | None = None
+    if not completed:
+        resume_section_id = next(
+            (section.id for section in lesson.sections if section.id not in row.completed_sections),
+            None,
+        )
+    return DashboardSectionProgress(
+        lesson_slug=row.lesson_slug,
+        title=lesson.title,
+        description=lesson.description,
+        subject=lesson.subject,
+        difficulty=lesson.difficulty,
+        estimated_minutes=lesson.estimated_minutes,
+        objectives=[*lesson.objectives],
+        progress_percent=percent,
+        completed=completed,
+        completed_sections=list(row.completed_sections),
+        section_count=len(section_ids),
+        questions_attempted=attempted,
+        questions_correct=correct,
+        needs_review=needs_review,
+        resume_section_id=resume_section_id,
+        last_accessed_at=row.updated_at,
+    )
+
+
+def _dashboard_response(
+    lessons: list[Lesson], rows: list[LessonProgress]
+) -> DashboardResponse:
+    """Assemble the dashboard from the catalog and existing progress rows.
+
+    Reuses the persisted ``LessonProgress`` rows (no new models). Progress rows
+    for lessons that are no longer published are dropped, matching the catalog.
+    """
+    catalog_by_slug = {lesson.slug: lesson for lesson in lessons}
+    progress_by_slug: dict[str, LessonProgress] = {}
+    for row in rows:
+        if row.lesson_slug in catalog_by_slug and row.lesson_slug not in progress_by_slug:
+            progress_by_slug[row.lesson_slug] = row
+
+    order_of = {lesson.slug: index for index, lesson in enumerate(lessons)}
+
+    sections = [
+        _dashboard_section(catalog_by_slug[row.lesson_slug], row)
+        for row in progress_by_slug.values()
+    ]
+    # Most-recent activity first; stable for ties (earliest catalog order).
+    sections.sort(
+        key=lambda s: (
+            -((s.last_accessed_at or _DASHBOARD_EPOCH).timestamp()),
+            order_of.get(s.lesson_slug, len(lessons)),
+        )
+    )
+
+    topic_map: dict[str, dict[str, int]] = {}
+    topic_order: list[str] = []
+    for lesson in lessons:
+        topic = topic_map.setdefault(
+            lesson.subject,
+            {"lesson_count": 0, "section_total": 0, "section_done": 0, "completed": 0},
+        )
+        if lesson.subject not in topic_order:
+            topic_order.append(lesson.subject)
+        topic["lesson_count"] += 1
+        section_ids = [section.id for section in lesson.sections]
+        row = progress_by_slug.get(lesson.slug)
+        if row is not None:
+            done = sum(1 for sid in section_ids if sid in row.completed_sections)
+            topic["section_total"] += len(section_ids)
+            topic["section_done"] += done
+            if row.completed_at is not None:
+                topic["completed"] += 1
+
+    topics = []
+    for subject in topic_order:
+        topic = topic_map[subject]
+        topics.append(
+            DashboardTopicProgress(
+                subject=subject,
+                lesson_count=topic["lesson_count"],
+                completed=topic["completed"],
+                progress_percent=(
+                    round(100 * topic["section_done"] / topic["section_total"])
+                    if topic["section_total"]
+                    else 0
+                ),
+            )
+        )
+
+    totals = DashboardTotals(
+        started=len(sections),
+        in_progress=sum(1 for s in sections if not s.completed),
+        completed=sum(1 for s in sections if s.completed),
+        needs_review=sum(1 for s in sections if s.needs_review),
+    )
+
+    recommended_slug, recommended_reason = recommend_next_lesson(lessons, progress_by_slug)
+    recommended: DashboardSectionProgress | None = None
+    if recommended_slug is not None:
+        rec_lesson = catalog_by_slug.get(recommended_slug)
+        if rec_lesson is not None:
+            recommended = DashboardSectionProgress(
+                lesson_slug=rec_lesson.slug,
+                title=rec_lesson.title,
+                description=rec_lesson.description,
+                subject=rec_lesson.subject,
+                difficulty=rec_lesson.difficulty,
+                estimated_minutes=rec_lesson.estimated_minutes,
+                objectives=[*rec_lesson.objectives],
+                progress_percent=0,
+                completed=False,
+                completed_sections=[],
+                section_count=len(rec_lesson.sections),
+                questions_attempted=0,
+                questions_correct=0,
+                needs_review=False,
+                resume_section_id=rec_lesson.sections[0].id if rec_lesson.sections else None,
+                last_accessed_at=None,
+            )
+    return DashboardResponse(
+        sections=sections,
+        topics=topics,
+        totals=totals,
+        recommended_slug=recommended_slug,
+        recommended_reason=recommended_reason,
+        recommended=recommended,
+    )
+
+
+@router.get(
+    "/dashboard",
+    response_model=DashboardResponse,
+    summary="Student dashboard (continue-learning, topics, recommendation)",
+)
+async def get_dashboard(
+    service: Annotated[LearningService, Depends(get_learning_service)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> DashboardResponse:
+    """Read-only dashboard view composed from the catalog and existing progress.
+
+    The dashboard is a composition of existing data: the lesson catalog (M24) and
+    the authenticated user's persisted progress rows (M28). No new progress
+    models are introduced. ``recommended_slug`` is derived deterministically by
+    ``recommend_next_lesson`` from catalog order and server-derived completion.
+    """
+    lessons = await service.list_lessons()
+    rows = await service.list_progress(user.id)
+    return _dashboard_response(lessons, rows)
 
 
 @router.get(
@@ -370,4 +592,3 @@ async def submit_answer(
         explanation=explanation,
         progress=_progress_response(progress, await service.get_lesson(slug)),
     )
-

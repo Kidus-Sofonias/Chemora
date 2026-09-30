@@ -2,10 +2,10 @@
 
 > **📊 Live Gantt chart**: Open [`gantt.html`](gantt.html) in your browser for an interactive, animated visualization of this roadmap. Automatically updates when phase statuses change.
 
-> **Version:** 0.10.0 → 1.7.0 (ChemEngine complete through M40; monorepo migration complete)
-> **Last Updated:** September 28, 2026
+> **Version:** 0.10.0 → 1.7.0 (ChemEngine complete through M40; Chemora M41-M43 complete; monorepo migration complete)
+> **Last Updated:** September 30, 2026
 > **Owner:** Chemora Architecture Team
-> **Status:** Active Development — ChemEngine M1–M40 complete; Backend M19–M31 complete; Web M21–M30 complete; Admin M27 complete
+> **Status:** Active Development — ChemEngine M1–M40 complete; Backend M19–M31 complete; Web M21–M30 complete; Admin M27 complete; Backend M41-M43 complete (AI tutor, curriculum, learning objectives, student dashboard); Web M43 (student dashboard) complete
 
 ---
 
@@ -109,6 +109,8 @@ Each phase contains:
 | 1.5.0 | 2026-09-25 | M38 — Forward Reaction Engine | ✅ Complete |
 | 1.6.0 | 2026-09-26 | M39 — Polymer Chemistry Engine | ✅ Complete |
 | 1.7.0 | 2026-09-28 | M40 — Biomolecules Learning Experience | ✅ Complete |
+
+| 1.8.0 (dev) | 2026-09-30 | M41-M43 (AI Tutor, gas-laws & chemical-nomenclature curriculum, learning objectives, Student Dashboard) | Complete |
 
 ## Correctness Gate (Completed — 2026-09-08)
 
@@ -3068,7 +3070,7 @@ full ChemEngine regression **2163 passed, 4 skipped, 0 failed** (2055 → +108
 from M39). Cold `import chemengine` stays lazy and <100 ms (polymer absent
 from `__all__` and `_LAZY_EXPORTS`).
 
-| **Next Milestone** | **M40: Biomolecules Learning Experience — COMPLETE (2026-09-28, v1.7.0).** Deterministic, graph-based biomolecular analysis engine over the shared `MolecularGraph` (no SMARTS, no RDKit, no external biochemistry libraries): residue recognition (20 standard amino acids + 4 bases), sequence extraction (one-letter code, N→C), peptide-bond detection (amide C–N links with atom indices), 33-case `REFERENCE_BIOORACLE`, `(de)serialization, lazy `AlgorithmRegistry` registration + `ChemEngineAPI.analyze_biomolecule` tool, 27 tests. Student-facing delivery via the Biomolecules learning lessons (`chemistry_spotlight` sections fetch live engine data over `/api/v1/chemistry/explore`) and an AI Chemistry Tutor allowlisted `analyze_biomolecule` tool — no chemistry results hard-coded in backend, frontend, or content. Full ChemEngine regression: 2320 passed / 4 skipped / 0 failed. **Next:** unscoped v2.0 future roadmap domains (GNN, crystallography, NMR) remain an explicitly unordered list. |
+| **Next Milestone** | **M40: Biomolecules Learning Experience — COMPLETE (2026-09-28, v1.7.0).** Deterministic, graph-based biomolecular analysis engine over the shared `MolecularGraph` (no SMARTS, no RDKit, no external biochemistry libraries): residue recognition (20 standard amino acids + 4 bases), sequence extraction (one-letter code, N→C), peptide-bond detection (amide C–N links with atom indices), 33-case `REFERENCE_BIOORACLE`, `(de)serialization, lazy `AlgorithmRegistry` registration + `ChemEngineAPI.analyze_biomolecule` tool, 27 tests. Student-facing delivery via the Biomolecules learning lessons (`chemistry_spotlight` sections fetch live engine data over `/api/v1/chemistry/explore`) and an AI Chemistry Tutor allowlisted `analyze_biomolecule` tool — no chemistry results hard-coded in backend, frontend, or content. Full ChemEngine regression: 2320 passed / 4 skipped / 0 failed. **Next:** unscoped v2.0 future roadmap domains (GNN, crystallography, NMR) remain an explicitly unordered list. M43 (Student Dashboard) is complete on the development head (target release 1.8.0). |
 
 **M31 completion record (2026-09-20).** Production PostgreSQL path verified
 live (33/33 — portable PostgreSQL 18.6, full Alembic chain both directions,
@@ -3283,3 +3285,30 @@ databases, and ML/GNN are explicitly out of scope. The engine remains bounded
 0 failed; backend 235 passed; web 77 passed, tsc + production build green).
 CHANGELOG `[1.7.0]`, version 1.7.0 (pinned by `test_version_consistency.py`).
 TODO / PROJECT_STATUS / gantt synchronized.
+
+## M43 -- Student Dashboard (Complete -- 2026-09-30)
+
+The M43 student dashboard is a read-only projection of existing learning progress.
+It composes persisted `LessonProgress` rows + the published lesson catalog into a single
+`DashboardResponse` without adding any new progress columns.
+
+- **Backend:** `GET /api/v1/learning/dashboard` (`api/v1/learning.py`) returning
+  `DashboardResponse` (`DashboardTotals`, `DashboardSectionProgress`,
+  `DashboardTopicProgress`, plus `recommended` / `recommended_slug` /
+  `recommended_reason`). The next-lesson recommendation is a **pure deterministic rule**
+  in `services/learning.py::recommend_next_lesson()` -- resume the in-progress lesson with
+  the highest completion %; otherwise the first unstarted lesson by catalog order;
+  `None` when everything is complete (tie-break: recency, then catalog order). Auth-gated.
+  No new progress models; the existing `GET /progress` contract is unchanged. **10 tests**
+  (`tests/test_m43_dashboard.py`).
+- **Web:** `DashboardPage.tsx` (recommended card, empty/new-user state, continue + recent,
+  progress-by-topic, practice/needs-review summary, quick-access rail, error+retry,
+  mobile + accessibility), `useDashboard.ts` hook (loading/error/ready with network-vs-server
+  classification), typed DTOs + `getDashboard()` in `apiClient.ts`, dashboard wired into
+  `AuthGate` section nav and deep-open via `LearningPage(initialLessonSlug)`;
+  `useLearning` accepts `initialLessonSlug`. **8 tests** (`tests/m43-dashboard.test.tsx`).
+
+**Deliverable & test result:** backend 265 passed, web 90 passed, `tsc --noEmit` clean,
+production `vite build` green (54 modules). The canonical version pin
+(`test_version_consistency.py`) remains 1.7.0; M43 lands on the development head
+toward 1.8.0 and does not change the `GET /progress` or ChemEngine contracts.

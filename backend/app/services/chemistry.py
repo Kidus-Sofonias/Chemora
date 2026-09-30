@@ -68,6 +68,8 @@ class ChemistryResult:
     structure: dict[str, object] | None = None
     properties: dict[str, object] | None = None
     biomolecule: dict[str, object] | None = None
+    #: Curricular functional-group hits (structure-bearing inputs only).
+    functional_groups: list[dict[str, object]] | None = None
 
 
 def _get_engine() -> ChemEngineAPI:
@@ -157,6 +159,7 @@ class ChemistryService:
             structure=self._structure(graph),
             properties=self._properties(graph),
             biomolecule=biomolecule,
+            functional_groups=self._functional_groups(graph),
         )
 
     def _structure(self, graph: MolecularGraph) -> dict[str, object]:
@@ -172,8 +175,32 @@ class ChemistryService:
             "formula": graph.molecular_formula,
             "atom_symbols": atoms,
             "bonds": bonds,
+            "functional_groups": self._functional_groups(graph),
             "svg": render_svg(graph),
         }
+
+    def _functional_groups(self, graph: MolecularGraph) -> list[dict[str, object]]:
+        """Return student-safe functional-group hits for a structure.
+
+        Delegated to ChemEngine's ``detect_functional_groups``; only the
+        curricular name, the atom indices it involves, and its categories are
+        surfaced — internal SMARTS/priority plumbing is never exposed. Detection
+        failures degrade to an empty list so the rest of the structure is still
+        served (mirrors how biomolecular analysis is handled above).
+        """
+        try:
+            groups = self._engine.detect_functional_groups(graph)
+        except Exception:  # noqa: BLE001 — explorer/explainer must never break on this
+            logger.warning("Functional-group detection failed", exc_info=True)
+            return []
+        return [
+            {
+                "name": g.get("name", ""),
+                "atom_indices": [int(i) for i in g.get("atom_indices", [])],
+                "categories": list(g.get("categories", [])),
+            }
+            for g in groups
+        ]
 
     def _properties(self, graph: MolecularGraph) -> dict[str, object]:
         """Compute bond-derived descriptors (delegated to ChemEngine)."""

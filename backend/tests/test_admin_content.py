@@ -93,9 +93,7 @@ async def _login(
     assert response.status_code == 200
 
 
-async def _login_admin(
-    client: AsyncClient, verifier: MockGoogleTokenVerifier
-) -> None:
+async def _login_admin(client: AsyncClient, verifier: MockGoogleTokenVerifier) -> None:
     """Authenticate as a configured admin."""
     await _login(client, verifier, ADMIN_EMAIL, "admin_token")
 
@@ -113,20 +111,14 @@ def _grant_admin(monkeypatch: pytest.MonkeyPatch) -> None:
 class TestAuthorization:
     """Unauthenticated -> 401; normal user -> 403; admin -> 200."""
 
-    async def test_unauthenticated_list_returns_401(
-        self, api_client: AsyncClient
-    ) -> None:
+    async def test_unauthenticated_list_returns_401(self, api_client: AsyncClient) -> None:
         """Unauthenticated list returns 401."""
         response = await api_client.get("/api/v1/admin/lessons")
         assert response.status_code == 401
 
-    async def test_unauthenticated_get_returns_401(
-        self, api_client: AsyncClient
-    ) -> None:
+    async def test_unauthenticated_get_returns_401(self, api_client: AsyncClient) -> None:
         """Unauthenticated get returns 401."""
-        response = await api_client.get(
-            "/api/v1/admin/lessons/electron-configuration"
-        )
+        response = await api_client.get("/api/v1/admin/lessons/electron-configuration")
         assert response.status_code == 401
 
     async def test_normal_user_list_returns_403(
@@ -147,9 +139,7 @@ class TestAuthorization:
     ) -> None:
         """Normal user get returns 403."""
         await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
-        response = await api_client.get(
-            "/api/v1/admin/lessons/electron-configuration"
-        )
+        response = await api_client.get("/api/v1/admin/lessons/electron-configuration")
         assert response.status_code == 403
 
     async def test_normal_user_create_returns_403(
@@ -159,9 +149,7 @@ class TestAuthorization:
     ) -> None:
         """Normal user create returns 403."""
         await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
-        response = await api_client.post(
-            "/api/v1/admin/lessons", json=_lesson_payload()
-        )
+        response = await api_client.post("/api/v1/admin/lessons", json=_lesson_payload())
         assert response.status_code == 403
 
     async def test_normal_user_publish_returns_403(
@@ -171,9 +159,7 @@ class TestAuthorization:
     ) -> None:
         """Normal user publish returns 403."""
         await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
-        response = await api_client.post(
-            "/api/v1/admin/lessons/electron-configuration/publish"
-        )
+        response = await api_client.post("/api/v1/admin/lessons/electron-configuration/publish")
         assert response.status_code == 403
 
     async def test_admin_list_returns_200(
@@ -247,9 +233,7 @@ class TestAdminGetLesson:
         """Admin get includes answer keys."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
-        response = await api_client.get(
-            "/api/v1/admin/lessons/electron-configuration"
-        )
+        response = await api_client.get("/api/v1/admin/lessons/electron-configuration")
         assert response.status_code == 200
         data = response.json()
         practice = [s for s in data["sections"] if s["kind"] == "practice"][0]
@@ -266,9 +250,7 @@ class TestAdminGetLesson:
         """Admin get includes sections ordering."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
-        response = await api_client.get(
-            "/api/v1/admin/lessons/electron-configuration"
-        )
+        response = await api_client.get("/api/v1/admin/lessons/electron-configuration")
         assert response.status_code == 200
         data = response.json()
         assert "published" in data
@@ -394,9 +376,7 @@ class TestAdminUpdateLesson:
         await api_client.post("/api/v1/admin/lessons/update-test/publish")
         updated = _lesson_payload(slug="update-test")
         updated["title"] = "Updated Title"
-        response = await api_client.put(
-            "/api/v1/admin/lessons/update-test", json=updated
-        )
+        response = await api_client.put("/api/v1/admin/lessons/update-test", json=updated)
         assert response.status_code == 200
         assert response.json()["title"] == "Updated Title"
         assert response.json()["published"] is True
@@ -413,9 +393,7 @@ class TestAdminUpdateLesson:
         payload = _lesson_payload(slug="original-slug")
         await api_client.post("/api/v1/admin/lessons", json=payload)
         mismatched = _lesson_payload(slug="different-slug")
-        response = await api_client.put(
-            "/api/v1/admin/lessons/original-slug", json=mismatched
-        )
+        response = await api_client.put("/api/v1/admin/lessons/original-slug", json=mismatched)
         assert response.status_code == 400
 
     async def test_update_nonexistent_lesson_returns_404(
@@ -428,9 +406,7 @@ class TestAdminUpdateLesson:
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
         payload = _lesson_payload(slug="no-such-lesson")
-        response = await api_client.put(
-            "/api/v1/admin/lessons/no-such-lesson", json=payload
-        )
+        response = await api_client.put("/api/v1/admin/lessons/no-such-lesson", json=payload)
         assert response.status_code == 404
 
 
@@ -455,20 +431,14 @@ class TestAdminPublish:
         await api_client.post("/api/v1/admin/lessons", json=payload)
         # Initially invisible
         student_resp = await api_client.get("/api/v1/learning/lessons")
-        assert "publish-test" not in [
-            lesson["slug"] for lesson in student_resp.json()["lessons"]
-        ]
+        assert "publish-test" not in [lesson["slug"] for lesson in student_resp.json()["lessons"]]
         # Publish
-        response = await api_client.post(
-            "/api/v1/admin/lessons/publish-test/publish"
-        )
+        response = await api_client.post("/api/v1/admin/lessons/publish-test/publish")
         assert response.status_code == 200
         assert response.json()["published"] is True
         # Now visible
         student_resp = await api_client.get("/api/v1/learning/lessons")
-        assert "publish-test" in [
-            lesson["slug"] for lesson in student_resp.json()["lessons"]
-        ]
+        assert "publish-test" in [lesson["slug"] for lesson in student_resp.json()["lessons"]]
 
     async def test_unpublish_returns_to_draft(
         self,
@@ -482,15 +452,11 @@ class TestAdminPublish:
         payload = _lesson_payload(slug="unpublish-test", order=51)
         await api_client.post("/api/v1/admin/lessons", json=payload)
         await api_client.post("/api/v1/admin/lessons/unpublish-test/publish")
-        response = await api_client.post(
-            "/api/v1/admin/lessons/unpublish-test/unpublish"
-        )
+        response = await api_client.post("/api/v1/admin/lessons/unpublish-test/unpublish")
         assert response.status_code == 200
         assert response.json()["published"] is False
         student_resp = await api_client.get("/api/v1/learning/lessons")
-        assert "unpublish-test" not in [
-            lesson["slug"] for lesson in student_resp.json()["lessons"]
-        ]
+        assert "unpublish-test" not in [lesson["slug"] for lesson in student_resp.json()["lessons"]]
 
     async def test_publish_nonexistent_returns_404(
         self,
@@ -501,9 +467,7 @@ class TestAdminPublish:
         """Publish nonexistent returns 404."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
-        response = await api_client.post(
-            "/api/v1/admin/lessons/nonexistent/publish"
-        )
+        response = await api_client.post("/api/v1/admin/lessons/nonexistent/publish")
         assert response.status_code == 404
 
     async def test_unpublish_nonexistent_returns_404(
@@ -515,9 +479,7 @@ class TestAdminPublish:
         """Unpublish nonexistent returns 404."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
-        response = await api_client.post(
-            "/api/v1/admin/lessons/nonexistent/unpublish"
-        )
+        response = await api_client.post("/api/v1/admin/lessons/nonexistent/unpublish")
         assert response.status_code == 404
 
 
@@ -670,9 +632,7 @@ class TestAdminDeleteLesson:
     ) -> None:
         """A non-admin authenticated user cannot delete lessons (403)."""
         await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
-        response = await api_client.delete(
-            "/api/v1/admin/lessons/electron-configuration"
-        )
+        response = await api_client.delete("/api/v1/admin/lessons/electron-configuration")
         assert response.status_code == 403
 
     async def test_delete_refused_while_progress_exists(
@@ -686,9 +646,7 @@ class TestAdminDeleteLesson:
         await _login_admin(api_client, mock_google_verifier)
         await self._create_lesson(api_client, "delete-progress")
         # Publish so students can interact with it, then record progress.
-        publish = await api_client.post(
-            "/api/v1/admin/lessons/delete-progress/publish"
-        )
+        publish = await api_client.post("/api/v1/admin/lessons/delete-progress/publish")
         assert publish.status_code == 200
         # A student completes a section of the lesson. (This replaces the
         # admin session cookie, so re-login as admin afterwards.)
@@ -706,9 +664,7 @@ class TestAdminDeleteLesson:
         still_there = await api_client.get("/api/v1/admin/lessons/delete-progress")
         assert still_there.status_code == 200
         # Forced deletion succeeds.
-        forced = await api_client.delete(
-            "/api/v1/admin/lessons/delete-progress?force=true"
-        )
+        forced = await api_client.delete("/api/v1/admin/lessons/delete-progress?force=true")
         assert forced.status_code == 204
         gone = await api_client.get("/api/v1/admin/lessons/delete-progress")
         assert gone.status_code == 404
@@ -722,13 +678,9 @@ class TestAdminDeleteLesson:
 class TestAnswerKeyExposure:
     """Answer keys appear in admin API but not in student API."""
 
-    async def test_student_lesson_detail_hides_answer_keys(
-        self, api_client: AsyncClient
-    ) -> None:
+    async def test_student_lesson_detail_hides_answer_keys(self, api_client: AsyncClient) -> None:
         """Student lesson detail hides answer keys."""
-        response = await api_client.get(
-            "/api/v1/learning/lessons/electron-configuration"
-        )
+        response = await api_client.get("/api/v1/learning/lessons/electron-configuration")
         assert response.status_code == 200
         for section in response.json()["sections"]:
             for q in section.get("questions", []):
@@ -744,9 +696,7 @@ class TestAnswerKeyExposure:
         """Admin lesson detail shows answer keys."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
-        response = await api_client.get(
-            "/api/v1/admin/lessons/electron-configuration"
-        )
+        response = await api_client.get("/api/v1/admin/lessons/electron-configuration")
         assert response.status_code == 200
         has_answer = False
         for section in response.json()["sections"]:
@@ -768,9 +718,7 @@ class TestAdminPreview:
         """Preview returns 200 for admin."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
-        response = await api_client.get(
-            "/api/v1/admin/lessons/electron-configuration/preview"
-        )
+        response = await api_client.get("/api/v1/admin/lessons/electron-configuration/preview")
         assert response.status_code == 200
         data = response.json()
         assert data["slug"] == "electron-configuration"
@@ -785,22 +733,16 @@ class TestAdminPreview:
         """Preview hides answer keys."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
-        response = await api_client.get(
-            "/api/v1/admin/lessons/electron-configuration/preview"
-        )
+        response = await api_client.get("/api/v1/admin/lessons/electron-configuration/preview")
         assert response.status_code == 200
         for section in response.json()["sections"]:
             for q in section.get("questions", []):
                 assert "correct" not in q
                 assert "explanation" not in q
 
-    async def test_preview_returns_401_unauthenticated(
-        self, api_client: AsyncClient
-    ) -> None:
+    async def test_preview_returns_401_unauthenticated(self, api_client: AsyncClient) -> None:
         """Preview returns 401 unauthenticated."""
-        response = await api_client.get(
-            "/api/v1/admin/lessons/electron-configuration/preview"
-        )
+        response = await api_client.get("/api/v1/admin/lessons/electron-configuration/preview")
         assert response.status_code == 401
 
     async def test_preview_returns_403_for_normal_user(
@@ -810,9 +752,7 @@ class TestAdminPreview:
     ) -> None:
         """Preview returns 403 for normal user."""
         await _login(api_client, mock_google_verifier, USER_EMAIL, "user_token")
-        response = await api_client.get(
-            "/api/v1/admin/lessons/electron-configuration/preview"
-        )
+        response = await api_client.get("/api/v1/admin/lessons/electron-configuration/preview")
         assert response.status_code == 403
 
     async def test_preview_returns_404_for_nonexistent(
@@ -824,9 +764,7 @@ class TestAdminPreview:
         """Preview returns 404 for nonexistent."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
-        response = await api_client.get(
-            "/api/v1/admin/lessons/nonexistent/preview"
-        )
+        response = await api_client.get("/api/v1/admin/lessons/nonexistent/preview")
         assert response.status_code == 404
 
     async def test_admin_lesson_includes_timestamps(
@@ -838,9 +776,7 @@ class TestAdminPreview:
         """Admin lesson includes timestamps."""
         _grant_admin(monkeypatch)
         await _login_admin(api_client, mock_google_verifier)
-        response = await api_client.get(
-            "/api/v1/admin/lessons/electron-configuration"
-        )
+        response = await api_client.get("/api/v1/admin/lessons/electron-configuration")
         assert response.status_code == 200
         data = response.json()
         assert "created_at" in data
@@ -858,3 +794,77 @@ class TestAdminPreview:
         response = await api_client.get("/api/v1/admin/lessons")
         for lesson in response.json()["lessons"]:
             assert "updated_at" in lesson
+
+
+# -------------------------------------------------------------------
+# Objectives
+# -------------------------------------------------------------------
+
+
+class TestAdminObjectives:
+    """M42 learning objectives flow through the admin DTOs."""
+
+    def _payload(self, objectives: list[str]) -> dict:
+        payload = _lesson_payload(slug="objectives-lesson", order=99)
+        payload["objectives"] = objectives
+        return payload
+
+    async def test_round_trips_learning_objectives(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Objectives survive create and re-fetch."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        created = await api_client.post(
+            "/api/v1/admin/lessons",
+            json=self._payload(
+                [
+                    "Identify variables affecting gas pressure",
+                    "Apply PV=nRT to predict outcomes",
+                ]
+            ),
+        )
+        assert created.status_code == 201
+        assert created.json()["objectives"] == [
+            "Identify variables affecting gas pressure",
+            "Apply PV=nRT to predict outcomes",
+        ]
+        fetched = await api_client.get("/api/v1/admin/lessons/objectives-lesson")
+        assert fetched.status_code == 200
+        assert fetched.json()["objectives"] == [
+            "Identify variables affecting gas pressure",
+            "Apply PV=nRT to predict outcomes",
+        ]
+
+    async def test_rejects_more_than_six_objectives(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """More than six objectives is rejected at validation time."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        response = await api_client.post(
+            "/api/v1/admin/lessons",
+            json=self._payload([f"Objective {i}" for i in range(7)]),
+        )
+        assert response.status_code == 422
+
+    async def test_rejects_empty_objective(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """An empty objective string is rejected at validation time."""
+        _grant_admin(monkeypatch)
+        await _login_admin(api_client, mock_google_verifier)
+        response = await api_client.post(
+            "/api/v1/admin/lessons",
+            json=self._payload(["A real objective", ""]),
+        )
+        assert response.status_code == 422

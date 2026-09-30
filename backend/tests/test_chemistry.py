@@ -11,6 +11,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient, Response
 
 from app.main import app
+from tests.conftest import MockGoogleTokenVerifier
 
 
 @pytest.fixture
@@ -244,3 +245,182 @@ async def test_biomolecule_h2o_is_none(client: AsyncClient) -> None:
     data = response.json()
     assert data["structure_available"] is False
     assert data["biomolecule"] is None
+
+
+# --- Functional groups (added in M41) ---
+
+
+@pytest.mark.asyncio
+async def test_ethanol_explore_includes_functional_groups(client: AsyncClient) -> None:
+    """The explore response now reports functional groups for structures."""
+    response = await _explore(client, "CCO")
+    assert response.status_code == 200
+    data = response.json()
+    groups = data["structure"]["functional_groups"]
+    assert isinstance(groups, list)
+    names = [g["name"] for g in groups]
+    assert "Alcohol" in names
+    alcohol = next(g for g in groups if g["name"] == "Alcohol")
+    assert alcohol["atom_indices"]  # the -OH atoms
+    assert set(alcohol["categories"]) >= {"oxygen", "hydroxy", "polar"}
+
+
+@pytest.mark.asyncio
+async def test_benzene_explore_functional_groups(client: AsyncClient) -> None:
+    """Benzene is recognised as an aromatic ring in the functional groups."""
+    response = await _explore(client, "c1ccccc1")
+    assert response.status_code == 200
+    groups = response.json()["structure"]["functional_groups"]
+    assert any(g["name"] == "Aromatic Ring" for g in groups)
+
+
+# --- explain_molecule endpoint (M41) ---
+
+
+def _ethanol_facts() -> dict:
+    """Deterministic ethanol facts (mirrors what the explain endpoint assembles)."""
+    return {
+        "formula": "C2H6O",
+        "exact_mass": 46.041865,
+        "average_mass": 46.069,
+        "heavy_atom_count": 3,
+        "atom_count": 9,
+        "canonical_smiles": "CCO",
+        "atom_symbols": ["C", "C", "O", "H", "H", "H", "H", "H", "H"],
+        "bonds": [[0, 1, 1], [1, 2, 1], [0, 3, 1], [0, 4, 1], [0, 5, 1],
+                  [1, 6, 1], [1, 7, 1], [2, 8, 1]],
+        "functional_groups": [{"name": "Alcohol", "atom_indices": [1, 2],
+                               "categories": ["oxygen", "hydroxy", "polar"]}],
+        "properties": {"logp": 0.0823, "tpsa": 20.23, "hba": 1, "hbd": 1,
+                       "rotatable_bonds": 0, "ring_count": 0, "fraction_csp3": 1.0},
+    }
+
+
+async def _authenticate(
+    api_client: AsyncClient, verifier: MockGoogleTokenVerifier
+) -> None:
+    """Authenticate the test client via the mocked Google verifier (as M29 tests do)."""
+    verifier.register_token("m41_token", sub="sub_m41", email="student@chemora.test")
+    login = await api_client.post(
+        "/api/v1/auth/google", json={"credential": "m41_token"}
+    )
+    assert login.status_code == 200
+
+
+class TestExplainMolecule:
+    """M41 explain_molecule endpoint: facts (ChemEngine) + explanation (tutor)."""
+
+    async def test_explains_a_structure_bearing_molecule(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+    ) -> None:
+        """A structure-bearing input returns separate facts and explanation."""
+        await _authenticate(api_client, mock_google_verifier)
+        response = await api_client.post(
+            "/api/v1/chemistry/explain_molecule",
+            json={"input": "CCO"},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        # Facts are deterministic ChemEngine values, returned verbatim.
+        facts = body["facts"]
+        assert facts["formula"] == "C2H6O"
+        assert facts["exact_mass"] == pytest.approx(46.041865, abs=1e-4)
+        assert facts["atom_symbols"]
+        assert facts["bonds"]
+        assert any(g["name"] == "Alcohol" for g in facts["functional_groups"])
+        assert facts["properties"]["hbd"] == 1
+        # The explanation is the tutor's reasoning (not a fact echo).
+        explanation = body["explanation"]
+        assert isinstance(explanation, str) and explanation.strip()
+        assert body["tools_used"] == []
+        assert body["detected_type"] == "smiles"
+
+    async def test_explains_respects_learning_mode_flag(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+    ) -> None:
+        """Both learning-mode values produce a valid explanation response."""
+        await _authenticate(api_client, mock_google_verifier)
+        base = {"input": "c1ccccc1"}  # benzene
+        resp_standard = await api_client.post(
+            "/api/v1/chemistry/explain_molecule",
+            json={**base, "learning_mode": False},
+        )
+        resp_learning = await api_client.post(
+            "/api/v1/chemistry/explain_molecule",
+            json={**base, "learning_mode": True},
+        )
+        assert resp_standard.status_code == 200
+        assert resp_learning.status_code == 200
+        std = resp_standard.json()
+        learn = resp_learning.json()
+        assert std["facts"]["formula"] == "C6H6"
+        assert learn["facts"]["formula"] == "C6H6"
+        assert std["explanation"] and learn["explanation"]
+
+    async def test_formula_input_without_structure_is_unsupported(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+    ) -> None:
+        """A bare formula has no structure to explain → unsupported_input."""
+        await _authenticate(api_client, mock_google_verifier)
+        response = await api_client.post(
+            "/api/v1/chemistry/explain_molecule",
+            json={"input": "H2O"},
+        )
+        assert response.status_code == 422
+        body = response.json()
+        assert body["detail"]["code"] == "unsupported_input"
+        assert "structure" in body["detail"]["message"].lower()
+
+    async def test_unrecognized_input_is_unsupported(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+    ) -> None:
+        """Unrecognizable input surfaces as unsupported_input (no internals)."""
+        await _authenticate(api_client, mock_google_verifier)
+        response = await api_client.post(
+            "/api/v1/chemistry/explain_molecule",
+            json={"input": "zzzznotamolecule"},
+        )
+        assert response.status_code == 422
+        assert response.json()["detail"]["code"] == "unsupported_input"
+        assert "traceback" not in response.text.lower()
+
+    async def test_unauthenticated_rejected(
+        self,
+        api_client: AsyncClient,
+    ) -> None:
+        """The explain endpoint is session-gated (the AI tutor is not anonymous)."""
+        response = await api_client.post(
+            "/api/v1/chemistry/explain_molecule",
+            json={"input": "CCO"},
+        )
+        assert response.status_code == 401
+
+    async def test_no_internals_on_tutor_failure(
+        self,
+        api_client: AsyncClient,
+        mock_google_verifier: MockGoogleTokenVerifier,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A provider failure maps to a stable status, not a 500 traceback."""
+        await _authenticate(api_client, mock_google_verifier)
+        from app.services.ai.provider import AIProviderError, MockAIProvider
+
+        def failing(*_a: object, **_k: object) -> str:  # noqa: ANN401
+            raise AIProviderError("unavailable", "tutor down")
+
+        monkeypatch.setattr(MockAIProvider, "generate", failing)
+        response = await api_client.post(
+            "/api/v1/chemistry/explain_molecule",
+            json={"input": "CCO"},
+        )
+        assert response.status_code == 503
+        assert response.json()["detail"]["code"] == "ai_unavailable"
+        assert "traceback" not in response.text.lower()

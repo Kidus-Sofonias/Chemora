@@ -124,6 +124,86 @@ export const freshProgress = {
   completed: false,
 };
 
+
+/** M43 dashboard fakes. Shapes mirror DashboardResponse from the backend. */
+
+export const emptyDashboard = {
+  sections: [],
+  topics: [
+    { subject: 'atomic structure', lesson_count: 2, completed: 0, progress_percent: 0 },
+    { subject: 'chemical formulas', lesson_count: 1, completed: 0, progress_percent: 0 },
+  ],
+  totals: { started: 0, in_progress: 0, completed: 0, needs_review: 0 },
+  recommended_slug: 'electron-configuration',
+  recommended_reason: 'Start the next lesson in your learning path.',
+  recommended: {
+    lesson_slug: 'electron-configuration',
+    title: 'Electron Configurations',
+    description: 'How electrons arrange themselves around a nucleus.',
+    subject: 'atomic structure',
+    difficulty: 'beginner',
+    estimated_minutes: 8,
+    objectives: ['Understand how electrons distribute into atomic orbitals.'],
+    progress_percent: 0,
+    completed: false,
+    completed_sections: [],
+    section_count: 3,
+    questions_attempted: 0,
+    questions_correct: 0,
+    needs_review: false,
+    resume_section_id: 'intro',
+    last_accessed_at: null,
+  },
+};
+
+export const dashboardWithProgress = {
+  sections: [
+    {
+      lesson_slug: 'electron-configuration',
+      title: 'Electron Configurations',
+      description: 'How electrons arrange themselves around a nucleus.',
+      subject: 'atomic structure',
+      difficulty: 'beginner',
+      estimated_minutes: 8,
+      objectives: ['Understand how electrons distribute into atomic orbitals.'],
+      progress_percent: 33,
+      completed: false,
+      completed_sections: ['intro'],
+      section_count: 3,
+      questions_attempted: 1,
+      questions_correct: 0,
+      needs_review: true,
+      resume_section_id: 'spotlight',
+      last_accessed_at: '2026-09-01T12:00:00.000Z',
+    },
+  ],
+  topics: [
+    { subject: 'atomic structure', lesson_count: 2, completed: 0, progress_percent: 33 },
+    { subject: 'chemical formulas', lesson_count: 1, completed: 0, progress_percent: 0 },
+  ],
+  totals: { started: 1, in_progress: 1, completed: 0, needs_review: 1 },
+  recommended_slug: 'electron-configuration',
+  recommended_reason: 'Continue where you left off.',
+  recommended: {
+    lesson_slug: 'electron-configuration',
+    title: 'Electron Configurations',
+    description: 'How electrons arrange themselves around a nucleus.',
+    subject: 'atomic structure',
+    difficulty: 'beginner',
+    estimated_minutes: 8,
+    objectives: ['Understand how electrons distribute into atomic orbitals.'],
+    progress_percent: 33,
+    completed: false,
+    completed_sections: ['intro'],
+    section_count: 3,
+    questions_attempted: 1,
+    questions_correct: 0,
+    needs_review: true,
+    resume_section_id: 'spotlight',
+    last_accessed_at: '2026-09-01T12:00:00.000Z',
+  },
+};
+
 export const moleculeLessonDetail = {
   id: 'lesson-chemical-formulas',
   slug: 'chemical-formulas',
@@ -192,6 +272,7 @@ export async function defaultHandler(
   body: unknown,
 ): Promise<Response> {
   if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
+  if (url.endsWith('/learning/dashboard')) return jsonResponse(200, emptyDashboard);
   if (url.endsWith('/learning/lessons')) return jsonResponse(200, catalog);
   if (url.includes('/learning/lessons/electron-configuration/progress')) {
     return jsonResponse(200, freshProgress);

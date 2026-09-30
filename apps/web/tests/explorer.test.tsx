@@ -53,8 +53,29 @@ const waterResult = {
     heavy_atom_count: 1,
     atom_count: 3,
   },
-  structure: null,
+    structure: null,
   properties: null,
+};
+
+const ethanolExplain = {
+  input: 'CCO',
+  detected_type: 'smiles',
+  facts: {
+    formula: 'C2H6O',
+    exact_mass: 46.041865,
+    average_mass: 46.069,
+    heavy_atom_count: 3,
+    atom_count: 9,
+    canonical_smiles: 'CCO',
+    atom_symbols: ['C', 'C', 'O', 'H', 'H', 'H', 'H', 'H', 'H'],
+    bonds: [[0, 1, 1], [1, 2, 1], [0, 3, 1], [0, 4, 1], [0, 5, 1], [1, 6, 1], [1, 7, 1], [2, 8, 1]],
+    functional_groups: [
+      { name: 'Alcohol', atom_indices: [1, 2], categories: ['oxygen', 'hydroxy', 'polar'] },
+    ],
+    properties: { logp: 0.0823, tpsa: 20.23, hba: 1, hbd: 1, rotatable_bonds: 0, ring_count: 0, fraction_csp3: 1 },
+  },
+  explanation: 'The hydroxyl group makes ethanol polar — it can hydrogen-bond.',
+  tools_used: [],
 };
 
 async function setupAppWithAuth() {
@@ -74,6 +95,10 @@ async function setupAppWithAuth() {
 
 function exploreRequests(backend: FakeBackend) {
   return backend.requests.filter((r) => r.url.endsWith('/chemistry/explore'));
+}
+
+function explainRequests(backend: FakeBackend) {
+  return backend.requests.filter((r) => r.url.endsWith('/chemistry/explain_molecule'));
 }
 
 describe('Chemistry Explorer (web)', () => {
@@ -246,7 +271,134 @@ describe('Chemistry Explorer (web)', () => {
     await user.click(screen.getByRole('button', { name: /Sign out/ }));
 
     await screen.findByTestId('google-sign-in-host');
-    expect(screen.queryByRole('button', { name: /Explore/ })).toBeNull();
+        expect(screen.queryByRole('button', { name: /Explore/ })).toBeNull();
+  });
+
+  test('explaining a structure-bearing molecule renders facts and explanation', async () => {
+    const { backend } = await setupAppWithAuth();
+    backend.setHandler((_m, url, body) => {
+      if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
+      if (url.endsWith('/chemistry/explore')) return jsonResponse(200, ethanolResult);
+      if (url.endsWith('/chemistry/explain_molecule')) {
+        expect(body).toEqual({ input: 'CCO', learning_mode: true });
+        return jsonResponse(200, ethanolExplain);
+      }
+      return jsonResponse(404, { detail: 'not found' });
+    });
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText(/Molecule, formula, or SMILES/i), 'CCO');
+    await user.click(screen.getByRole('button', { name: /Explore/ }));
+    await screen.findByTestId('explorer-result');
+
+    // Learning mode defaults to ON in the UI.
+    expect(screen.getByTestId('learning-mode-toggle')).toHaveAttribute('aria-checked', 'true');
+
+    await user.click(screen.getByRole('button', { name: /Explain this molecule/ }));
+    await screen.findByTestId('explain-result');
+    expect(screen.getByTestId('explanation-text')).toHaveTextContent(/hydroxyl group makes ethanol polar/);
+    // Facts are engine ground truth (shown, not recomputed) — never the explanation prose.
+    const facts = screen.getAllByTestId('explain-fact');
+    expect(facts.length).toBe(4);
+    expect(facts.some((f) => f.textContent?.includes('C2H6O'))).toBe(true);
+    expect(facts.some((f) => f.textContent?.includes('Alcohol'))).toBe(true);
+        expect(explainRequests(backend).length).toBe(1);
+    expect(screen.queryByTestId('explain-error')).toBeNull();
+  });
+
+  test('toggling learning mode off sends learning_mode: false on the next explain', async () => {
+    const { backend } = await setupAppWithAuth();
+    let sentBody: unknown = null;
+    backend.setHandler((_m, url, body) => {
+      if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
+      if (url.endsWith('/chemistry/explore')) return jsonResponse(200, ethanolResult);
+      if (url.endsWith('/chemistry/explain_molecule')) {
+        sentBody = body;
+        return jsonResponse(200, ethanolExplain);
+      }
+      return jsonResponse(404, { detail: 'not found' });
+    });
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText(/Molecule, formula, or SMILES/i), 'CCO');
+    await user.click(screen.getByRole('button', { name: /Explore/ }));
+    await screen.findByTestId('explorer-result');
+
+    // Toggle learning mode OFF.
+    await user.click(screen.getByTestId('learning-mode-toggle'));
+    expect(screen.getByTestId('learning-mode-toggle')).toHaveAttribute('aria-checked', 'false');
+
+    await user.click(screen.getByRole('button', { name: /Explain this molecule/ }));
+    await screen.findByTestId('explain-result');
+        expect(sentBody).toEqual({ input: 'CCO', learning_mode: false });
+  });
+
+  test('shows a 422 error when the molecule cannot be explained', async () => {
+    const { backend } = await setupAppWithAuth();
+    backend.setHandler((_m, url) => {
+      if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
+      if (url.endsWith('/chemistry/explore')) return jsonResponse(200, ethanolResult);
+      if (url.endsWith('/chemistry/explain_molecule')) {
+        return jsonResponse(422, {
+          detail: { code: 'unsupported_input', message: 'No structure to explain.' },
+        });
+      }
+      return jsonResponse(404, { detail: 'not found' });
+    });
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText(/Molecule, formula, or SMILES/i), 'CCO');
+    await user.click(screen.getByRole('button', { name: /Explore/ }));
+    await screen.findByTestId('explorer-result');
+
+    await user.click(screen.getByRole('button', { name: /Explain this molecule/ }));
+        expect(await screen.findByTestId('explain-error')).toHaveTextContent(/No structure to explain/);
+    expect(screen.queryByTestId('explain-result')).toBeNull();
+  });
+
+  test('shows a network error when the tutor is unreachable', async () => {
+    const { backend } = await setupAppWithAuth();
+    backend.setHandler((_m, url) => {
+      if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
+      if (url.endsWith('/chemistry/explore')) return jsonResponse(200, ethanolResult);
+      if (url.endsWith('/chemistry/explain_molecule')) return jsonResponse(200, ethanolExplain);
+      return jsonResponse(404, { detail: 'not found' });
+    });
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText(/Molecule, formula, or SMILES/i), 'CCO');
+    await user.click(screen.getByRole('button', { name: /Explore/ }));
+    await screen.findByTestId('explorer-result');
+
+    backend.failNextRequestOnce();
+    await user.click(screen.getByRole('button', { name: /Explain this molecule/ }));
+        expect(await screen.findByTestId('explain-error')).toHaveTextContent(/Cannot reach the Chemora server/);
+  });
+
+  test('shows a loading state while explaining is in flight', async () => {
+    const { backend } = await setupAppWithAuth();
+    let resolveExplain: (v: Response) => void = () => {};
+    const pending = new Promise<Response>((resolve) => {
+      resolveExplain = resolve;
+    });
+    backend.setHandler((_m, url) => {
+      if (url.endsWith('/auth/me')) return jsonResponse(200, fakeUser);
+      if (url.endsWith('/chemistry/explore')) return jsonResponse(200, ethanolResult);
+      if (url.endsWith('/chemistry/explain_molecule')) return pending;
+      return jsonResponse(404, { detail: 'not found' });
+    });
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText(/Molecule, formula, or SMILES/i), 'CCO');
+    await user.click(screen.getByRole('button', { name: /Explore/ }));
+    await screen.findByTestId('explorer-result');
+
+    await user.click(screen.getByRole('button', { name: /Explain this molecule/ }));
+    expect(await screen.findByTestId('explain-loading')).toBeInTheDocument();
+    expect(screen.getByTestId('explain-button')).toBeDisabled();
+
+    resolveExplain(jsonResponse(200, ethanolExplain));
+    await screen.findByTestId('explain-result');
   });
 
 });

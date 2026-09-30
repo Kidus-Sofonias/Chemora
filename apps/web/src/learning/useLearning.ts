@@ -108,13 +108,14 @@ function patchActive(
   return { kind: 'ready', active };
 }
 
-export function useLearning(api: ApiClient) {
+export function useLearning(api: ApiClient, options?: { initialLessonSlug?: string }) {
   const [catalog, setCatalog] = useState<CatalogState>({ kind: 'loading' });
   const [progressBySlug, setProgressBySlug] = useState<CatalogProgress>({});
   const [current, setCurrent] = useState<LessonState>({ kind: 'idle' });
   const elementCache = useRef(new Map<string, ElementDetail>());
   const moleculeCache = useRef(new Map<string, ChemistryExploreResult>());
   const requestId = useRef(0);
+  const { initialLessonSlug } = options ?? {};
 
   useEffect(() => {
     let cancelled = false;
@@ -357,6 +358,15 @@ export function useLearning(api: ApiClient) {
     },
     [api],
   );
+
+  // Deep-open a lesson selected elsewhere (e.g. the M43 dashboard). Fires once
+  // while the viewer is idle; the lesson's own first-incomplete section is then
+  // focused from the fetched progress, so no extra focus plumbing is needed.
+  useEffect(() => {
+    if (initialLessonSlug && current.kind === 'idle') {
+      void openLesson(initialLessonSlug);
+    }
+  }, [initialLessonSlug, current.kind, openLesson]);
 
   return {
     catalog,

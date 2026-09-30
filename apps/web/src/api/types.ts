@@ -50,6 +50,8 @@ export interface MoleculeStructure {
   atom_symbols: string[];
   bonds: number[][];
   svg: string;
+  /** Functional groups detected on this structure (curricular surface only). */
+  functional_groups?: FunctionalGroup[];
 }
 
 /** Bond-derived descriptors computed by ChemEngine. */
@@ -173,6 +175,7 @@ export interface LessonSummary {
   estimated_minutes: number;
   section_count: number;
   question_count: number;
+  objectives: string[];
 }
 
 export interface LessonListResult {
@@ -192,6 +195,7 @@ export type SectionKind =
   | 'introduction'
   | 'explanation'
   | 'chemistry_spotlight'
+  | 'examples'
   | 'practice'
   | 'summary';
 
@@ -220,6 +224,7 @@ export interface LessonDetail {
   subject: string;
   difficulty: string;
   estimated_minutes: number;
+  objectives: string[];
   sections: SectionPublic[];
 }
 
@@ -233,6 +238,52 @@ export interface LearningProgress {
   answers: Record<string, boolean>;
   progress_percent: number;
   completed: boolean;
+}
+
+/** Dashboard view: a started lesson (GET /api/v1/learning/dashboard, M43). */
+export interface DashboardSectionProgress {
+  lesson_slug: string;
+  title: string;
+  description: string;
+  subject: string;
+  difficulty: string;
+  estimated_minutes: number;
+  objectives: string[];
+  progress_percent: number;
+  completed: boolean;
+  completed_sections: string[];
+  section_count: number;
+  questions_attempted: number;
+  questions_correct: number;
+  needs_review: boolean;
+  resume_section_id: string | null;
+  last_accessed_at: string | null;
+}
+
+/** Dashboard view: aggregate progress for one curricular subject. */
+export interface DashboardTopicProgress {
+  subject: string;
+  lesson_count: number;
+  completed: number;
+  progress_percent: number;
+}
+
+/** Dashboard view: roll-up totals. */
+export interface DashboardTotals {
+  started: number;
+  in_progress: number;
+  completed: number;
+  needs_review: number;
+}
+
+/** Dashboard view: catalog + progress composition (read-only, M43). */
+export interface DashboardResponse {
+  sections: DashboardSectionProgress[];
+  topics: DashboardTopicProgress[];
+  totals: DashboardTotals;
+  recommended_slug: string | null;
+  recommended_reason: string;
+  recommended: DashboardSectionProgress | null;
 }
 
 /** Server-side answer validation result (POST .../answers). */
@@ -291,3 +342,58 @@ export type TutorStreamEvent =
   | { type: 'delta'; text: string }
   | { type: 'done'; tools_used: string[]; lesson_slugs: string[] }
   | { type: 'error'; code: string; message: string };
+
+
+/**
+ * A single functional group detected by ChemEngine. Only curricular-safe surface
+ * data is exposed — internal SMARTS / priority plumbing is never sent to the
+ * client.
+ */
+export interface FunctionalGroup {
+  name: string;
+  atom_indices: number[];
+  categories: string[];
+}
+
+// ── M41: explain_molecule contract ─────────────────────────────────────────
+// Facts are deterministic (ChemEngine ground truth); the model returns only the
+// explanation. The client renders both but keeps the distinction visible.
+
+/**
+ * Deterministic facts assembled from a ChemEngine chemistry result. These are
+ * passed to the AI tutor as context and shown to the student unchanged — they
+ * are computed, not generated.
+ */
+export interface MoleculeExplainFacts {
+  formula: string;
+  exact_mass: number;
+  average_mass: number;
+  heavy_atom_count: number;
+  atom_count: number;
+  canonical_smiles: string;
+  atom_symbols: string[];
+  bonds: number[][];
+  functional_groups: FunctionalGroup[];
+  properties: MoleculeProperties;
+}
+
+/**
+ * Response from POST /api/v1/chemistry/explain_molecule. `facts` are the
+ * engine-computed values (shown verbatim); `explanation` is the tutor's
+ * reasoning over those facts (shown as prose).
+ */
+export interface ChemistryExplainResponse {
+  input: string;
+  detected_type: string | null;
+  facts: MoleculeExplainFacts;
+  explanation: string;
+  tools_used: string[];
+}
+
+/** Request body for POST /api/v1/chemistry/explain_molecule. */
+export interface ChemistryExplainRequest {
+  /** A SMILES, InChI, common name, or formula to explain. */
+  input: string;
+  /** When true, the tutor uses a student-friendly voice (default: true). */
+  learning_mode?: boolean;
+}

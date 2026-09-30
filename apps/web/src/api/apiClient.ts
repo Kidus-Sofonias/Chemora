@@ -1,5 +1,7 @@
 import type {
   AnswerResult,
+  DashboardResponse,
+  ChemistryExplainResponse,
   ChemistryExploreResult,
   CurrentUser,
   ElementDetail,
@@ -104,6 +106,26 @@ export class ApiClient {
     });
   }
 
+  /**
+   * POST /api/v1/chemistry/explain_molecule.
+   *
+   * Facts (formula, masses, atoms, bonds, functional groups, descriptors) come
+   * from ChemEngine via the backend; the model supplies only the explanation.
+   * Auth-gated server-side — identity comes from the session, never the client.
+   */
+  async explainMolecule(
+    input: string,
+    learningMode: boolean,
+  ): Promise<ChemistryExplainResponse> {
+    return this.request<ChemistryExplainResponse>(
+      '/api/v1/chemistry/explain_molecule',
+      {
+        method: 'POST',
+        body: { input, learning_mode: learningMode },
+      },
+    );
+  }
+
   /** GET /api/v1/elements — periodic-table metadata for all 118 elements. */
   async getElements(): Promise<ElementListResult> {
     return this.request<ElementListResult>('/api/v1/elements');
@@ -138,6 +160,11 @@ export class ApiClient {
   /** GET /api/v1/learning/progress — progress across all started lessons. */
   async getAllLessonProgress(): Promise<{ progress: LearningProgress[] }> {
     return this.request<{ progress: LearningProgress[] }>('/api/v1/learning/progress');
+  }
+
+  /** GET /api/v1/learning/dashboard � the student dashboard (M43). */
+  async getDashboard(): Promise<DashboardResponse> {
+    return this.request<DashboardResponse>('/api/v1/learning/dashboard');
   }
 
   /** POST /api/v1/learning/lessons/{slug}/sections/{id}/complete */

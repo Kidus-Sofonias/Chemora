@@ -373,6 +373,66 @@ class TestService:
         assert len(prompt) <= budget + 2000  # system + context + question + 1 turn
 
 
+    async def test_explain_renders_molecule_context_and_learning_prompt(
+        self, db_session: AsyncSession
+    ) -> None:
+        """explain() injects ChemEngine facts as context and a learning-mode prompt.
+
+        Facts are passed through verbatim (ground truth); the model only provides
+        the explanation. The fact-vs-explanation split is enforced by the prompt
+        (facts inside the system message) and surfaced at the API as separate
+        `facts` (engine) and `explanation` (model) fields.
+        """
+        provider = _ScriptedProvider(["The hydroxyl group makes ethanol polar."])
+        service = TutorService(db_session, provider=provider)
+        facts = {
+            "formula": "C2H6O",
+            "exact_mass": 46.041865,
+            "average_mass": 46.069,
+            "heavy_atom_count": 3,
+            "atom_count": 9,
+            "canonical_smiles": "CCO",
+            "atom_symbols": ["C", "C", "O", "H", "H", "H", "H", "H", "H"],
+            "bonds": [[0, 1, 1], [1, 2, 1], [0, 3, 1]],
+            "functional_groups": [
+                {
+                    "name": "Alcohol",
+                    "atom_indices": [1, 2],
+                    "categories": ["oxygen", "hydroxy", "polar"],
+                }
+            ],
+            "properties": {"logp": 0.0823, "tpsa": 20.23, "hbd": 1},
+        }
+        result = await service.explain(uuid.uuid4(), facts, learning_mode=True)
+
+        # The model saw the molecule facts inside the system prompt.
+        prompt = " ".join(
+            str(m.get("content", "")) for m in provider.calls[0]
+        )
+        assert "MOLECULE FACTS" in prompt
+        assert "Formula: C2H6O" in prompt
+        assert "Alcohol" in prompt
+        # Learning mode switches the system prompt to a student-friendly voice.
+        assert "student-friendly" in prompt
+        # No lesson content is retrieved for an explanation turn.
+        assert result.lesson_slugs == []
+        # The answer is the model's explanation, returned verbatim.
+        assert result.answer == "The hydroxyl group makes ethanol polar."
+        assert result.tools_used == []
+
+    async def test_explain_default_prompt_is_technical_without_learning_mode(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Without learning mode, the technical prompt is used."""
+        provider = _ScriptedProvider(["ok"])
+        service = TutorService(db_session, provider=provider)
+        facts = {"formula": "H2O", "exact_mass": 18.010565}
+        await service.explain(uuid.uuid4(), facts, learning_mode=False)
+        prompt = " ".join(str(m.get("content", "")) for m in provider.calls[0])
+        assert "student-friendly" not in prompt
+        assert "EXPLANATION" in prompt
+
+
 # ── API endpoint ─────────────────────────────────────────────────────────
 
 

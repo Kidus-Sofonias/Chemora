@@ -64,6 +64,13 @@ class Lesson(Base, TimestampMixin):
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
+    objectives: Mapped[list[str]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
+        server_default=text("[]"),
+        comment="Learning objectives for the lesson (curricular prose, not chemistry values)",
+    )
     topic: Mapped[str] = mapped_column(String(100), nullable=False)
     difficulty: Mapped[str] = mapped_column(String(20), nullable=False)
     estimated_minutes: Mapped[int] = mapped_column(Integer, nullable=False)

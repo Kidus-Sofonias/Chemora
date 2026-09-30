@@ -12,7 +12,7 @@ import { ExplorerResult } from './ExplorerResult';
  */
 export function ExplorerSection() {
   const api = useApiClient();
-  const { state, explore } = useExplorer(api);
+  const { state, explore, explainState, explain, learningMode, toggleLearningMode } = useExplorer(api);
   const [value, setValue] = useState('');
 
   const handleSubmit = (event: FormEvent) => {
@@ -64,7 +64,15 @@ export function ExplorerSection() {
           </p>
         ) : null}
         <ExplorerFeedback state={state} />
-        {state.kind === 'success' ? <ExplorerResult result={state.result} /> : null}
+        {state.kind === 'success' ? (
+        <ExplorerResult
+          result={state.result}
+          explain={explain}
+          explainState={explainState}
+          learningMode={learningMode}
+          onLearningModeToggle={toggleLearningMode}
+        />
+      ) : null}
       </div>
     </section>
   );

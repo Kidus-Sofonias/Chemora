@@ -574,3 +574,97 @@ code {
     height: 26px;
   }
 }
+
+/* ── M41: Explain (fact-vs-explanation) ────────────────────────────────────── */
+
+.explain-control {
+  border-left: 4px solid #2b6cb0;
+}
+
+.explain-control-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.explain-control-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* Learning-mode toggle — an accessible custom switch. */
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #b8c0cc;
+  border-radius: 999px;
+  background: #ffffff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.switch.on {
+  background: #e8f1fb;
+  border-color: #2b6cb0;
+}
+
+.switch .switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(31, 39, 51, 0.12);
+  transition: transform 150ms ease;
+}
+
+.switch.on .switch-thumb {
+  transform: translateX(20px);
+}
+
+.switch:focus-visible {
+  outline: 3px solid #2b6cb0;
+  outline-offset: 2px;
+}
+
+/* Explanation prose (model output) — visually distinct from engine facts. */
+.explain-text {
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #3c4654;
+  margin: 0.75rem 0;
+  padding: 0.9rem 1.05rem;
+  border-left: 3px solid #2b6cb0;
+  border-radius: 6px;
+  background: #f6f7fb;
+}
+
+.group-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+}
+
+.group-badge {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid #c5d3f0;
+  background: #edf3ff;
+  color: #2b6cb0;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Keep existing element-explanation styles; M41 uses .explain-text instead. */

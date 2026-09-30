@@ -22,6 +22,9 @@ from dataclasses import dataclass, field
 SECTION_KINDS = (
     "introduction",
     "explanation",
+    # A worked, prose walkthrough of a concept (M42). Exercises are rendered as
+    # ordinary prose by the client, exactly like explanation/summary sections.
+    "examples",
     "chemistry_spotlight",
     "practice",
     "summary",
@@ -80,7 +83,12 @@ class Section:
 
 @dataclass(frozen=True, slots=True)
 class Lesson:
-    """A learning lesson with ordered sections and questions."""
+    """A learning lesson: objectives, ordered sections, and practice questions.
+
+    ``objectives`` are stable curricular metadata (what the lesson teaches)
+    and are prose only — they are never chemistry values. Engine-computed
+    chemistry is referenced by ``chemistry_spotlight`` sections, never stored.
+    """
 
     id: str
     slug: str
@@ -92,6 +100,9 @@ class Lesson:
     order: int
     sections: tuple[Section, ...]
     questions: tuple[Question, ...]
+    # Learning objectives are optional and lesson-level (empty by default), so
+    # existing lessons keep working without them.
+    objectives: tuple[str, ...] = field(default=())
 
     def question_by_id(self, question_id: str) -> Question | None:
         """Return the question with the given id, if present."""
@@ -152,6 +163,10 @@ LESSON_ELECTRON_CONFIGURATION = Lesson(
     difficulty="beginner",
     estimated_minutes=8,
     order=1,
+    objectives=(
+        "Determine an atom's electron configuration from its atomic number",
+        "Read electron configurations of the first 20 elements",
+    ),
     sections=(
         Section(
             id="intro",
@@ -823,6 +838,10 @@ LESSON_CHEMICAL_BONDING = Lesson(
     difficulty="beginner",
     estimated_minutes=9,
     order=8,
+    objectives=(
+        "Distinguish ionic and covalent bonding by the elements involved",
+        "Predict whether a bond transfers or shares electrons",
+    ),
     sections=(
         Section(
             id="intro",
@@ -1552,6 +1571,235 @@ LESSON_SHORT_PEPTIDES = Lesson(
 )
 
 
+LESSON_GAS_LAWS = Lesson(
+    id="lesson-gas-laws",
+    slug="gas-laws",
+    title="The Gas Laws",
+    description=(
+        "Pressure, volume, and temperature are linked for every gas by a "
+        "small set of laws that connect to live molecule data from the "
+        "engine."
+    ),
+    subject="gases",
+    difficulty="intermediate",
+    estimated_minutes=9,
+    order=14,
+    objectives=(
+        "Relate pressure, volume, and temperature with Boyle's, Charles's, and Gay-Lussac's laws",
+        "Calculate gas properties with the ideal gas law PV = nRT",
+    ),
+    sections=(
+        Section(
+            id="intro",
+            kind="introduction",
+            title="Gases push on their walls",
+            body=(
+                "A gas is a swarm of particles far apart, moving in "
+                "random straight lines. Their collisions with every wall "
+                "are averaged into the pressure the gas exerts.",
+                "Change the volume, the temperature, or the amount of gas, "
+                "and that pressure changes predictably. The gas laws link "
+                "the three.",
+            ),
+        ),
+        Section(
+            id="explain",
+            kind="explanation",
+            title="Boyle, Charles, and the ideal gas law",
+            body=(
+                "At constant temperature, volume and pressure are inversely "
+                "related (Boyle). At constant pressure, volume grows with "
+                "temperature (Charles). At constant volume, pressure grows "
+                "with temperature (Gay-Lussac's).",
+                "Combined they give the ideal gas law, PV = nRT, where R is "
+                "0.0821 L·atm/(mol·K). At STP (0 deg C, 1 atm) one mole of "
+                "any ideal gas fills 22.4 L.",
+            ),
+        ),
+        Section(
+            id="examples",
+            kind="examples",
+            title="Worked example",
+            body=(
+                "One mole of ideal gas sits in 22.4 L at 1.00 atm. "
+                "Rearranging PV = nRT to T = PV/(nR) = (1.00 * 22.4) / "
+                "(1.00 * 0.0821) ≈ 273 K, i.e. 0 deg C — exactly STP. The "
+                "same law that predicts this also sets the scale for the "
+                "live molecule analysis beside you.",
+            ),
+        ),
+        Section(
+            id="spotlight",
+            kind="chemistry_spotlight",
+            title="Carbon dioxide, live",
+            body=(
+                "Carbon dioxide is a classic nonpolar gas. Its live analysis "
+                "below shows the formula, molar mass, atoms, and structure "
+                "the engine computes — the same rules behind the gas laws.",
+            ),
+            molecule_input="CO2",
+        ),
+        Section(
+            id="practice",
+            kind="practice",
+            title="Check your understanding",
+            body=(),
+            question_ids=("gas-boyle", "gas-stp", "gas-co2"),
+        ),
+        Section(
+            id="summary",
+            kind="summary",
+            title="Key takeaways",
+            body=(
+                "Volume, pressure, and temperature interlock in simple, "
+                "predictable ways.",
+                "PV = nRT ties them together; at STP one mole fills 22.4 L.",
+            ),
+        ),
+    ),
+    questions=(
+        _q(
+            "gas-boyle",
+            "For an ideal gas at constant temperature, halving the volume "
+            "doubles the pressure. Which law is this?",
+            "Boyle's law",
+            "Boyle's law states PV = constant at fixed temperature, so halving "
+            "V doubles P.",
+            options=[
+                "Boyle's law",
+                "Charles's law",
+                "Avogadro's law",
+                "Gay-Lussac's law",
+            ],
+        ),
+        _q(
+            "gas-stp",
+            "How many liters does 1.00 mole of an ideal gas occupy at STP "
+            "(1.00 atm, 273 K)? Use R = 0.0821 L·atm/(mol·K), and round to "
+            "one decimal place.",
+            "22.4",
+            "V = nRT/P = (1.00 * 0.0821 * 273) / 1.00 ≈ 22.4 L at STP.",
+        ),
+        _q(
+            "gas-co2",
+            "Write the chemical formula of carbon dioxide (one carbon, two "
+            "oxygens).",
+            "CO2",
+            "Carbon dioxide is one carbon with two oxygens: CO2, which the "
+            "engine canonicalises to itself.",
+            kind="formula",
+        ),
+    ),
+)
+
+
+LESSON_CHEMICAL_NOMENCLATURE = Lesson(
+    id="lesson-chemical-nomenclature",
+    slug="chemical-nomenclature",
+    title="Chemical Nomenclature",
+    description=(
+        "Names and formulas are two views of the same substances — and "
+        "Chemora canonicalises either direction through the engine."
+    ),
+    subject="nomenclature",
+    difficulty="beginner",
+    estimated_minutes=8,
+    order=15,
+    objectives=(
+        "Write formulas from ionic and molecular names, and vice versa",
+        "Distinguish ionic (-ide) naming from molecular (prefix) naming",
+    ),
+    sections=(
+        Section(
+            id="intro",
+            kind="introduction",
+            title="A name means a structure",
+            body=(
+                "Saying 'sodium chloride' pins down exactly one sodium ion "
+                "and one chloride ion. Saying 'carbon dioxide' pins down one "
+                "carbon and two oxygens. Names and formulas are two languages "
+                "for the same thing.",
+            ),
+        ),
+        Section(
+            id="explain",
+            kind="explanation",
+            title="Ionic and molecular naming",
+            body=(
+                "For an ionic compound, the cation keeps its name (sodium) "
+                "and the anion becomes '-ide' (chloride): sodium chloride, "
+                "NaCl. For two nonmetals, use prefixes and end in '-ide': "
+                "carbon dioxide, CO2.",
+            ),
+        ),
+        Section(
+            id="examples",
+            kind="examples",
+            title="Worked example",
+            body=(
+                "Calcium fluoride: Ca^2+ needs two F^- to balance, so the "
+                "formula is CaF2. Dinitrogen monoxide: the 'di-' prefix on "
+                "nitrogen means two N atoms with one O, giving N2O.",
+            ),
+        ),
+        Section(
+            id="spotlight",
+            kind="chemistry_spotlight",
+            title="Water, live",
+            body=(
+                "Water is the canonical polar molecule. Its live analysis "
+                "below shows how the engine computes the formula, masses, and "
+                "structure — the same engine that accepts HOH and H2O as the "
+                "same molecule.",
+            ),
+            molecule_input="H2O",
+        ),
+        Section(
+            id="practice",
+            kind="practice",
+            title="Check your understanding",
+            body=(),
+            question_ids=("nom-ionic", "nom-water", "nom-sodium"),
+        ),
+        Section(
+            id="summary",
+            kind="summary",
+            title="Key takeaways",
+            body=(
+                "Ionic: metal name + '-ide'; balance charges for the formula.",
+                "Molecular: prefixes + '-ide'; the engine canonicalises "
+                "equivalent formulas (H2O == HOH).",
+            ),
+        ),
+    ),
+    questions=(
+        _q(
+            "nom-ionic",
+            "Which formula is sodium chloride?",
+            "NaCl",
+            "Sodium (Na+) and chloride (Cl-) pair one-to-one as NaCl.",
+            options=["NaCl", "Na2Cl", "NaCl2", "Na2Cl2"],
+        ),
+        _q(
+            "nom-water",
+            "Two hydrogen atoms and one oxygen atom form a molecule. Write "
+            "its chemical formula (the engine accepts H2O or HOH).",
+            "H2O",
+            "Both H2O and HOH canonicalise to the same molecule: H2O.",
+            kind="formula",
+        ),
+        _q(
+            "nom-sodium",
+            "What is the chemical symbol of sodium?",
+            "Na",
+            "Sodium's symbol is Na; the engine resolves it to atomic "
+            "number 11.",
+            kind="element",
+        ),
+    ),
+)
+
+
 LESSONS = (
     LESSON_ELECTRON_CONFIGURATION,
     LESSON_VALENCE_ELECTRONS,
@@ -1567,6 +1815,8 @@ LESSONS = (
     LESSON_AMINO_ACIDS,
     LESSON_PEPTIDE_BONDS,
     LESSON_SHORT_PEPTIDES,
+    LESSON_GAS_LAWS,
+    LESSON_CHEMICAL_NOMENCLATURE,
 )
 
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { LoginScreen } from './LoginScreen';
@@ -6,6 +6,7 @@ import { AuthenticatedScreen } from './AuthenticatedScreen';
 import { ExplorerSection } from './ExplorerPage';
 import { ElementExplorerPage } from './ElementExplorerPage';
 import { LearningPage } from './LearningPage';
+import { DashboardPage } from './DashboardPage';
 import { TutorPage } from './TutorPage';
 
 /**
@@ -36,12 +37,23 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-type Section = 'chemistry' | 'elements' | 'learn' | 'tutor';
+type Section = 'chemistry' | 'dashboard' | 'elements' | 'learn' | 'tutor';
 
 /** The application root: switches on the current auth state. */
 export function RootRouter() {
   const auth = useAuth();
   const [section, setSection] = useState<Section>('chemistry');
+  const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
+
+  // Centralised section switches: the dashboard is the only entry point that
+  // carries a slug into Learn (it auto-opens); every other switch clears it.
+  const navigate = useCallback(
+    (next: Section, lesson?: string) => {
+      setSection(next);
+      setSelectedLesson(lesson ?? null);
+    },
+    [],
+  );
 
   if (auth.state === 'loading') {
     return <LoadingScreen />;
@@ -59,7 +71,7 @@ export function RootRouter() {
           type="button"
           className={`button${section === 'chemistry' ? ' active' : ''}`}
           aria-pressed={section === 'chemistry'}
-          onClick={() => setSection('chemistry')}
+          onClick={() => navigate('chemistry')}
         >
           Chemistry
         </button>
@@ -67,7 +79,7 @@ export function RootRouter() {
           type="button"
           className={`button${section === 'elements' ? ' active' : ''}`}
           aria-pressed={section === 'elements'}
-          onClick={() => setSection('elements')}
+          onClick={() => navigate('elements')}
         >
           Elements
         </button>
@@ -75,25 +87,38 @@ export function RootRouter() {
           type="button"
           className={`button${section === 'learn' ? ' active' : ''}`}
           aria-pressed={section === 'learn'}
-          onClick={() => setSection('learn')}
+          onClick={() => navigate('learn')}
         >
           Learn
         </button>
         <button
           type="button"
+          className={`button${section === 'dashboard' ? ' active' : ''}`}
+          aria-pressed={section === 'dashboard'}
+          onClick={() => navigate('dashboard')}
+        >
+          Dashboard
+        </button>
+        <button
+          type="button"
           className={`button${section === 'tutor' ? ' active' : ''}`}
           aria-pressed={section === 'tutor'}
-          onClick={() => setSection('tutor')}
+          onClick={() => navigate('tutor')}
         >
           Tutor
         </button>
       </nav>
       {section === 'chemistry' ? (
         <ExplorerSection />
+      ) : section === 'dashboard' ? (
+        <DashboardPage
+          onStartLesson={(slug) => navigate('learn', slug)}
+          onOpenCatalog={() => navigate('learn')}
+        />
       ) : section === 'elements' ? (
         <ElementExplorerPage />
       ) : section === 'learn' ? (
-        <LearningPage />
+        <LearningPage initialLessonSlug={selectedLesson} />
       ) : (
         <TutorPage />
       )}

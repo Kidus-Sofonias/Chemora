@@ -15,10 +15,10 @@ import './learning.css';
  * API — and rendered by the same engine-backed components the Element and
  * Chemistry Explorers use. Answer grading and progress live server-side.
  */
-export function LearningPage() {
+export function LearningPage({ initialLessonSlug }: { initialLessonSlug?: string | null } = {}) {
   const api = useApiClient();
   const { catalog, progressBySlug, current, openLesson, backToCatalog, completeSection, submitAnswer } =
-    useLearning(api);
+    useLearning(api, initialLessonSlug ? { initialLessonSlug } : undefined);
 
   if (current.kind === 'ready') {
     return (

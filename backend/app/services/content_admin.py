@@ -101,9 +101,7 @@ class AdminContentService:
         if errors:
             raise ContentValidationError(errors)
         if await self._repo.slug_exists(lesson.slug):
-            raise LearningError(
-                "duplicate_slug", "A lesson with that slug already exists."
-            )
+            raise LearningError("duplicate_slug", "A lesson with that slug already exists.")
         await self._repo.upsert_lesson(lesson, published=False)
         return lesson
 
@@ -181,6 +179,7 @@ class AdminContentService:
         """
         errors: list[dict[str, str]] = []
         self._validate_metadata(lesson, errors)
+        self._validate_objectives(lesson, errors)
         self._validate_sections(lesson, errors)
         self._validate_questions(lesson, errors)
         self._validate_chemistry(lesson, errors)
@@ -197,15 +196,11 @@ class AdminContentService:
                 }
             )
         elif len(slug) > MAX_SLUG_LENGTH:
-            errors.append(
-                {"field": "slug", "message": "Slug must be 100 characters or fewer."}
-            )
+            errors.append({"field": "slug", "message": "Slug must be 100 characters or fewer."})
         if not lesson.title.strip():
             errors.append({"field": "title", "message": "A title is required."})
         if not lesson.description.strip():
-            errors.append(
-                {"field": "description", "message": "A description is required."}
-            )
+            errors.append({"field": "description", "message": "A description is required."})
         if not lesson.subject.strip():
             errors.append({"field": "topic", "message": "A topic is required."})
         if lesson.difficulty not in DIFFICULTIES:
@@ -225,11 +220,34 @@ class AdminContentService:
         if lesson.order < 1:
             errors.append({"field": "ordering", "message": "Ordering must be at least 1."})
 
+    def _validate_objectives(self, lesson: Lesson, errors: list[dict[str, str]]) -> None:
+        """Learning objectives are optional, but when present must be real."""
+        for i, objective in enumerate(lesson.objectives):
+            if not isinstance(objective, str) or not objective.strip():
+                errors.append(
+                    {
+                        "field": "objectives",
+                        "message": f"Learning objective #{i + 1} is empty.",
+                    }
+                )
+            elif len(objective) > 200:
+                errors.append(
+                    {
+                        "field": "objectives",
+                        "message": f"Learning objective #{i + 1} is too long (max 200 characters).",
+                    }
+                )
+        if len(lesson.objectives) > 6:
+            errors.append(
+                {
+                    "field": "objectives",
+                    "message": "At most 6 learning objectives are allowed.",
+                }
+            )
+
     def _validate_sections(self, lesson: Lesson, errors: list[dict[str, str]]) -> None:
         if not lesson.sections:
-            errors.append(
-                {"field": "sections", "message": "A lesson needs at least one section."}
-            )
+            errors.append({"field": "sections", "message": "A lesson needs at least one section."})
         seen: set[str] = set()
         for section in lesson.sections:
             if section.id in seen:
@@ -328,9 +346,7 @@ class AdminContentService:
                             "its options.",
                         }
                     )
-            elif question.kind == "numeric" and not _NUMERIC_RE.match(
-                question.correct.strip()
-            ):
+            elif question.kind == "numeric" and not _NUMERIC_RE.match(question.correct.strip()):
                 errors.append(
                     {
                         "field": "questions",

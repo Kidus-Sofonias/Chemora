@@ -78,6 +78,7 @@ class AdminLesson(BaseModel):
     published_at: str | None
     created_at: str | None
     updated_at: str | None
+    objectives: list[str] = Field(default_factory=list)
     sections: list[AdminSection]
 
 
@@ -151,6 +152,7 @@ class AdminLessonUpsert(BaseModel):
     difficulty: str = Field(min_length=1, max_length=20)
     estimated_minutes: int = Field(ge=1)
     order: int = Field(ge=1)
+    objectives: list[str] = Field(default_factory=list, max_length=6)
     sections: list[AdminSectionUpsert]
 
 
@@ -199,6 +201,7 @@ def _to_domain(payload: AdminLessonUpsert) -> Lesson:
         difficulty=payload.difficulty,
         estimated_minutes=payload.estimated_minutes,
         order=payload.order,
+        objectives=tuple(payload.objectives or []),
         sections=sections,
         questions=questions,
     )
@@ -216,6 +219,7 @@ def _lesson_response(row: LessonRow) -> AdminLesson:
         slug=row.slug,
         title=row.title,
         description=row.description,
+        objectives=list(row.objectives or []),
         topic=row.topic,
         difficulty=row.difficulty,
         estimated_minutes=row.estimated_minutes,
@@ -243,9 +247,7 @@ def _lesson_response(row: LessonRow) -> AdminLesson:
                         options=list(question.options or []),
                         ordering=question.ordering,
                     )
-                    for question in sorted(
-                        section.questions or [], key=lambda q: q.ordering
-                    )
+                    for question in sorted(section.questions or [], key=lambda q: q.ordering)
                 ],
             )
             for section in sections
@@ -471,9 +473,7 @@ async def admin_preview_lesson(
     sections_out: list[PreviewSectionPublic] = []
     for section in lesson.sections:
         questions_out = [
-            PreviewQuestionPublic(
-                id=q.id, kind=q.kind, prompt=q.prompt, options=list(q.options)
-            )
+            PreviewQuestionPublic(id=q.id, kind=q.kind, prompt=q.prompt, options=list(q.options))
             for q in (lesson.question_by_id(qid) for qid in section.question_ids)
             if q is not None
         ]

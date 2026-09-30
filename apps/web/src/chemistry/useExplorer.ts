@@ -1,6 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
 import { ApiError, type ApiClient } from '../api/apiClient';
-import type { ChemistryExploreResult } from '../api/types';
+import type {
+  ChemistryExplainResponse,
+  ChemistryExploreResult,
+} from '../api/types';
 
 /**
  * Explorer states. Distinct kinds let the UI treat:
@@ -17,6 +20,23 @@ export type ExplorerState =
   | { kind: 'server-error'; input: string; message: string }
   | { kind: 'network-error'; input: string; message: string };
 
+/**
+ * Explain states. `idle` until the user requests an explanation; `success`
+ * holds the full explain response (facts + explanation). Error sub-types let
+ * the UI render the right recovery affordance.
+ */
+export type ExplainState =
+  | { kind: 'idle' }
+  | { kind: 'loading'; input: string }
+  | { kind: 'success'; input: string; answer: ChemistryExplainResponse }
+  | {
+      kind: 'error';
+      input: string;
+      message: string;
+      code: string | null;
+      auth?: boolean;
+    };
+
 const NETWORK_MESSAGE =
   'Cannot reach the Chemora server. Check your connection and try again.';
 const SERVER_MESSAGE =
@@ -28,11 +48,19 @@ const SERVER_MESSAGE =
  * - A request for the input already shown is skipped (no repeated requests).
  * - A request is ignored while one is already in flight.
  * - Errors are classified but never retried automatically (no loops).
+ *
+ * The explain flow lives in the same machine so the UI can read a single
+ * `explainState` and toggle `learningMode` alongside exploration.
  */
 export function useExplorer(api: ApiClient) {
   const [state, setState] = useState<ExplorerState>({ kind: 'idle' });
   const inFlight = useRef(false);
   const lastSuccess = useRef<string | null>(null);
+
+  const [explainState, setExplainState] =
+    useState<ExplainState>({ kind: 'idle' });
+  const [learningMode, setLearningMode] = useState(true);
+  const explainInFlight = useRef(false);
 
   const explore = useCallback(
     async (rawInput: string) => {
@@ -70,5 +98,57 @@ export function useExplorer(api: ApiClient) {
     [api],
   );
 
-  return { state, explore };
+  const explain = useCallback(
+    async (input: string) => {
+      if (!input || explainInFlight.current) {
+        return;
+      }
+      explainInFlight.current = true;
+      setExplainState({ kind: 'loading', input });
+      try {
+        const answer = await api.explainMolecule(input, learningMode);
+        setExplainState({ kind: 'success', input, answer });
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 422) {
+          setExplainState({
+            kind: 'error',
+            input,
+            message: err.message ?? 'That molecule cannot be explained.',
+            code: err.code,
+          });
+        } else if (err instanceof ApiError && err.isNetworkError) {
+          setExplainState({
+            kind: 'error',
+            input,
+            message: NETWORK_MESSAGE,
+            code: null,
+          });
+        } else if (err instanceof ApiError && err.isAuthError) {
+          setExplainState({
+            kind: 'error',
+            input,
+            message: 'Sign in is required to explain molecules.',
+            code: err.code,
+            auth: true,
+          });
+        } else {
+          setExplainState({
+            kind: 'error',
+            input,
+            message: SERVER_MESSAGE,
+            code: null,
+          });
+        }
+      } finally {
+        explainInFlight.current = false;
+      }
+    },
+    [api, learningMode],
+  );
+
+  const toggleLearningMode = useCallback(() => {
+    setLearningMode((m) => !m);
+  }, []);
+
+  return { state, explore, explainState, explain, learningMode, toggleLearningMode };
 }

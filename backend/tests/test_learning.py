@@ -17,14 +17,10 @@ from httpx import AsyncClient
 from .conftest import MockGoogleTokenVerifier
 
 
-async def _login(
-    client: AsyncClient, verifier: MockGoogleTokenVerifier
-) -> None:
+async def _login(client: AsyncClient, verifier: MockGoogleTokenVerifier) -> None:
     """Register a token and authenticate the client (cookie stored by httpx)."""
     verifier.register_token("learn_token", sub="sub_learner")
-    response = await client.post(
-        "/api/v1/auth/google", json={"credential": "learn_token"}
-    )
+    response = await client.post("/api/v1/auth/google", json={"credential": "learn_token"})
     assert response.status_code == 200
 
 
@@ -54,6 +50,9 @@ async def test_lesson_catalog(api_client: AsyncClient) -> None:
         "amino-acids",
         "peptide-bonds",
         "short-peptides",
+        # M42 curriculum structure: learning objectives + worked examples.
+        "gas-laws",
+        "chemical-nomenclature",
     ]
     first = lessons[0]
     assert set(first.keys()) == {
@@ -66,6 +65,7 @@ async def test_lesson_catalog(api_client: AsyncClient) -> None:
         "estimated_minutes",
         "section_count",
         "question_count",
+        "objectives",
     }
     assert first["section_count"] == 5
     assert first["question_count"] == 2
@@ -140,9 +140,7 @@ async def test_progress_starts_empty(
 ) -> None:
     """First access creates an empty progress row (resume from zero)."""
     await _login(api_client, mock_google_verifier)
-    response = await api_client.get(
-        "/api/v1/learning/lessons/electron-configuration/progress"
-    )
+    response = await api_client.get("/api/v1/learning/lessons/electron-configuration/progress")
     assert response.status_code == 200
     progress = response.json()
     assert progress == {
@@ -280,9 +278,7 @@ async def test_answer_outcome_persists_in_progress(
         f"/api/v1/learning/lessons/{slug}/answers",
         json={"question_id": "ec-1", "answer": "6"},
     )
-    progress = (
-        await api_client.get(f"/api/v1/learning/lessons/{slug}/progress")
-    ).json()
+    progress = (await api_client.get(f"/api/v1/learning/lessons/{slug}/progress")).json()
     assert progress["answers"] == {"ec-1": True}
 
 
@@ -322,6 +318,8 @@ async def test_progress_unknown_lesson_404(
     response = await api_client.get("/api/v1/learning/lessons/no-such-lesson/progress")
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "lesson_not_found"
+
+
 # -- Expanded content and richer practice (M25) -----------------------------
 #
 # M25 adds two lessons and two ChemEngine-backed question kinds. Grading for
@@ -424,6 +422,8 @@ async def test_unparseable_formula_is_invalid_answer(
     )
     assert response.status_code == 422
     assert response.json()["detail"]["code"] == "invalid_answer"
+
+
 @pytest.mark.asyncio
 async def test_element_answers_accept_symbol_name_and_atomic_number(
     api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
@@ -522,9 +522,7 @@ async def test_progress_list_reports_started_lessons(
 ) -> None:
     """Lessons the user started appear with derived percentages."""
     await _login(api_client, mock_google_verifier)
-    await api_client.post(
-        "/api/v1/learning/lessons/electron-configuration/sections/intro/complete"
-    )
+    await api_client.post("/api/v1/learning/lessons/electron-configuration/sections/intro/complete")
     response = await api_client.get("/api/v1/learning/progress")
     assert response.status_code == 200
     rows = response.json()["progress"]
@@ -556,9 +554,7 @@ async def test_progress_list_hides_unpublished_lessons(
 
     # Admin creates and publishes a scratch lesson.
     _grant_admin(monkeypatch)
-    mock_google_verifier.register_token(
-        "m28_admin_token", sub="sub_m28_admin", email=ADMIN_EMAIL
-    )
+    mock_google_verifier.register_token("m28_admin_token", sub="sub_m28_admin", email=ADMIN_EMAIL)
     await api_client.post("/api/v1/auth/google", json={"credential": "m28_admin_token"})
     created = await api_client.post("/api/v1/admin/lessons", json=payload)
     assert created.status_code == 201
@@ -570,9 +566,7 @@ async def test_progress_list_hides_unpublished_lessons(
         "m28_student_token", sub="sub_m28_student", email="student@chemora.test"
     )
     await api_client.post("/api/v1/auth/google", json={"credential": "m28_student_token"})
-    complete = await api_client.post(
-        f"/api/v1/learning/lessons/{slug}/sections/intro/complete"
-    )
+    complete = await api_client.post(f"/api/v1/learning/lessons/{slug}/sections/intro/complete")
     assert complete.status_code == 200
     rows = (await api_client.get("/api/v1/learning/progress")).json()["progress"]
     assert any(row["lesson_slug"] == slug for row in rows)
@@ -586,3 +580,103 @@ async def test_progress_list_hides_unpublished_lessons(
     await api_client.post("/api/v1/auth/google", json={"credential": "m28_student_token"})
     rows = (await api_client.get("/api/v1/learning/progress")).json()["progress"]
     assert not any(row["lesson_slug"] == slug for row in rows)
+
+
+# -- M42: objectives, examples, and live chemistry grading -------------------
+
+
+@pytest.mark.asyncio
+async def test_lesson_catalog_carries_learning_objectives(
+    api_client: AsyncClient,
+) -> None:
+    """The catalog exposes objectives (present or empty) per lesson."""
+    response = await api_client.get("/api/v1/learning/lessons")
+    assert response.status_code == 200
+    by_slug = {lesson["slug"]: lesson for lesson in response.json()["lessons"]}
+    assert by_slug["chemical-nomenclature"]["objectives"] == [
+        "Write formulas from ionic and molecular names, and vice versa",
+        "Distinguish ionic (-ide) naming from molecular (prefix) naming",
+    ]
+    # Objectives are optional: only some lessons carry them.
+    assert by_slug["chemical-formulas"]["objectives"] == []
+    assert by_slug["electron-configuration"]["objectives"]
+
+
+@pytest.mark.asyncio
+async def test_lesson_detail_exposes_objectives_and_examples(
+    api_client: AsyncClient,
+) -> None:
+    """A lesson detail carries objectives and a worked-examples section."""
+    response = await api_client.get("/api/v1/learning/lessons/gas-laws")
+    assert response.status_code == 200
+    lesson = response.json()
+    assert lesson["objectives"]
+    kinds = [section["kind"] for section in lesson["sections"]]
+    assert "examples" in kinds
+    # Examples come after the worked explanation.
+    assert kinds.index("examples") > kinds.index("explanation")
+
+
+@pytest.mark.asyncio
+async def test_m42_curriculum_lessons_visible_with_engine_tie_in(
+    api_client: AsyncClient,
+) -> None:
+    """The M42 lessons appear in the catalog with a live chemistry tie-in."""
+    response = await api_client.get("/api/v1/learning/lessons")
+    assert response.status_code == 200
+    by_slug = {lesson["slug"]: lesson for lesson in response.json()["lessons"]}
+    for slug in ("gas-laws", "chemical-nomenclature"):
+        assert by_slug[slug]["section_count"] == 6, slug
+        detail = await api_client.get(f"/api/v1/learning/lessons/{slug}")
+        assert detail.status_code == 200, slug
+        spotlight = next(
+            section
+            for section in detail.json()["sections"]
+            if section["kind"] == "chemistry_spotlight"
+        )
+        assert (spotlight.get("element_symbol") or spotlight.get("molecule_input")) is not None, (
+            slug
+        )
+
+
+@pytest.mark.asyncio
+async def test_formula_answer_accepts_equivalent_notation(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """H2O and HOH both resolve to the same canonical formula."""
+    await _login(api_client, mock_google_verifier)
+    response = await api_client.post(
+        "/api/v1/learning/lessons/chemical-nomenclature/answers",
+        json={"question_id": "nom-water", "answer": "HOH"},
+    )
+    assert response.status_code == 200
+    assert response.json()["correct"] is True
+
+
+@pytest.mark.asyncio
+async def test_formula_answer_grades_different_composition_wrong(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """CO2 is a valid formula, but a different one, so it grades wrong."""
+    await _login(api_client, mock_google_verifier)
+    response = await api_client.post(
+        "/api/v1/learning/lessons/chemical-nomenclature/answers",
+        json={"question_id": "nom-water", "answer": "CO2"},
+    )
+    assert response.status_code == 200
+    assert response.json()["correct"] is False
+
+
+@pytest.mark.asyncio
+async def test_element_answer_resolves_nomenclature_question(
+    api_client: AsyncClient, mock_google_verifier: MockGoogleTokenVerifier
+) -> None:
+    """The nomenclature element question resolves symbol/name/atomic number."""
+    await _login(api_client, mock_google_verifier)
+    for answer in ("Na", "sodium", "11"):
+        response = await api_client.post(
+            "/api/v1/learning/lessons/chemical-nomenclature/answers",
+            json={"question_id": "nom-sodium", "answer": answer},
+        )
+        assert response.status_code == 200, answer
+        assert response.json()["correct"] is True, answer

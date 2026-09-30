@@ -97,6 +97,20 @@ cd packages/chemengine
 pytest tests/ -v
 ```
 
+## Learning Experience (M24-M43)
+
+The Chemistry Learning Core (M24) provides catalog-driven lessons; M25 adds practice
+and server-graded questions; M28 expands the curriculum; M41 refines the AI tutor; M42
+adds gas-laws and chemical-nomenclature lessons with learning objectives. The **M43
+Student Dashboard** (`GET /api/v1/learning/dashboard`) surfaces continue-learning,
+recent lessons, progress-by-topic, a practice/needs-review summary, and a deterministic
+next-lesson recommendation, with a mobile-responsive and accessible UI.
+
+- **Backend:** dashboard endpoint composing `LessonProgress` + catalog into a
+  `DashboardResponse` DTO; pure `recommend_next_lesson()` rule; auth-gated; 10 tests.
+- **Web:** `DashboardPage`, `useDashboard` hook, dashboard routing/section nav, typed
+  DTOs + `getDashboard()` client; 8 tests. `tsc --noEmit` clean; `vite build` green.
+
 ## License
 
 MIT

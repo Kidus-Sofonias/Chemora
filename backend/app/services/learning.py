@@ -48,6 +48,69 @@ def _normalize_answer(answer: str) -> str:
     return " ".join(answer.strip().lower().split())
 
 
+# Earliest comparable epoch for progress rows that were never persisted with a
+# real ``updated_at`` (e.g. transient rows built in unit tests).
+_RECOMMEND_EPOCH = datetime(2000, 1, 1, tzinfo=timezone.utc)
+
+
+def recommend_next_lesson(
+    lessons: list[Lesson],
+    progress_by_slug: dict[str, LessonProgress],
+) -> tuple[str | None, str]:
+    """Deterministically recommend the next lesson from catalog order + progress.
+
+    The rule uses ONLY existing, server-authoritative inputs — catalog ordering
+    and persisted progress. No new models, no engagement scoring, no recency
+    bias in the *selection* (recency only breaks exact ties):
+
+      1. Resume — if the student has started but not finished any lesson,
+         recommend the in-progress lesson with the greatest completion. Ties
+         break on most-recent activity (``updated_at``) then earliest catalog
+         ``order``.
+      2. Next — otherwise recommend the first lesson, by catalog order, that
+         the student has not started.
+      3. Done — if every cataloged lesson is completed, recommend nothing.
+
+    Returns ``(lesson_slug | None, reason)`` where ``reason`` is a user-facing
+    description of the rule that applied.
+    """
+
+    def _percent(lesson: Lesson, progress: LessonProgress) -> int:
+        section_ids = [section.id for section in lesson.sections]
+        total = len(section_ids)
+        done = sum(1 for sid in section_ids if sid in progress.completed_sections)
+        return round(100 * done / total) if total else 0
+
+    lesson_by_slug = {lesson.slug: lesson for lesson in lessons}
+    order_by_slug = {lesson.slug: lesson.order for lesson in lessons}
+
+    started = {
+        slug: progress
+        for slug, progress in progress_by_slug.items()
+        if slug in lesson_by_slug
+    }
+    in_progress = {
+        slug: progress
+        for slug, progress in started.items()
+        if progress.completed_at is None
+    }
+    if in_progress:
+        best_slug, _best_progress = max(
+            in_progress.items(),
+            key=lambda item: (
+                _percent(lesson_by_slug[item[0]], item[1]),
+                item[1].updated_at or _RECOMMEND_EPOCH,
+                -order_by_slug.get(item[0], 1 << 30),
+            ),
+        )
+        return best_slug, "Continue where you left off."
+
+    for lesson in lessons:  # already in catalog order
+        if lesson.slug not in started:
+            return lesson.slug, "Start the next lesson in your learning path."
+    return None, "You've completed every lesson — revisit one to review."
+
+
 class LearningService:
     """Application-layer facade over the content layer and progress store."""
 

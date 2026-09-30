@@ -45,17 +45,13 @@ class ContentRepository:
         Args:
             include_unpublished: When True (admin only) drafts are included.
         """
-        stmt = select(LessonRow).options(_LESSON_LOAD).order_by(
-            LessonRow.ordering, LessonRow.slug
-        )
+        stmt = select(LessonRow).options(_LESSON_LOAD).order_by(LessonRow.ordering, LessonRow.slug)
         if not include_unpublished:
             stmt = stmt.where(LessonRow.published.is_(True))
         result = await self._db.execute(stmt)
         return [self._to_domain(row) for row in result.scalars().all()]
 
-    async def get_lesson(
-        self, slug: str, *, include_unpublished: bool = False
-    ) -> Lesson | None:
+    async def get_lesson(self, slug: str, *, include_unpublished: bool = False) -> Lesson | None:
         """Return one lesson by slug, or None when absent (or unpublished)."""
         row = await self._get_row(slug, include_unpublished=include_unpublished)
         return None if row is None else self._to_domain(row)
@@ -66,31 +62,25 @@ class ContentRepository:
 
     async def slug_exists(self, slug: str) -> bool:
         """Return True when a lesson with this slug already exists."""
-        result = await self._db.execute(
-            select(LessonRow.id).where(LessonRow.slug == slug).limit(1)
-        )
+        result = await self._db.execute(select(LessonRow.id).where(LessonRow.slug == slug).limit(1))
         return result.scalar_one_or_none() is not None
 
     async def count_progress_for_lesson(self, slug: str) -> int:
         """Count student progress rows referencing a lesson slug."""
         result = await self._db.execute(
-            select(func.count()).select_from(LessonProgress).where(
-                LessonProgress.lesson_slug == slug
-            )
+            select(func.count())
+            .select_from(LessonProgress)
+            .where(LessonProgress.lesson_slug == slug)
         )
         return int(result.scalar_one())
 
-    async def list_lesson_rows(
-        self, *, include_unpublished: bool = False
-    ) -> list[LessonRow]:
+    async def list_lesson_rows(self, *, include_unpublished: bool = False) -> list[LessonRow]:
         """Return raw lesson rows in catalog order (admin catalog).
 
         Rows carry the publication state the admin UI needs, which the domain
         dataclasses deliberately do not.
         """
-        stmt = select(LessonRow).options(_LESSON_LOAD).order_by(
-            LessonRow.ordering, LessonRow.slug
-        )
+        stmt = select(LessonRow).options(_LESSON_LOAD).order_by(LessonRow.ordering, LessonRow.slug)
         if not include_unpublished:
             stmt = stmt.where(LessonRow.published.is_(True))
         result = await self._db.execute(stmt)
@@ -115,6 +105,7 @@ class ContentRepository:
 
         row.title = lesson.title
         row.description = lesson.description
+        row.objectives = list(lesson.objectives)
         row.topic = lesson.subject
         row.difficulty = lesson.difficulty
         row.estimated_minutes = lesson.estimated_minutes
@@ -252,4 +243,5 @@ class ContentRepository:
                     key=lambda q: q.ordering,
                 )
             ),
+            objectives=tuple(row.objectives or []),
         )

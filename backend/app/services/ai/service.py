@@ -85,6 +85,29 @@ _FALLBACK_ANSWER = (
     "Chemistry and Element explorers."
 )
 
+#: System prompt for molecule explanations (technical voice). The molecule's
+#: factual data is injected (separately, as part of the system prompt) so the
+#: model explains using ChemEngine values as ground truth and never invents
+#: chemistry. The fact-vs-explanation distinction is enforced architecturally:
+#: facts come from the engine; the explanation is the model's reasoning.
+_EXPLAIN_SYSTEM_PROMPT = (
+    "You are the Chemora chemistry tutor. A student asked for an explanation of "
+    "a molecule. The molecule's FACTUAL DATA is provided below — these values are "
+    "computed deterministically by the Chemora chemistry engine and are ground "
+    "truth. Do not guess, recompute, or fabricate any of them, and do not simply "
+    "restate the raw values as prose. Your job is to provide the EXPLANATION: the "
+    "reasoning, concepts, and chemical intuition that connect the facts. Clearly "
+    "separate what is a fact (an engine-computed value) from what is your "
+    "explanation (conceptual guidance). Keep the explanation concise and accurate, "
+    "and stay within chemistry learning topics."
+)
+#: Student-friendly variant (M41 learning mode).
+_EXPLAIN_SYSTEM_PROMPT_LEARNING = _EXPLAIN_SYSTEM_PROMPT + (
+    " Explain at a student-friendly level: use plain language, relatable analogies, "
+    "and scaffolded guidance; introduce and define any necessary jargon rather than "
+    "assuming it."
+)
+
 
 class TutorError(Exception):
     """A stable, client-safe tutor error."""
@@ -204,6 +227,102 @@ class TutorService:
             lesson_slugs=retrieval.lesson_slugs,
             tools_used=tools_used,
         )
+
+    async def explain(
+        self,
+        user_id: uuid.UUID,
+        molecule_facts: dict[str, object],
+        learning_mode: bool = False,
+    ) -> TutorAnswer:
+        """Produce a fact-vs-explanation answer for a molecule (M41).
+
+        The deterministic molecule data (computed by ChemEngine via the chemistry
+        service) is injected as part of the system prompt so the model explains
+        using engine values as ground truth. Lesson content is intentionally not
+        retrieved here — the molecule facts ARE the authority for this turn.
+
+        Args:
+            user_id: The authenticated user's id (from the session).
+            molecule_facts: Deterministic ChemEngine data about the molecule.
+            learning_mode: When True, the system prompt requests a student-friendly
+                voice (plain language, analogies, scaffolded guidance).
+
+        Returns:
+            A :class:`TutorAnswer` whose ``answer`` is the explanation. The
+            factual data is returned separately by the API layer from the same
+            deterministic input, preserving the fact-vs-explanation distinction.
+
+        Raises:
+            TutorError: With a stable client-safe code on any failure.
+        """
+        self._limiter.check(user_id)
+        context_text = self._format_molecule_context(molecule_facts)
+        system_prompt = (
+            _EXPLAIN_SYSTEM_PROMPT_LEARNING
+            if learning_mode
+            else _EXPLAIN_SYSTEM_PROMPT
+        )
+        retrieval = RetrievedContext(
+            system_prompt=system_prompt + "\n\n" + context_text,
+            lesson_slugs=[],
+            context_text="",
+        )
+        question = self._explain_question(molecule_facts)
+        tools_used: list[str] = []
+        answer = await self._run_provider_loop(question, [], retrieval, tools_used)
+        return TutorAnswer(answer=answer, lesson_slugs=[], tools_used=tools_used)
+
+    @staticmethod
+    def _explain_question(molecule_facts: dict[str, object]) -> str:
+        """The user-turn message that drives the explanation."""
+        formula = str(molecule_facts.get("formula", ""))
+        return (
+            f"Explain the molecule '{formula}' to a student. Using only the "
+            "factual data provided in your context, and clearly separating what "
+            "is a deterministic fact from your conceptual explanation."
+        )
+
+    @staticmethod
+    def _format_molecule_context(molecule_facts: dict[str, object]) -> str:
+        """Serialize deterministic molecule facts into a tutor-readable block."""
+        atom_symbols = cast("list[str]", molecule_facts.get("atom_symbols", []) or [])
+        bonds = cast("list[list[int]]", molecule_facts.get("bonds", []) or [])
+        groups = cast(
+            "list[dict[str, object]]",
+            molecule_facts.get("functional_groups", []) or [],
+        )
+        props = molecule_facts.get("properties")
+        order_name = {1: "single", 2: "double", 3: "triple"}
+        lines: list[str] = [
+            "MOLECULE FACTS (deterministic ChemEngine data — ground truth; "
+            "do not guess or recompute):",
+            f"Formula: {molecule_facts.get('formula', '')}",
+            f"Exact (monoisotopic) mass: {molecule_facts.get('exact_mass')} g/mol",
+            f"Average mass: {molecule_facts.get('average_mass')} g/mol",
+            f"Heavy atoms: {molecule_facts.get('heavy_atom_count')}",
+            f"Total atoms: {molecule_facts.get('atom_count')}",
+            f"Canonical SMILES: {molecule_facts.get('canonical_smiles', '')}",
+        ]
+        if atom_symbols:
+            lines.append(
+                "Atoms (index: symbol): "
+                + ", ".join(f"{i}:{s}" for i, s in enumerate(atom_symbols))
+            )
+        if bonds:
+            bond_strs = [
+                f"{b[0]}-{b[1]} ({order_name.get(b[2], str(b[2]) + '-order')})" for b in bonds
+            ]
+            lines.append("Bonds: " + ", ".join(bond_strs))
+        if groups:
+            lines.append(
+                "Functional groups: "
+                + ", ".join(str(g.get("name", "")) for g in groups)
+            )
+        if props:
+            lines.append(
+                "Properties: " + ", ".join(f"{k}={v}" for k, v in props.items())
+            )
+        return "\n".join(lines)
 
     # ── Provider/tool loop ────────────────────────────────────────
 

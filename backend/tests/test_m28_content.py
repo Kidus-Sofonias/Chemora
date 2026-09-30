@@ -13,7 +13,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.learning.content import get_lessons
+from app.learning.content import SECTION_KINDS, get_lessons
 from app.services.content_admin import AdminContentService
 from tests.conftest import MockGoogleTokenVerifier
 
@@ -30,6 +30,11 @@ M40_LESSONS = (
     "amino-acids",
     "peptide-bonds",
     "short-peptides",
+)
+
+M42_LESSONS = (
+    "gas-laws",
+    "chemical-nomenclature",
 )
 
 
@@ -56,7 +61,9 @@ def test_m28_curriculum_present_in_seed_order() -> None:
     ]
     assert slugs[5:11] == list(M28_LESSONS)
     # M40 lessons follow the M28 curriculum.
-    assert slugs[11:] == list(M40_LESSONS)
+    assert slugs[11:14] == list(M40_LESSONS)
+    # M42 lessons close out the catalog with objectives + worked examples.
+    assert slugs[14:] == list(M42_LESSONS)
 
 
 def test_m28_lessons_are_coherent() -> None:
@@ -81,6 +88,26 @@ def test_m40_lessons_are_coherent() -> None:
         kinds = [section.kind for section in lesson.sections]
         assert "practice" in kinds, slug
         assert "chemistry_spotlight" in kinds, slug
+        # Every question id referenced by a practice section exists.
+        for section in lesson.sections:
+            for qid in section.question_ids:
+                assert lesson.question_by_id(qid) is not None, (slug, qid)
+
+
+# ── M42 curriculum: learning objectives + worked examples ───────────────────
+
+
+def test_m42_lessons_are_coherent() -> None:
+    """Every M42 lesson has objectives, all six section kinds, and questions."""
+    by_slug = {lesson.slug: lesson for lesson in get_lessons()}
+    for slug in M42_LESSONS:
+        lesson = by_slug[slug]
+        assert lesson.objectives, slug
+        kinds = [section.kind for section in lesson.sections]
+        assert kinds == list(SECTION_KINDS), (slug, kinds)
+        # Objectives are non-empty prose.
+        for objective in lesson.objectives:
+            assert objective.strip(), slug
         # Every question id referenced by a practice section exists.
         for section in lesson.sections:
             for qid in section.question_ids:
@@ -128,7 +155,7 @@ async def test_m28_lessons_visible_to_students(api_client: AsyncClient) -> None:
     response = await api_client.get("/api/v1/learning/lessons")
     assert response.status_code == 200
     slugs = [lesson["slug"] for lesson in response.json()["lessons"]]
-    assert slugs[-9:] == list(M28_LESSONS) + list(M40_LESSONS)
+    assert slugs[-11:] == list(M28_LESSONS) + list(M40_LESSONS) + list(M42_LESSONS)
 
 
 @pytest.mark.asyncio
@@ -190,14 +217,10 @@ async def test_m28_chemistry_questions_grade_deterministically(
     assert checked >= 3
 
 
-async def _login_student(
-    client: AsyncClient, verifier: MockGoogleTokenVerifier
-) -> None:
+async def _login_student(client: AsyncClient, verifier: MockGoogleTokenVerifier) -> None:
     """Register and authenticate a scratch student."""
     verifier.register_token("m28_learner", sub="sub_m28_learner")
-    response = await client.post(
-        "/api/v1/auth/google", json={"credential": "m28_learner"}
-    )
+    response = await client.post("/api/v1/auth/google", json={"credential": "m28_learner"})
     assert response.status_code == 200
 
 
@@ -280,9 +303,7 @@ async def test_valid_molecule_reference_is_publishable(
     payload["slug"] = "molecule-check-valid"
     created = await api_client.post("/api/v1/admin/lessons", json=payload)
     assert created.status_code == 201
-    published = await api_client.post(
-        "/api/v1/admin/lessons/molecule-check-valid/publish"
-    )
+    published = await api_client.post("/api/v1/admin/lessons/molecule-check-valid/publish")
     assert published.status_code == 200
 
 
@@ -310,9 +331,7 @@ async def test_invalid_molecule_reference_rejected_at_publish(
     assert published.status_code == 404
 
 
-async def _login_admin_client(
-    client: AsyncClient, verifier: MockGoogleTokenVerifier
-) -> None:
+async def _login_admin_client(client: AsyncClient, verifier: MockGoogleTokenVerifier) -> None:
     """Authenticate as the configured admin (ADMIN_EMAILS patched by caller)."""
     verifier.register_token("m28_admin", sub="sub_m28_admin", email="admin@chemora.test")
     response = await client.post("/api/v1/auth/google", json={"credential": "m28_admin"})
