@@ -173,7 +173,7 @@ def make_provider(
     """Factory: select an AIProvider implementation by configured name.
 
     Args:
-        provider_name: ``"mock"``, ``"openai"``, or ``"anthropic"``.
+        provider_name: ``"mock"``, ``"openai"``, ``"deepseek"``, or ``"anthropic"``.
         api_base: OpenAI-compatible endpoint base URL.
         api_key: Server-side API key (never logged).
         model: Model name.

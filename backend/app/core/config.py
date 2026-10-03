@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     # in-process MockAIProvider so the system is fully testable without any
     # external LLM or API key. Set to "openai" for an OpenAI-compatible HTTP
     # API or "anthropic" for the Anthropic Messages API.
-    AI_PROVIDER: str = "mock"
+    AI_PROVIDER: str = "mock"\n    # Set to "deepseek" for the DeepSeek OpenAI-compatible API.\n    # The provider uses the same secure server-side abstraction as other LLMs.
     # OpenAI-compatible API base (override for providers like Ollama / proxies).
     AI_API_BASE: str = "https://api.openai.com/v1"
     AI_API_KEY: str = ""  # Server-side only. Never exposed to the client.

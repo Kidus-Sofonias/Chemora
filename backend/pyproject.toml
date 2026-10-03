@@ -26,7 +26,7 @@ dependencies = [
     # app/services/google_auth.py at import time) is an OPTIONAL google-auth
     # dependency, so it must be declared explicitly or clean installs (CI) fail
     # to import the backend with: ImportError: The requests library is not installed.
-    "requests>=2.31.0",
+    "requests>=2.31.0",\n    # OpenAI SDK is used as the transport for OpenAI-compatible providers,\n    # including DeepSeek. The API key remains server-side only.\n    "openai>=1.40.0",
     "httpx>=0.28.0",
     # ChemEngine — the authoritative deterministic chemistry engine. This is
     # the monorepo-local package at packages/chemengine; it is installed into
